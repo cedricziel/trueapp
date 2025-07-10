@@ -12,6 +12,7 @@ import 'package:truenas_manager/screens/server_pools_screen.dart';
 import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
 import 'package:truenas_manager/screens/user_profile_screen.dart';
+import 'package:truenas_manager/screens/server_apps_screen.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -708,10 +709,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     padding: EdgeInsets.zero,
                     child: const Text('View All'),
                     onPressed: () {
-                      // TODO: Navigate to full apps screen
-                      if (kDebugMode) {
-                        print('Navigate to apps screen');
-                      }
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) =>
+                              ServerAppsScreen(server: server),
+                        ),
+                      );
                     },
                   ),
                 ],
