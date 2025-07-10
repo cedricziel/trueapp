@@ -18,7 +18,8 @@
       "Bash(dart format:*)",
       "Bash(gh repo view:*)",
       "Bash(gh repo view:*)",
-      "Bash(gh label:*)"
+      "Bash(gh label:*)",
+      "Bash(gh issue view:*)"
     ],
     "deny": []
   }

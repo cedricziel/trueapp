@@ -8,6 +8,7 @@ import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
 import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/models/connection_error.dart';
+import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/services/network_service.dart';
 
 class TrueNasApiClient {
@@ -368,6 +369,39 @@ class TrueNasApiClient {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  // App management methods
+  Future<List<App>> getAvailableApps() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.available');
+      return (result as List<dynamic>)
+          .map((app) => App.fromJson(app as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<List<String>> getAppCategories() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.categories');
+      return (result as List<dynamic>).cast<String>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getDockerStatus() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('docker.status');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 

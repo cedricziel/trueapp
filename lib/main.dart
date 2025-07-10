@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/providers/dataset_provider.dart';
+import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/screens/home_screen.dart';
 import 'package:truenas_manager/services/database.dart';
 
@@ -18,6 +19,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => ServerProvider(database)),
         ChangeNotifierProvider(create: (context) => PoolProvider()),
         ChangeNotifierProvider(create: (context) => DatasetProvider()),
+        ChangeNotifierProvider(create: (context) => AppProvider()),
       ],
       child: const TrueNASManagerApp(),
     ),
