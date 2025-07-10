@@ -15,7 +15,7 @@ import 'package:truenas_manager/services/network_service.dart';
 class TrueNasApiClient {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
-  Client? _client;
+  Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
 
@@ -54,7 +54,10 @@ class TrueNasApiClient {
         protocols: ['json-rpc'],
       );
 
-      _client = Client(_wsChannel!.cast<String>());
+      _client = Peer(_wsChannel!.cast<String>());
+
+      // Register method to handle collection_update notifications from server
+      _setupCollectionUpdateHandler();
 
       // Start listening for responses with error handling
       _client!.listen().catchError((error) {
@@ -74,6 +77,32 @@ class TrueNasApiClient {
       }
       throw _handleConnectionError(e);
     }
+  }
+
+  void _setupCollectionUpdateHandler() {
+    if (_client == null) return;
+
+    // Register method to handle collection_update notifications from TrueNAS
+    _client!.registerMethod('collection_update', (parameters) {
+      try {
+        final collection = parameters['collection'].value as String?;
+        if (collection == 'reporting.realtime') {
+          final fields = parameters['fields'].value as Map<String, dynamic>;
+          final systemStats = SystemStats.fromJson(fields);
+          _systemStatsController?.add(systemStats);
+
+          if (kDebugMode) {
+            print(
+              'TrueNAS API: Received realtime stats - CPU: ${systemStats.cpu.overall.usage.toStringAsFixed(1)}%',
+            );
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('TrueNAS API: Error parsing collection_update: $e');
+        }
+      }
+    });
   }
 
   Future<void> _ensureAuthenticated() async {
