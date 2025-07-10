@@ -126,6 +126,32 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
 
   @override
   String? get userError => null;
+
+  @override
+  Future<void> setDefaultServer(String serverId) async {
+    await _database.setDefaultServer(serverId);
+    await loadServers();
+  }
+
+  @override
+  Future<void> clearDefaultServer() async {
+    await _database.clearDefaultServer();
+    await loadServers();
+  }
+
+  @override
+  Future<void> loadServersAndAutoSelect() async {
+    await loadServers();
+  }
+
+  @override
+  NasServer? get defaultServer {
+    try {
+      return _servers.firstWhere((server) => server.isDefault);
+    } catch (e) {
+      return null;
+    }
+  }
 }
 
 class MockPoolProvider extends ChangeNotifier implements PoolProvider {

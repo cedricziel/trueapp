@@ -20,6 +20,7 @@ class NasServers extends Table {
       boolean().withDefault(const Constant(false))();
   DateTimeColumn get lastConnected => dateTime().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -33,10 +34,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
-  MigrationStrategy get migration => MigrationStrategy();
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(nasServers, nasServers.isDefault);
+      }
+    },
+  );
 
   Future<List<models.NasServer>> getAllServers() async {
     final query = select(nasServers);
@@ -70,6 +80,7 @@ class AppDatabase extends _$AppDatabase {
         allowUntrustedCertificates: Value(server.allowUntrustedCertificates),
         lastConnected: Value(server.lastConnected),
         isActive: Value(server.isActive),
+        isDefault: Value(server.isDefault),
       ),
     );
   }
@@ -88,6 +99,7 @@ class AppDatabase extends _$AppDatabase {
         allowUntrustedCertificates: Value(server.allowUntrustedCertificates),
         lastConnected: Value(server.lastConnected),
         isActive: Value(server.isActive),
+        isDefault: Value(server.isDefault),
       ),
     );
   }
@@ -100,6 +112,30 @@ class AppDatabase extends _$AppDatabase {
     await (update(nasServers)..where((tbl) => tbl.id.equals(id))).write(
       NasServersCompanion(lastConnected: Value(DateTime.now())),
     );
+  }
+
+  Future<models.NasServer?> getDefaultServer() async {
+    final query = select(nasServers)
+      ..where((tbl) => tbl.isDefault.equals(true));
+    final row = await query.getSingleOrNull();
+    return row != null ? _mapRowToNasServer(row) : null;
+  }
+
+  Future<void> setDefaultServer(String id) async {
+    await transaction(() async {
+      // First, clear any existing default server
+      await (update(nasServers)..where((tbl) => tbl.isDefault.equals(true)))
+          .write(NasServersCompanion(isDefault: const Value(false)));
+      // Then set the new default server
+      await (update(nasServers)..where((tbl) => tbl.id.equals(id))).write(
+        NasServersCompanion(isDefault: const Value(true)),
+      );
+    });
+  }
+
+  Future<void> clearDefaultServer() async {
+    await (update(nasServers)..where((tbl) => tbl.isDefault.equals(true)))
+        .write(NasServersCompanion(isDefault: const Value(false)));
   }
 
   models.NasServer _mapRowToNasServer(NasServerData row) {
@@ -120,6 +156,7 @@ class AppDatabase extends _$AppDatabase {
       allowUntrustedCertificates: row.allowUntrustedCertificates,
       lastConnected: row.lastConnected,
       isActive: row.isActive,
+      isDefault: row.isDefault,
     );
   }
 }

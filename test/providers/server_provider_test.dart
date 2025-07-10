@@ -33,6 +33,71 @@ void main() {
   });
 
   group('ServerProvider', () {
+    test('should set and get default server', () async {
+      // Initially no default server
+      expect(serverProvider.defaultServer, isNull);
+
+      // Set default server
+      await serverProvider.setDefaultServer(testServer.id);
+      await serverProvider.loadServers();
+
+      // Verify default server is set
+      final defaultServer = serverProvider.defaultServer;
+      expect(defaultServer, isNotNull);
+      expect(defaultServer?.id, testServer.id);
+      expect(defaultServer?.isDefault, isTrue);
+    });
+
+    test('should clear default server', () async {
+      // Set server as default first
+      await serverProvider.setDefaultServer(testServer.id);
+      await serverProvider.loadServers();
+      expect(serverProvider.defaultServer, isNotNull);
+
+      // Clear default server
+      await serverProvider.clearDefaultServer();
+
+      // Verify no default server
+      expect(serverProvider.defaultServer, isNull);
+    });
+
+    test('should auto-select single server', () async {
+      // Clear any existing selection
+      serverProvider.clearSelectedServer();
+      expect(serverProvider.selectedServer, isNull);
+
+      // Auto-select should pick the only server
+      await serverProvider.loadServersAndAutoSelect();
+      expect(serverProvider.selectedServer, isNotNull);
+      expect(serverProvider.selectedServer?.id, testServer.id);
+    });
+
+    test(
+      'should auto-select default server when multiple servers exist',
+      () async {
+        // Add a second server
+        final secondServer = NasServer.create(
+          name: 'Second Server',
+          host: '192.168.1.101',
+          username: 'admin',
+          password: 'password',
+        );
+        await serverProvider.addServer(secondServer);
+
+        // Set second server as default
+        await serverProvider.setDefaultServer(secondServer.id);
+
+        // Clear any existing selection
+        serverProvider.clearSelectedServer();
+        expect(serverProvider.selectedServer, isNull);
+
+        // Auto-select should pick the default server
+        await serverProvider.loadServersAndAutoSelect();
+        expect(serverProvider.selectedServer, isNotNull);
+        expect(serverProvider.selectedServer?.id, secondServer.id);
+      },
+    );
+
     test('should update server and refresh selected server', () async {
       // Set the test server as active
       serverProvider.selectServer(testServer);
