@@ -36,15 +36,37 @@ class $NasServersTable extends NasServers
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _localUrlMeta = const VerificationMeta(
+    'localUrl',
+  );
+  @override
+  late final GeneratedColumn<String> localUrl = GeneratedColumn<String>(
+    'local_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trustedWifiSsidsMeta = const VerificationMeta(
+    'trustedWifiSsids',
+  );
+  @override
+  late final GeneratedColumn<String> trustedWifiSsids = GeneratedColumn<String>(
+    'trusted_wifi_ssids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _portMeta = const VerificationMeta('port');
   @override
   late final GeneratedColumn<int> port = GeneratedColumn<int>(
     'port',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(80),
   );
   static const VerificationMeta _usernameMeta = const VerificationMeta(
     'username',
@@ -83,6 +105,21 @@ class $NasServersTable extends NasServers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _allowUntrustedCertificatesMeta =
+      const VerificationMeta('allowUntrustedCertificates');
+  @override
+  late final GeneratedColumn<bool> allowUntrustedCertificates =
+      GeneratedColumn<bool>(
+        'allow_untrusted_certificates',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("allow_untrusted_certificates" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _lastConnectedMeta = const VerificationMeta(
     'lastConnected',
   );
@@ -115,10 +152,13 @@ class $NasServersTable extends NasServers
     id,
     name,
     host,
+    localUrl,
+    trustedWifiSsids,
     port,
     username,
     password,
     useHttps,
+    allowUntrustedCertificates,
     lastConnected,
     isActive,
   ];
@@ -155,6 +195,21 @@ class $NasServersTable extends NasServers
     } else if (isInserting) {
       context.missing(_hostMeta);
     }
+    if (data.containsKey('local_url')) {
+      context.handle(
+        _localUrlMeta,
+        localUrl.isAcceptableOrUnknown(data['local_url']!, _localUrlMeta),
+      );
+    }
+    if (data.containsKey('trusted_wifi_ssids')) {
+      context.handle(
+        _trustedWifiSsidsMeta,
+        trustedWifiSsids.isAcceptableOrUnknown(
+          data['trusted_wifi_ssids']!,
+          _trustedWifiSsidsMeta,
+        ),
+      );
+    }
     if (data.containsKey('port')) {
       context.handle(
         _portMeta,
@@ -181,6 +236,15 @@ class $NasServersTable extends NasServers
       context.handle(
         _useHttpsMeta,
         useHttps.isAcceptableOrUnknown(data['use_https']!, _useHttpsMeta),
+      );
+    }
+    if (data.containsKey('allow_untrusted_certificates')) {
+      context.handle(
+        _allowUntrustedCertificatesMeta,
+        allowUntrustedCertificates.isAcceptableOrUnknown(
+          data['allow_untrusted_certificates']!,
+          _allowUntrustedCertificatesMeta,
+        ),
       );
     }
     if (data.containsKey('last_connected')) {
@@ -219,10 +283,18 @@ class $NasServersTable extends NasServers
         DriftSqlType.string,
         data['${effectivePrefix}host'],
       )!,
+      localUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_url'],
+      ),
+      trustedWifiSsids: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trusted_wifi_ssids'],
+      )!,
       port: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}port'],
-      )!,
+      ),
       username: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}username'],
@@ -234,6 +306,10 @@ class $NasServersTable extends NasServers
       useHttps: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}use_https'],
+      )!,
+      allowUntrustedCertificates: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}allow_untrusted_certificates'],
       )!,
       lastConnected: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -256,20 +332,26 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final String id;
   final String name;
   final String host;
-  final int port;
+  final String? localUrl;
+  final String trustedWifiSsids;
+  final int? port;
   final String username;
   final String password;
   final bool useHttps;
+  final bool allowUntrustedCertificates;
   final DateTime? lastConnected;
   final bool isActive;
   const NasServerData({
     required this.id,
     required this.name,
     required this.host,
-    required this.port,
+    this.localUrl,
+    required this.trustedWifiSsids,
+    this.port,
     required this.username,
     required this.password,
     required this.useHttps,
+    required this.allowUntrustedCertificates,
     this.lastConnected,
     required this.isActive,
   });
@@ -279,10 +361,19 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['host'] = Variable<String>(host);
-    map['port'] = Variable<int>(port);
+    if (!nullToAbsent || localUrl != null) {
+      map['local_url'] = Variable<String>(localUrl);
+    }
+    map['trusted_wifi_ssids'] = Variable<String>(trustedWifiSsids);
+    if (!nullToAbsent || port != null) {
+      map['port'] = Variable<int>(port);
+    }
     map['username'] = Variable<String>(username);
     map['password'] = Variable<String>(password);
     map['use_https'] = Variable<bool>(useHttps);
+    map['allow_untrusted_certificates'] = Variable<bool>(
+      allowUntrustedCertificates,
+    );
     if (!nullToAbsent || lastConnected != null) {
       map['last_connected'] = Variable<DateTime>(lastConnected);
     }
@@ -295,10 +386,15 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: Value(id),
       name: Value(name),
       host: Value(host),
-      port: Value(port),
+      localUrl: localUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localUrl),
+      trustedWifiSsids: Value(trustedWifiSsids),
+      port: port == null && nullToAbsent ? const Value.absent() : Value(port),
       username: Value(username),
       password: Value(password),
       useHttps: Value(useHttps),
+      allowUntrustedCertificates: Value(allowUntrustedCertificates),
       lastConnected: lastConnected == null && nullToAbsent
           ? const Value.absent()
           : Value(lastConnected),
@@ -315,10 +411,15 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       host: serializer.fromJson<String>(json['host']),
-      port: serializer.fromJson<int>(json['port']),
+      localUrl: serializer.fromJson<String?>(json['localUrl']),
+      trustedWifiSsids: serializer.fromJson<String>(json['trustedWifiSsids']),
+      port: serializer.fromJson<int?>(json['port']),
       username: serializer.fromJson<String>(json['username']),
       password: serializer.fromJson<String>(json['password']),
       useHttps: serializer.fromJson<bool>(json['useHttps']),
+      allowUntrustedCertificates: serializer.fromJson<bool>(
+        json['allowUntrustedCertificates'],
+      ),
       lastConnected: serializer.fromJson<DateTime?>(json['lastConnected']),
       isActive: serializer.fromJson<bool>(json['isActive']),
     );
@@ -330,10 +431,15 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'host': serializer.toJson<String>(host),
-      'port': serializer.toJson<int>(port),
+      'localUrl': serializer.toJson<String?>(localUrl),
+      'trustedWifiSsids': serializer.toJson<String>(trustedWifiSsids),
+      'port': serializer.toJson<int?>(port),
       'username': serializer.toJson<String>(username),
       'password': serializer.toJson<String>(password),
       'useHttps': serializer.toJson<bool>(useHttps),
+      'allowUntrustedCertificates': serializer.toJson<bool>(
+        allowUntrustedCertificates,
+      ),
       'lastConnected': serializer.toJson<DateTime?>(lastConnected),
       'isActive': serializer.toJson<bool>(isActive),
     };
@@ -343,20 +449,27 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     String? id,
     String? name,
     String? host,
-    int? port,
+    Value<String?> localUrl = const Value.absent(),
+    String? trustedWifiSsids,
+    Value<int?> port = const Value.absent(),
     String? username,
     String? password,
     bool? useHttps,
+    bool? allowUntrustedCertificates,
     Value<DateTime?> lastConnected = const Value.absent(),
     bool? isActive,
   }) => NasServerData(
     id: id ?? this.id,
     name: name ?? this.name,
     host: host ?? this.host,
-    port: port ?? this.port,
+    localUrl: localUrl.present ? localUrl.value : this.localUrl,
+    trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
+    port: port.present ? port.value : this.port,
     username: username ?? this.username,
     password: password ?? this.password,
     useHttps: useHttps ?? this.useHttps,
+    allowUntrustedCertificates:
+        allowUntrustedCertificates ?? this.allowUntrustedCertificates,
     lastConnected: lastConnected.present
         ? lastConnected.value
         : this.lastConnected,
@@ -367,10 +480,17 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       host: data.host.present ? data.host.value : this.host,
+      localUrl: data.localUrl.present ? data.localUrl.value : this.localUrl,
+      trustedWifiSsids: data.trustedWifiSsids.present
+          ? data.trustedWifiSsids.value
+          : this.trustedWifiSsids,
       port: data.port.present ? data.port.value : this.port,
       username: data.username.present ? data.username.value : this.username,
       password: data.password.present ? data.password.value : this.password,
       useHttps: data.useHttps.present ? data.useHttps.value : this.useHttps,
+      allowUntrustedCertificates: data.allowUntrustedCertificates.present
+          ? data.allowUntrustedCertificates.value
+          : this.allowUntrustedCertificates,
       lastConnected: data.lastConnected.present
           ? data.lastConnected.value
           : this.lastConnected,
@@ -384,10 +504,13 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('localUrl: $localUrl, ')
+          ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
           ..write('username: $username, ')
           ..write('password: $password, ')
           ..write('useHttps: $useHttps, ')
+          ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
           ..write('isActive: $isActive')
           ..write(')'))
@@ -399,10 +522,13 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     id,
     name,
     host,
+    localUrl,
+    trustedWifiSsids,
     port,
     username,
     password,
     useHttps,
+    allowUntrustedCertificates,
     lastConnected,
     isActive,
   );
@@ -413,10 +539,13 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           other.id == this.id &&
           other.name == this.name &&
           other.host == this.host &&
+          other.localUrl == this.localUrl &&
+          other.trustedWifiSsids == this.trustedWifiSsids &&
           other.port == this.port &&
           other.username == this.username &&
           other.password == this.password &&
           other.useHttps == this.useHttps &&
+          other.allowUntrustedCertificates == this.allowUntrustedCertificates &&
           other.lastConnected == this.lastConnected &&
           other.isActive == this.isActive);
 }
@@ -425,10 +554,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> host;
-  final Value<int> port;
+  final Value<String?> localUrl;
+  final Value<String> trustedWifiSsids;
+  final Value<int?> port;
   final Value<String> username;
   final Value<String> password;
   final Value<bool> useHttps;
+  final Value<bool> allowUntrustedCertificates;
   final Value<DateTime?> lastConnected;
   final Value<bool> isActive;
   final Value<int> rowid;
@@ -436,10 +568,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.host = const Value.absent(),
+    this.localUrl = const Value.absent(),
+    this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
     this.username = const Value.absent(),
     this.password = const Value.absent(),
     this.useHttps = const Value.absent(),
+    this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -448,10 +583,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     required String id,
     required String name,
     required String host,
+    this.localUrl = const Value.absent(),
+    this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
     required String username,
     required String password,
     this.useHttps = const Value.absent(),
+    this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -464,10 +602,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? host,
+    Expression<String>? localUrl,
+    Expression<String>? trustedWifiSsids,
     Expression<int>? port,
     Expression<String>? username,
     Expression<String>? password,
     Expression<bool>? useHttps,
+    Expression<bool>? allowUntrustedCertificates,
     Expression<DateTime>? lastConnected,
     Expression<bool>? isActive,
     Expression<int>? rowid,
@@ -476,10 +617,14 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (host != null) 'host': host,
+      if (localUrl != null) 'local_url': localUrl,
+      if (trustedWifiSsids != null) 'trusted_wifi_ssids': trustedWifiSsids,
       if (port != null) 'port': port,
       if (username != null) 'username': username,
       if (password != null) 'password': password,
       if (useHttps != null) 'use_https': useHttps,
+      if (allowUntrustedCertificates != null)
+        'allow_untrusted_certificates': allowUntrustedCertificates,
       if (lastConnected != null) 'last_connected': lastConnected,
       if (isActive != null) 'is_active': isActive,
       if (rowid != null) 'rowid': rowid,
@@ -490,10 +635,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? host,
-    Value<int>? port,
+    Value<String?>? localUrl,
+    Value<String>? trustedWifiSsids,
+    Value<int?>? port,
     Value<String>? username,
     Value<String>? password,
     Value<bool>? useHttps,
+    Value<bool>? allowUntrustedCertificates,
     Value<DateTime?>? lastConnected,
     Value<bool>? isActive,
     Value<int>? rowid,
@@ -502,10 +650,14 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       id: id ?? this.id,
       name: name ?? this.name,
       host: host ?? this.host,
+      localUrl: localUrl ?? this.localUrl,
+      trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
       port: port ?? this.port,
       username: username ?? this.username,
       password: password ?? this.password,
       useHttps: useHttps ?? this.useHttps,
+      allowUntrustedCertificates:
+          allowUntrustedCertificates ?? this.allowUntrustedCertificates,
       lastConnected: lastConnected ?? this.lastConnected,
       isActive: isActive ?? this.isActive,
       rowid: rowid ?? this.rowid,
@@ -524,6 +676,12 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     if (host.present) {
       map['host'] = Variable<String>(host.value);
     }
+    if (localUrl.present) {
+      map['local_url'] = Variable<String>(localUrl.value);
+    }
+    if (trustedWifiSsids.present) {
+      map['trusted_wifi_ssids'] = Variable<String>(trustedWifiSsids.value);
+    }
     if (port.present) {
       map['port'] = Variable<int>(port.value);
     }
@@ -535,6 +693,11 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     }
     if (useHttps.present) {
       map['use_https'] = Variable<bool>(useHttps.value);
+    }
+    if (allowUntrustedCertificates.present) {
+      map['allow_untrusted_certificates'] = Variable<bool>(
+        allowUntrustedCertificates.value,
+      );
     }
     if (lastConnected.present) {
       map['last_connected'] = Variable<DateTime>(lastConnected.value);
@@ -554,10 +717,13 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('localUrl: $localUrl, ')
+          ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
           ..write('username: $username, ')
           ..write('password: $password, ')
           ..write('useHttps: $useHttps, ')
+          ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
           ..write('isActive: $isActive, ')
           ..write('rowid: $rowid')
@@ -582,10 +748,13 @@ typedef $$NasServersTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String host,
-      Value<int> port,
+      Value<String?> localUrl,
+      Value<String> trustedWifiSsids,
+      Value<int?> port,
       required String username,
       required String password,
       Value<bool> useHttps,
+      Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
       Value<int> rowid,
@@ -595,10 +764,13 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> host,
-      Value<int> port,
+      Value<String?> localUrl,
+      Value<String> trustedWifiSsids,
+      Value<int?> port,
       Value<String> username,
       Value<String> password,
       Value<bool> useHttps,
+      Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
       Value<int> rowid,
@@ -628,6 +800,16 @@ class $$NasServersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get localUrl => $composableBuilder(
+    column: $table.localUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trustedWifiSsids => $composableBuilder(
+    column: $table.trustedWifiSsids,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get port => $composableBuilder(
     column: $table.port,
     builder: (column) => ColumnFilters(column),
@@ -645,6 +827,11 @@ class $$NasServersTableFilterComposer
 
   ColumnFilters<bool> get useHttps => $composableBuilder(
     column: $table.useHttps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -683,6 +870,16 @@ class $$NasServersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get localUrl => $composableBuilder(
+    column: $table.localUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trustedWifiSsids => $composableBuilder(
+    column: $table.trustedWifiSsids,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get port => $composableBuilder(
     column: $table.port,
     builder: (column) => ColumnOrderings(column),
@@ -700,6 +897,11 @@ class $$NasServersTableOrderingComposer
 
   ColumnOrderings<bool> get useHttps => $composableBuilder(
     column: $table.useHttps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -732,6 +934,14 @@ class $$NasServersTableAnnotationComposer
   GeneratedColumn<String> get host =>
       $composableBuilder(column: $table.host, builder: (column) => column);
 
+  GeneratedColumn<String> get localUrl =>
+      $composableBuilder(column: $table.localUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get trustedWifiSsids => $composableBuilder(
+    column: $table.trustedWifiSsids,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get port =>
       $composableBuilder(column: $table.port, builder: (column) => column);
 
@@ -743,6 +953,11 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<bool> get useHttps =>
       $composableBuilder(column: $table.useHttps, builder: (column) => column);
+
+  GeneratedColumn<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get lastConnected => $composableBuilder(
     column: $table.lastConnected,
@@ -787,10 +1002,13 @@ class $$NasServersTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> host = const Value.absent(),
-                Value<int> port = const Value.absent(),
+                Value<String?> localUrl = const Value.absent(),
+                Value<String> trustedWifiSsids = const Value.absent(),
+                Value<int?> port = const Value.absent(),
                 Value<String> username = const Value.absent(),
                 Value<String> password = const Value.absent(),
                 Value<bool> useHttps = const Value.absent(),
+                Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -798,10 +1016,13 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                localUrl: localUrl,
+                trustedWifiSsids: trustedWifiSsids,
                 port: port,
                 username: username,
                 password: password,
                 useHttps: useHttps,
+                allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
                 rowid: rowid,
@@ -811,10 +1032,13 @@ class $$NasServersTableTableManager
                 required String id,
                 required String name,
                 required String host,
-                Value<int> port = const Value.absent(),
+                Value<String?> localUrl = const Value.absent(),
+                Value<String> trustedWifiSsids = const Value.absent(),
+                Value<int?> port = const Value.absent(),
                 required String username,
                 required String password,
                 Value<bool> useHttps = const Value.absent(),
+                Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -822,10 +1046,13 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                localUrl: localUrl,
+                trustedWifiSsids: trustedWifiSsids,
                 port: port,
                 username: username,
                 password: password,
                 useHttps: useHttps,
+                allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
                 rowid: rowid,

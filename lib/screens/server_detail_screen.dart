@@ -37,75 +37,88 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(widget.server.name),
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.person_circle),
-          onPressed: () {
-            Navigator.push(
-              context,
-              CupertinoPageRoute(
-                builder: (context) => UserProfileScreen(server: widget.server),
-              ),
-            );
-          },
-        ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.ellipsis),
-          onPressed: () {
-            showCupertinoModalPopup(
-              context: context,
-              builder: (context) => CupertinoActionSheet(
-                actions: [
-                  CupertinoActionSheetAction(
-                    child: const Text('Edit Server'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) =>
-                              EditServerScreen(server: widget.server),
-                        ),
-                      );
-                    },
+    return Consumer<ServerProvider>(
+      builder: (context, serverProvider, child) {
+        // Use the selectedServer from the provider if available, fallback to server
+        final currentServer = serverProvider.selectedServer ?? widget.server;
+
+        return CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            middle: Text(currentServer.name),
+            leading: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.person_circle),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) =>
+                        UserProfileScreen(server: currentServer),
                   ),
-                ],
-                cancelButton: CupertinoActionSheetAction(
-                  isDefaultAction: true,
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      child: SafeArea(
-        child: Consumer<ServerProvider>(
-          builder: (context, provider, child) {
-            return ListView(
+                );
+              },
+            ),
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.ellipsis),
+              onPressed: () {
+                showCupertinoModalPopup(
+                  context: context,
+                  builder: (context) => CupertinoActionSheet(
+                    actions: [
+                      CupertinoActionSheetAction(
+                        child: const Text('Edit Server'),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          final result = await Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) =>
+                                  EditServerScreen(server: currentServer),
+                            ),
+                          );
+
+                          // Refresh server data if changes were made
+                          if (result == true && mounted) {
+                            if (context.mounted) {
+                              final serverProvider = context
+                                  .read<ServerProvider>();
+                              await serverProvider.refreshSelectedServer();
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                    cancelButton: CupertinoActionSheetAction(
+                      isDefaultAction: true,
+                      child: const Text('Cancel'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          child: SafeArea(
+            child: ListView(
               children: [
                 const SizedBox(height: 20),
-                _buildServerInfo(),
+                _buildServerInfo(currentServer),
                 const SizedBox(height: 20),
-                _buildPoolsSection(),
+                _buildPoolsSection(currentServer),
                 const SizedBox(height: 30),
-                _buildActionButtons(context),
+                _buildActionButtons(context, currentServer),
                 const SizedBox(height: 30),
-                _buildConnectionStatus(),
+                _buildConnectionStatus(currentServer),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildServerInfo() {
+  Widget _buildServerInfo(NasServer server) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -115,13 +128,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Host', widget.server.host),
+          _buildInfoRow('Host', server.host),
           const SizedBox(height: 8),
-          _buildInfoRow('Port', widget.server.port.toString()),
+          _buildInfoRow('Port', server.port.toString()),
           const SizedBox(height: 8),
-          _buildInfoRow('Protocol', widget.server.useHttps ? 'HTTPS' : 'HTTP'),
+          _buildInfoRow('Protocol', server.useHttps ? 'HTTPS' : 'HTTP'),
           const SizedBox(height: 8),
-          _buildInfoRow('Username', widget.server.username),
+          _buildInfoRow('Username', server.username),
         ],
       ),
     );
@@ -146,7 +159,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, NasServer server) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -160,8 +173,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) =>
-                      ServerPoolsScreen(server: widget.server),
+                  builder: (context) => ServerPoolsScreen(server: server),
                 ),
               );
             },
@@ -176,8 +188,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) =>
-                      ServerFilesScreen(server: widget.server),
+                  builder: (context) => ServerFilesScreen(server: server),
                 ),
               );
             },
@@ -192,8 +203,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) =>
-                      ServerHealthScreen(server: widget.server),
+                  builder: (context) => ServerHealthScreen(server: server),
                 ),
               );
             },
@@ -264,10 +274,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildConnectionStatus() {
+  Widget _buildConnectionStatus(NasServer server) {
     final isConnected =
-        widget.server.lastConnected != null &&
-        DateTime.now().difference(widget.server.lastConnected!).inMinutes < 5;
+        server.lastConnected != null &&
+        DateTime.now().difference(server.lastConnected!).inMinutes < 5;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -301,9 +311,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (widget.server.lastConnected != null)
+                if (server.lastConnected != null)
                   Text(
-                    'Last connected: ${_formatLastConnected(widget.server.lastConnected!)}',
+                    'Last connected: ${_formatLastConnected(server.lastConnected!)}',
                     style: const TextStyle(
                       fontSize: 14,
                       color: CupertinoColors.systemGrey,
@@ -317,7 +327,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildPoolsSection() {
+  Widget _buildPoolsSection(NasServer server) {
     return Consumer<PoolProvider>(
       builder: (context, poolProvider, child) {
         return Container(
@@ -340,7 +350,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                         context,
                         CupertinoPageRoute(
                           builder: (context) =>
-                              ServerPoolsScreen(server: widget.server),
+                              ServerPoolsScreen(server: server),
                         ),
                       );
                     },
@@ -417,7 +427,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                   children: poolProvider.pools.map((pool) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildPoolCard(pool),
+                      child: _buildPoolCard(pool, server),
                     );
                   }).toList(),
                 ),
@@ -428,7 +438,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildPoolCard(Map<String, dynamic> pool) {
+  Widget _buildPoolCard(Map<String, dynamic> pool, NasServer server) {
     final name = pool['name'] as String? ?? 'Unknown';
     final status = pool['status'] as String? ?? 'Unknown';
     final healthy = pool['healthy'] as bool? ?? false;
@@ -442,8 +452,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         Navigator.push(
           context,
           CupertinoPageRoute(
-            builder: (context) =>
-                PoolDetailScreen(server: widget.server, pool: pool),
+            builder: (context) => PoolDetailScreen(server: server, pool: pool),
           ),
         );
       },

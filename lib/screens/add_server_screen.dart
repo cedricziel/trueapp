@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
+import 'package:truenas_manager/services/network_service.dart';
 
 class AddServerScreen extends StatefulWidget {
   const AddServerScreen({super.key});
@@ -13,29 +14,124 @@ class AddServerScreen extends StatefulWidget {
 class _AddServerScreenState extends State<AddServerScreen> {
   final _nameController = TextEditingController();
   final _hostController = TextEditingController();
-  final _portController = TextEditingController(text: '443');
+  final _localUrlController = TextEditingController();
+  final _portController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _wifiSsidController = TextEditingController();
   bool _useHttps = true;
+  bool _allowUntrustedCertificates = false;
   bool _isTestingConnection = false;
   String? _connectionTestResult;
+  final List<String> _trustedWifiSsids = [];
+  String? _currentWifiSsid;
+  bool _isLoadingCurrentSsid = false;
+  final NetworkService _networkService = NetworkService();
 
   @override
   void dispose() {
     _nameController.dispose();
     _hostController.dispose();
+    _localUrlController.dispose();
     _portController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _wifiSsidController.dispose();
     super.dispose();
   }
 
   bool get _isValid {
     return _nameController.text.isNotEmpty &&
         _hostController.text.isNotEmpty &&
-        _portController.text.isNotEmpty &&
         _usernameController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty;
+  }
+
+  void _addWifiSsid() {
+    final ssid = _wifiSsidController.text.trim();
+    if (ssid.isNotEmpty && !_trustedWifiSsids.contains(ssid)) {
+      setState(() {
+        _trustedWifiSsids.add(ssid);
+        _wifiSsidController.clear();
+      });
+    }
+  }
+
+  void _removeWifiSsid(String ssid) {
+    setState(() {
+      _trustedWifiSsids.remove(ssid);
+    });
+  }
+
+  Future<void> _loadCurrentWifiSsid() async {
+    setState(() {
+      _isLoadingCurrentSsid = true;
+      _currentWifiSsid = null; // Reset previous result
+    });
+
+    try {
+      final ssid = await _networkService.getCurrentWifiSsidWithPermission();
+      setState(() {
+        _currentWifiSsid = ssid;
+      });
+
+      // Show feedback if no Wi-Fi was detected
+      if (mounted && ssid == null) {
+        if (context.mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('No Wi-Fi Detected'),
+              content: const Text(
+                'Unable to detect current Wi-Fi network. This could be due to:\n\n'
+                '• Not connected to Wi-Fi\n'
+                '• Location permission not granted\n'
+                '• Platform restrictions (macOS/iOS)\n\n'
+                'You can still manually enter network names.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted && context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Wi-Fi Detection Error'),
+            content: Text(
+              'Failed to detect Wi-Fi network: ${e.toString()}\n\n'
+              'You can still manually enter network names.',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoadingCurrentSsid = false;
+      });
+    }
+  }
+
+  void _addCurrentWifiSsid() {
+    if (_currentWifiSsid != null &&
+        !_trustedWifiSsids.contains(_currentWifiSsid!)) {
+      setState(() {
+        _trustedWifiSsids.add(_currentWifiSsid!);
+      });
+    }
   }
 
   Future<void> _testConnection() async {
@@ -49,10 +145,17 @@ class _AddServerScreenState extends State<AddServerScreen> {
     final server = NasServer.create(
       name: _nameController.text,
       host: _hostController.text,
-      port: int.tryParse(_portController.text) ?? 443,
+      localUrl: _localUrlController.text.isNotEmpty
+          ? _localUrlController.text
+          : null,
+      trustedWifiSsids: _trustedWifiSsids,
+      port: _portController.text.isNotEmpty
+          ? int.tryParse(_portController.text)
+          : null,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
     try {
@@ -79,15 +182,25 @@ class _AddServerScreenState extends State<AddServerScreen> {
     final server = NasServer.create(
       name: _nameController.text,
       host: _hostController.text,
-      port: int.tryParse(_portController.text) ?? 443,
+      localUrl: _localUrlController.text.isNotEmpty
+          ? _localUrlController.text
+          : null,
+      trustedWifiSsids: _trustedWifiSsids,
+      port: _portController.text.isNotEmpty
+          ? int.tryParse(_portController.text)
+          : null,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
     await context.read<ServerProvider>().addServer(server);
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(
+        context,
+        true,
+      ); // Return true to indicate a server was added
     }
   }
 
@@ -129,10 +242,96 @@ class _AddServerScreenState extends State<AddServerScreen> {
                 ),
                 CupertinoTextFormFieldRow(
                   controller: _portController,
-                  placeholder: '443',
+                  placeholder: 'Default port (443 for HTTPS, 80 for HTTP)',
                   prefix: const Text('Port'),
                   keyboardType: TextInputType.number,
                   onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CupertinoFormSection(
+              header: const Text('LOCAL NETWORK (OPTIONAL)'),
+              children: [
+                CupertinoTextFormFieldRow(
+                  controller: _localUrlController,
+                  placeholder: 'http://192.168.1.100:80',
+                  prefix: const Text('Local URL'),
+                  keyboardType: TextInputType.url,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CupertinoFormSection(
+              header: const Text('TRUSTED WI-FI NETWORKS'),
+              children: [
+                // Current Wi-Fi suggestion
+                if (_currentWifiSsid != null &&
+                    !_trustedWifiSsids.contains(_currentWifiSsid!))
+                  CupertinoFormRow(
+                    prefix: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Current Network'),
+                        Text(
+                          _currentWifiSsid!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _addCurrentWifiSsid,
+                      child: const Text('Add Current'),
+                    ),
+                  ),
+                if (_currentWifiSsid == null && !_isLoadingCurrentSsid)
+                  CupertinoFormRow(
+                    prefix: const Text('Current Network'),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _loadCurrentWifiSsid,
+                      child: const Text('Detect'),
+                    ),
+                  ),
+                if (_isLoadingCurrentSsid)
+                  const CupertinoFormRow(
+                    prefix: Text('Current Network'),
+                    child: CupertinoActivityIndicator(),
+                  ),
+                CupertinoFormRow(
+                  prefix: const Text('Add SSID'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoTextField(
+                          controller: _wifiSsidController,
+                          placeholder: 'Wi-Fi network name',
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _addWifiSsid,
+                        child: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                ),
+                ..._trustedWifiSsids.map(
+                  (ssid) => CupertinoFormRow(
+                    prefix: Text(ssid),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () => _removeWifiSsid(ssid),
+                      child: const Text('Remove'),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -165,7 +364,19 @@ class _AddServerScreenState extends State<AddServerScreen> {
                     onChanged: (value) {
                       setState(() {
                         _useHttps = value;
-                        _portController.text = value ? '443' : '80';
+                        // Clear port to use default
+                        _portController.clear();
+                      });
+                    },
+                  ),
+                ),
+                CupertinoFormRow(
+                  prefix: const Text('Allow Untrusted Certificates'),
+                  child: CupertinoSwitch(
+                    value: _allowUntrustedCertificates,
+                    onChanged: (value) {
+                      setState(() {
+                        _allowUntrustedCertificates = value;
                       });
                     },
                   ),

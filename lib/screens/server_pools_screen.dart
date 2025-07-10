@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/screens/pool_detail_screen.dart';
+import 'package:truenas_manager/widgets/connection_error_widget.dart';
 
 class ServerPoolsScreen extends StatefulWidget {
   final NasServer server;
@@ -44,36 +45,15 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
               return const Center(child: CupertinoActivityIndicator());
             }
 
-            if (provider.error != null) {
+            if (provider.connectionError != null) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.exclamationmark_triangle,
-                      size: 48,
-                      color: CupertinoColors.systemRed,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error loading pools',
-                      style: CupertinoTheme.of(context).textTheme.textStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      provider.error!,
-                      style: const TextStyle(
-                        color: CupertinoColors.systemGrey,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    CupertinoButton(
-                      onPressed: _loadPools,
-                      child: const Text('Retry'),
-                    ),
-                  ],
+                child: ConnectionErrorWidget(
+                  error: provider.connectionError!,
+                  onRetry: _loadPools,
+                  onSettings: () {
+                    // Navigate back to edit server settings
+                    Navigator.pop(context);
+                  },
                 ),
               );
             }
