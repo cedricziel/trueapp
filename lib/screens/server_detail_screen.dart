@@ -3,12 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
+import 'package:truenas_manager/providers/app_provider.dart';
+import 'package:truenas_manager/providers/system_stats_provider.dart';
+import 'package:truenas_manager/models/app.dart';
+import 'package:truenas_manager/widgets/app_icon.dart';
+import 'package:truenas_manager/widgets/system_stats_widget.dart';
+import 'package:truenas_manager/screens/app_detail_screen.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
 import 'package:truenas_manager/screens/server_pools_screen.dart';
 import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
 import 'package:truenas_manager/screens/user_profile_screen.dart';
+import 'package:truenas_manager/screens/server_apps_screen.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -26,13 +33,32 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final serverProvider = context.read<ServerProvider>();
       final poolProvider = context.read<PoolProvider>();
+      final appProvider = context.read<AppProvider>();
+      final systemStatsProvider = context.read<SystemStatsProvider>();
 
       serverProvider.selectServer(widget.server);
       serverProvider.loadCurrentUser();
 
       poolProvider.setApiClient(widget.server);
       poolProvider.loadPools();
+
+      appProvider.setApiClient(widget.server);
+      appProvider.loadApps();
+
+      systemStatsProvider.setApiClient(widget.server);
+      systemStatsProvider.subscribeToStats();
     });
+  }
+
+  @override
+  void dispose() {
+    // Unsubscribe from system stats when screen is disposed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SystemStatsProvider>().unsubscribeFromStats();
+      }
+    });
+    super.dispose();
   }
 
   @override
@@ -105,7 +131,11 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 const SizedBox(height: 20),
                 _buildServerInfo(currentServer),
                 const SizedBox(height: 20),
+                _buildSystemStatsSection(currentServer),
+                const SizedBox(height: 20),
                 _buildPoolsSection(currentServer),
+                const SizedBox(height: 20),
+                _buildAppsSection(currentServer),
                 const SizedBox(height: 30),
                 _buildActionButtons(context, currentServer),
                 const SizedBox(height: 30),
@@ -678,5 +708,287 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     } else {
       return '${diff.inDays} days ago';
     }
+  }
+
+  Widget _buildSystemStatsSection(NasServer server) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'System Stats',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              Consumer<SystemStatsProvider>(
+                builder: (context, statsProvider, child) {
+                  return CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: Icon(
+                      statsProvider.isSubscribed
+                          ? CupertinoIcons.pause_circle
+                          : CupertinoIcons.play_circle,
+                    ),
+                    onPressed: () {
+                      if (statsProvider.isSubscribed) {
+                        statsProvider.unsubscribeFromStats();
+                      } else {
+                        statsProvider.subscribeToStats();
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const SystemStatsWidget(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppsSection(NasServer server) {
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Apps',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Text('View All'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) =>
+                              ServerAppsScreen(server: server),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (appProvider.isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CupertinoActivityIndicator(),
+                  ),
+                )
+              else if (appProvider.error != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: CupertinoColors.systemRed.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        CupertinoIcons.exclamationmark_triangle,
+                        color: CupertinoColors.systemRed,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Failed to load apps: ${appProvider.error}',
+                          style: const TextStyle(
+                            color: CupertinoColors.systemRed,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (appProvider.apps.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          CupertinoIcons.app,
+                          size: 32,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'No apps found',
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    // Show installed apps first
+                    if (appProvider.installedApps.isNotEmpty) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Installed Apps',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ...appProvider.installedApps.take(3).map((app) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildAppCard(app),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+                    // Show available apps
+                    if (appProvider.availableApps.isNotEmpty) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Available Apps',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ...appProvider.availableApps.take(4).map((app) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildAppCard(app),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppCard(App app) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            AppIcon(app: app, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    app.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    app.description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: app.installed
+                        ? CupertinoColors.systemGreen.withOpacity(0.1)
+                        : CupertinoColors.systemBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    app.installed ? 'Installed' : 'Available',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: app.installed
+                          ? CupertinoColors.systemGreen
+                          : CupertinoColors.systemBlue,
+                    ),
+                  ),
+                ),
+                if (app.categories.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      app.categories.first,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: CupertinoColors.tertiaryLabel,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
