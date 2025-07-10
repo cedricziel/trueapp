@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/services/truenas_api_service.dart';
+import 'package:truenas_manager/services/truenas_api_client.dart';
 
 class PoolProvider extends ChangeNotifier {
-  TrueNasApiService? _apiService;
+  TrueNasApiClient? _apiClient;
   List<Map<String, dynamic>> _pools = [];
   bool _isLoading = false;
   String? _error;
@@ -13,22 +13,22 @@ class PoolProvider extends ChangeNotifier {
   String? get error => _error;
 
   void setServer(NasServer? server) {
-    _apiService?.close();
-    _apiService = server != null ? TrueNasApiService(server) : null;
+    _apiClient?.close();
+    _apiClient = server != null ? TrueNasApiClient(server) : null;
     _pools = [];
     _error = null;
     notifyListeners();
   }
 
   Future<void> loadPools() async {
-    if (_apiService == null) return;
+    if (_apiClient == null) return;
 
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _pools = await _apiService!.getPoolList();
+      _pools = await _apiClient!.getPools();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -43,7 +43,7 @@ class PoolProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _apiService?.close();
+    _apiClient?.close();
     super.dispose();
   }
 }

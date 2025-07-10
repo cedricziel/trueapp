@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/services/truenas_api_service.dart';
+import 'package:truenas_manager/services/truenas_api_client.dart';
 
 class ServerProvider extends ChangeNotifier {
   final AppDatabase _database;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
-  TrueNasApiService? _apiService;
+  TrueNasApiClient? _apiClient;
   ServerHealth? _serverHealth;
   bool _isLoadingHealth = false;
   String? _healthError;
@@ -48,8 +48,8 @@ class ServerProvider extends ChangeNotifier {
 
   void selectServer(models.NasServer? server) {
     _selectedServer = server;
-    _apiService?.close();
-    _apiService = server != null ? TrueNasApiService(server) : null;
+    _apiClient?.close();
+    _apiClient = server != null ? TrueNasApiClient(server) : null;
     _serverHealth = null;
     _healthError = null;
     
@@ -70,14 +70,14 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<void> loadServerHealth() async {
-    if (_apiService == null) return;
+    if (_apiClient == null) return;
 
     _isLoadingHealth = true;
     _healthError = null;
     notifyListeners();
 
     try {
-      _serverHealth = await _apiService!.getSystemHealth();
+      _serverHealth = await _apiClient!.getServerHealth();
     } catch (e) {
       _healthError = e.toString();
     } finally {
@@ -88,9 +88,9 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> testServerConnection(models.NasServer server) async {
     try {
-      final apiService = TrueNasApiService(server);
-      final result = await apiService.testConnection();
-      await apiService.close();
+      final apiClient = TrueNasApiClient(server);
+      final result = await apiClient.testConnection();
+      await apiClient.close();
       return result;
     } catch (e) {
       return false;
@@ -99,7 +99,7 @@ class ServerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _apiService?.close();
+    _apiClient?.close();
     super.dispose();
   }
 }

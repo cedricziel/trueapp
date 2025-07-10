@@ -7,7 +7,10 @@
       "Bash(gh issue list:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:pub.dev)",
-      "WebFetch(domain:www.gnu.org)"
+      "WebFetch(domain:www.gnu.org)",
+      "Bash(flutter analyze:*)",
+      "Bash(dart run build_runner:*)",
+      "Bash(flutter test:*)"
     ],
     "deny": []
   }
