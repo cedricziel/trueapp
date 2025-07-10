@@ -59,9 +59,13 @@ dependencies:
   flutter_slidable: ^3.0.1
   fl_chart: ^0.66.0
   stream_channel: ^2.1.4
-  
+
   # WebSocket support
   web_socket_channel: ^3.0.1
+
+  # Network connectivity detection
+  connectivity_plus: ^6.1.4
+  network_info_plus: ^6.1.4
 
 dev_dependencies:
   flutter_test:

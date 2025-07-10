@@ -13,29 +13,49 @@ class AddServerScreen extends StatefulWidget {
 class _AddServerScreenState extends State<AddServerScreen> {
   final _nameController = TextEditingController();
   final _hostController = TextEditingController();
-  final _portController = TextEditingController(text: '443');
+  final _localUrlController = TextEditingController();
+  final _portController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _wifiSsidController = TextEditingController();
   bool _useHttps = true;
   bool _isTestingConnection = false;
   String? _connectionTestResult;
+  final List<String> _trustedWifiSsids = [];
 
   @override
   void dispose() {
     _nameController.dispose();
     _hostController.dispose();
+    _localUrlController.dispose();
     _portController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _wifiSsidController.dispose();
     super.dispose();
   }
 
   bool get _isValid {
     return _nameController.text.isNotEmpty &&
         _hostController.text.isNotEmpty &&
-        _portController.text.isNotEmpty &&
         _usernameController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty;
+  }
+
+  void _addWifiSsid() {
+    final ssid = _wifiSsidController.text.trim();
+    if (ssid.isNotEmpty && !_trustedWifiSsids.contains(ssid)) {
+      setState(() {
+        _trustedWifiSsids.add(ssid);
+        _wifiSsidController.clear();
+      });
+    }
+  }
+
+  void _removeWifiSsid(String ssid) {
+    setState(() {
+      _trustedWifiSsids.remove(ssid);
+    });
   }
 
   Future<void> _testConnection() async {
@@ -49,7 +69,13 @@ class _AddServerScreenState extends State<AddServerScreen> {
     final server = NasServer.create(
       name: _nameController.text,
       host: _hostController.text,
-      port: int.tryParse(_portController.text) ?? 443,
+      localUrl: _localUrlController.text.isNotEmpty
+          ? _localUrlController.text
+          : null,
+      trustedWifiSsids: _trustedWifiSsids,
+      port: _portController.text.isNotEmpty
+          ? int.tryParse(_portController.text)
+          : null,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
@@ -79,7 +105,13 @@ class _AddServerScreenState extends State<AddServerScreen> {
     final server = NasServer.create(
       name: _nameController.text,
       host: _hostController.text,
-      port: int.tryParse(_portController.text) ?? 443,
+      localUrl: _localUrlController.text.isNotEmpty
+          ? _localUrlController.text
+          : null,
+      trustedWifiSsids: _trustedWifiSsids,
+      port: _portController.text.isNotEmpty
+          ? int.tryParse(_portController.text)
+          : null,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
@@ -129,10 +161,59 @@ class _AddServerScreenState extends State<AddServerScreen> {
                 ),
                 CupertinoTextFormFieldRow(
                   controller: _portController,
-                  placeholder: '443',
+                  placeholder: 'Default port (443 for HTTPS, 80 for HTTP)',
                   prefix: const Text('Port'),
                   keyboardType: TextInputType.number,
                   onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CupertinoFormSection(
+              header: const Text('LOCAL NETWORK (OPTIONAL)'),
+              children: [
+                CupertinoTextFormFieldRow(
+                  controller: _localUrlController,
+                  placeholder: 'http://192.168.1.100:80',
+                  prefix: const Text('Local URL'),
+                  keyboardType: TextInputType.url,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CupertinoFormSection(
+              header: const Text('TRUSTED WI-FI NETWORKS'),
+              children: [
+                CupertinoFormRow(
+                  prefix: const Text('Add SSID'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoTextField(
+                          controller: _wifiSsidController,
+                          placeholder: 'Wi-Fi network name',
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _addWifiSsid,
+                        child: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                ),
+                ..._trustedWifiSsids.map(
+                  (ssid) => CupertinoFormRow(
+                    prefix: Text(ssid),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () => _removeWifiSsid(ssid),
+                      child: const Text('Remove'),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -165,7 +246,8 @@ class _AddServerScreenState extends State<AddServerScreen> {
                     onChanged: (value) {
                       setState(() {
                         _useHttps = value;
-                        _portController.text = value ? '443' : '80';
+                        // Clear port to use default
+                        _portController.clear();
                       });
                     },
                   ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
@@ -9,7 +10,9 @@ class NasServers extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get host => text()();
-  IntColumn get port => integer().withDefault(const Constant(80))();
+  TextColumn get localUrl => text().nullable()();
+  TextColumn get trustedWifiSsids => text().withDefault(const Constant('[]'))();
+  IntColumn get port => integer().nullable()();
   TextColumn get username => text()();
   TextColumn get password => text()();
   BoolColumn get useHttps => boolean().withDefault(const Constant(true))();
@@ -28,7 +31,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 4;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1) {
+        await migrator.addColumn(nasServers, nasServers.localUrl);
+        await migrator.addColumn(nasServers, nasServers.trustedWifiSsids);
+      }
+      if (from == 2) {
+        await migrator.addColumn(nasServers, nasServers.trustedWifiSsids);
+      }
+    },
+  );
 
   Future<List<models.NasServer>> getAllServers() async {
     final query = select(nasServers);
@@ -48,6 +64,8 @@ class AppDatabase extends _$AppDatabase {
         id: Value(server.id),
         name: Value(server.name),
         host: Value(server.host),
+        localUrl: Value(server.localUrl),
+        trustedWifiSsids: Value(jsonEncode(server.trustedWifiSsids)),
         port: Value(server.port),
         username: Value(server.username),
         password: Value(server.password),
@@ -63,6 +81,8 @@ class AppDatabase extends _$AppDatabase {
       NasServersCompanion(
         name: Value(server.name),
         host: Value(server.host),
+        localUrl: Value(server.localUrl),
+        trustedWifiSsids: Value(jsonEncode(server.trustedWifiSsids)),
         port: Value(server.port),
         username: Value(server.username),
         password: Value(server.password),
@@ -84,10 +104,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   models.NasServer _mapRowToNasServer(NasServerData row) {
+    final trustedWifiSsids = (jsonDecode(row.trustedWifiSsids) as List)
+        .map((e) => e as String)
+        .toList();
+
     return models.NasServer(
       id: row.id,
       name: row.name,
       host: row.host,
+      localUrl: row.localUrl,
+      trustedWifiSsids: trustedWifiSsids,
       port: row.port,
       username: row.username,
       password: row.password,

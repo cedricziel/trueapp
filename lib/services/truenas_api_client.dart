@@ -6,9 +6,11 @@ import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
 import 'package:truenas_manager/models/user_info.dart';
+import 'package:truenas_manager/services/network_service.dart';
 
 class TrueNasApiClient {
   final NasServer _server;
+  final NetworkService _networkService = NetworkService();
   Client? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
@@ -20,9 +22,20 @@ class TrueNasApiClient {
       return;
     }
 
-    final wsUrl = '${_server.baseUrl.replaceFirst('http', 'ws')}/api/current';
+    // Determine the appropriate URL based on network context
+    final isOnTrustedNetwork = await _networkService.isOnTrustedNetwork(
+      _server.trustedWifiSsids,
+    );
+    final baseUrl = _server.getUrlForNetwork(
+      isOnTrustedNetwork: isOnTrustedNetwork,
+    );
+
+    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
     if (kDebugMode) {
       print('TrueNAS API: Connecting to WebSocket: $wsUrl');
+      print(
+        'TrueNAS API: Using ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
+      );
     }
     _wsChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
     _client = Client(_wsChannel!.cast<String>());
