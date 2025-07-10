@@ -9,6 +9,22 @@ part of 'truenas_rpc_interface.dart';
 // ignore_for_file: type=lint, unused_element
 
 mixin TrueNasRpcInterfaceClientMixin on ClientBase {
+  Future<bool> login(
+    String username,
+    String password, [
+    String? otpToken,
+  ]) async {
+    final dynamic $result = await jsonRpcInstance.sendRequest(
+      'login',
+      <dynamic>[
+        username,
+        password,
+        if (otpToken != null) otpToken,
+      ],
+    );
+    return ($result as bool);
+  }
+
   Future<Map<String, dynamic>> getSystemInfo() async {
     final dynamic $result = await jsonRpcInstance.sendRequest('getSystemInfo');
     return ($result as Map).map((
@@ -201,6 +217,12 @@ mixin TrueNasRpcInterfaceClientMixin on ClientBase {
 }
 mixin TrueNasRpcInterfaceServerMixin on ServerBase {
   @protected
+  FutureOr<bool> login(
+    String username,
+    String password,
+    String? otpToken,
+  );
+  @protected
   FutureOr<Map<String, dynamic>> getSystemInfo();
   @protected
   FutureOr<Map<String, dynamic>> getSystemCpuInfo();
@@ -233,6 +255,19 @@ mixin TrueNasRpcInterfaceServerMixin on ServerBase {
   @mustCallSuper
   void registerMethods() {
     super.registerMethods();
+    jsonRpcInstance.registerMethod(
+      'login',
+      (Parameters $params) async {
+        final $$username = $params[0].asString;
+        final $$password = $params[1].asString;
+        final $$otpToken = $params[2].$maybeNullOr(($v) => $v.asString);
+        return (await login(
+          $$username,
+          $$password,
+          $$otpToken,
+        ));
+      },
+    );
     jsonRpcInstance.registerMethod(
       'getSystemInfo',
       () async {

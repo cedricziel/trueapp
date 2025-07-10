@@ -4,6 +4,9 @@ part 'truenas_rpc_interface.g.dart';
 
 @jsonRpc
 abstract class _TrueNasRpcInterface {
+  // Authentication methods
+  bool login(String username, String password, [String? otpToken]);
+
   // System information methods
   Map<String, dynamic> getSystemInfo();
 

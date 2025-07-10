@@ -39,5 +39,14 @@ void main() {
     test('should properly construct error messages', () {
       expect(() => client.testConnection(), returnsNormally);
     });
+
+    test('should handle login validation gracefully', () async {
+      // This will fail since we don't have a real server, but it should not throw
+      final result = await client.validateLogin('test', 'password').timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
+      expect(result, isFalse);
+    });
   });
 }

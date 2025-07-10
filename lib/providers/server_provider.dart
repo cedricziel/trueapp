@@ -97,6 +97,17 @@ class ServerProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> validateServerCredentials(models.NasServer server) async {
+    try {
+      final apiClient = TrueNasApiClient(server);
+      final result = await apiClient.validateLogin(server.username, server.password);
+      await apiClient.close();
+      return result;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _apiClient?.close();

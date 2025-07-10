@@ -10,7 +10,9 @@
       "WebFetch(domain:www.gnu.org)",
       "Bash(flutter analyze:*)",
       "Bash(dart run build_runner:*)",
-      "Bash(flutter test:*)"
+      "Bash(flutter test:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:api.truenas.com)"
     ],
     "deny": []
   }

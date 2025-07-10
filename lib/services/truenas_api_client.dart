@@ -85,6 +85,19 @@ class TrueNasApiClient {
     }
   }
 
+  Future<bool> validateLogin(String username, String password, [String? otpToken]) async {
+    try {
+      // Call auth.login directly using the JSON-RPC client
+      final result = await _client.jsonRpcInstance.sendRequest(
+        'auth.login',
+        [username, password, if (otpToken != null) otpToken],
+      );
+      return result as bool;
+    } catch (e) {
+      return false;
+    }
+  }
+
   double _extractCpuUsage(Map<String, dynamic> cpuInfo) {
     return (cpuInfo['usage'] as num?)?.toDouble() ?? 0.0;
   }
