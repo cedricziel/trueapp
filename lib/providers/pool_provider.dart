@@ -16,7 +16,7 @@ class PoolProvider extends ChangeNotifier {
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
-  void setServer(NasServer? server) async {
+  Future<void> setServer(NasServer? server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -39,7 +39,7 @@ class PoolProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) async {
+  Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -86,9 +86,10 @@ class PoolProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

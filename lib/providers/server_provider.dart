@@ -82,7 +82,7 @@ class ServerProvider extends ChangeNotifier {
     await loadServers();
   }
 
-  void selectServer(models.NasServer? server) async {
+  Future<void> selectServer(models.NasServer? server) async {
     // Release previous client if any
     if (_selectedServer != null) {
       await ApiClientManager.releaseClient(_selectedServer!.id);
@@ -108,7 +108,7 @@ class ServerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearSelectedServer() async {
+  Future<void> clearSelectedServer() async {
     if (_selectedServer != null) {
       await ApiClientManager.releaseClient(_selectedServer!.id);
     }
@@ -209,9 +209,10 @@ class ServerProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
     if (_selectedServer != null) {
-      await ApiClientManager.releaseClient(_selectedServer!.id);
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_selectedServer!.id);
     }
     super.dispose();
   }

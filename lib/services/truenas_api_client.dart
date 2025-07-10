@@ -11,8 +11,9 @@ import 'package:truenas_manager/models/connection_error.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/services/network_service.dart';
+import 'package:truenas_manager/services/api_client_interface.dart';
 
-class TrueNasApiClient {
+class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
   Peer? _client;

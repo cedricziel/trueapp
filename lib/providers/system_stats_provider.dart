@@ -20,7 +20,7 @@ class SystemStatsProvider extends ChangeNotifier {
   bool get isSubscribed => _isSubscribed;
   bool get hasData => _currentStats != null;
 
-  void setApiClient(NasServer server) async {
+  Future<void> setApiClient(NasServer server) async {
     if (_apiClient != null) {
       await unsubscribeFromStats();
     }
@@ -223,14 +223,15 @@ class SystemStatsProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
     if (kDebugMode) {
       print('SystemStatsProvider: Disposing');
     }
-    await unsubscribeFromStats();
+    // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+    unsubscribeFromStats();
 
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      ApiClientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

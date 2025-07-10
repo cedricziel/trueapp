@@ -26,7 +26,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (provider.selectedServer?.id == widget.server.id) {
       await provider.loadCurrentUser();
     } else {
-      provider.selectServer(widget.server);
+      await provider.selectServer(widget.server);
       await provider.loadCurrentUser();
     }
   }

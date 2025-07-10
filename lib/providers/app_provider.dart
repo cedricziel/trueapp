@@ -22,7 +22,7 @@ class AppProvider extends ChangeNotifier {
   List<App> get installedApps => _apps.where((app) => app.installed).toList();
   List<App> get availableApps => _apps.where((app) => !app.installed).toList();
 
-  void setServer(NasServer? server) async {
+  Future<void> setServer(NasServer? server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -46,7 +46,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) async {
+  Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -106,9 +106,10 @@ class AppProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

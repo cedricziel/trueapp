@@ -30,23 +30,25 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final serverProvider = context.read<ServerProvider>();
       final poolProvider = context.read<PoolProvider>();
       final appProvider = context.read<AppProvider>();
       final systemStatsProvider = context.read<SystemStatsProvider>();
 
-      serverProvider.selectServer(widget.server);
-      serverProvider.loadCurrentUser();
+      // Set up server connection first
+      await serverProvider.selectServer(widget.server);
+      await serverProvider.loadCurrentUser();
 
-      poolProvider.setApiClient(widget.server);
-      poolProvider.loadPools();
+      // Then set up other providers
+      await poolProvider.setApiClient(widget.server);
+      await poolProvider.loadPools();
 
-      appProvider.setApiClient(widget.server);
-      appProvider.loadApps();
+      await appProvider.setApiClient(widget.server);
+      await appProvider.loadApps();
 
-      systemStatsProvider.setApiClient(widget.server);
-      systemStatsProvider.subscribeToStats();
+      await systemStatsProvider.setApiClient(widget.server);
+      await systemStatsProvider.subscribeToStats();
     });
   }
 

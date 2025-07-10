@@ -14,7 +14,7 @@ class DatasetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  void setServer(NasServer? server) async {
+  Future<void> setServer(NasServer? server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -37,7 +37,7 @@ class DatasetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) async {
+  Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -79,9 +79,10 @@ class DatasetProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

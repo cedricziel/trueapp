@@ -93,7 +93,15 @@ class ApiClientManager {
       _refCounts.remove(serverId);
       _connectionCompleters.remove(serverId);
 
-      await client?.close();
+      if (client != null) {
+        try {
+          await client.close();
+        } catch (e) {
+          if (kDebugMode) {
+            print('ApiClientManager: Error closing client for $serverId: $e');
+          }
+        }
+      }
     }
   }
 

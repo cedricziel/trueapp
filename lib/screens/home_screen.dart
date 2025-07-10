@@ -103,15 +103,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 final server = serverProvider.servers[index];
                 return ServerListTile(
                   server: server,
-                  onTap: () {
-                    serverProvider.selectServer(server);
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) =>
-                            ServerDetailScreen(server: server),
-                      ),
-                    );
+                  onTap: () async {
+                    await serverProvider.selectServer(server);
+                    if (mounted) {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) =>
+                              ServerDetailScreen(server: server),
+                        ),
+                      );
+                    }
                   },
                 );
               },
