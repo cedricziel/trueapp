@@ -45,10 +45,6 @@ void main() {
       final serverFromDb = await database.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, 's');
-
-      print('\n=== TEST: Initial server loaded ===');
-      print('Server ID: ${serverFromDb.id}');
-      print('Local URL: "${serverFromDb.localUrl}"');
     });
 
     test('should update local URL from "s" to empty string', () async {
@@ -59,15 +55,12 @@ void main() {
         localUrl: null, // Clear the local URL
       );
 
-      print('\n=== TEST: Updating server to clear local URL ===');
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update worked
       final serverFromDb = await database.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, isNull);
-
-      print('Updated server local URL: ${serverFromDb.localUrl}');
     });
 
     test('should update local URL from "s" to valid URL', () async {
@@ -78,15 +71,12 @@ void main() {
         localUrl: 'http://192.168.1.200:8080',
       );
 
-      print('\n=== TEST: Updating server with valid local URL ===');
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update worked
       final serverFromDb = await database.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, 'http://192.168.1.200:8080');
-
-      print('Updated server local URL: ${serverFromDb.localUrl}');
     });
 
     testWidgets('should handle editing server with "s" local URL in UI', (
@@ -94,8 +84,6 @@ void main() {
     ) async {
       // Select the server
       serverProvider.selectServer(testServer);
-
-      print('\n=== WIDGET TEST: Testing UI edit with "s" local URL ===');
 
       await tester.pumpWidget(
         CupertinoApp(
@@ -117,34 +105,25 @@ void main() {
       );
 
       expect(localUrlFields, findsOneWidget);
-      print('Found local URL field with value "s"');
 
       // Clear the field
       await tester.enterText(localUrlFields, '');
       await tester.pumpAndSettle();
 
-      print('Cleared local URL field');
-
       // Save the changes
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
-
-      print('Saved changes');
 
       // Verify the server was updated
       final updatedServer = await database.getServer(testServer.id);
       expect(updatedServer, isNotNull);
       expect(updatedServer!.localUrl, isNull);
-
-      print('Verified server local URL is now null');
     });
 
     testWidgets('should show proper debug logs when updating from "s"', (
       WidgetTester tester,
     ) async {
       serverProvider.selectServer(testServer);
-
-      print('\n=== WIDGET TEST: Debug logging test ===');
 
       await tester.pumpWidget(
         CupertinoApp(
@@ -180,9 +159,6 @@ void main() {
       }
 
       expect(localUrlField, isNotNull);
-      print(
-        'Found local URL field at index $localUrlFieldIndex with value "${localUrlField!.controller?.text}"',
-      );
 
       // Update to a valid URL
       await tester.enterText(
@@ -191,14 +167,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      print('Updated local URL field to valid URL');
-
       // Save
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
       // The debug logs should have been printed by now
-      print('Save completed - check debug logs above for detailed flow');
     });
 
     test(
@@ -213,9 +186,8 @@ void main() {
           ('empty string', ''),
         ];
 
+        // ignore: unused_local_variable
         for (final (description, localUrl) in testCases) {
-          print('\n=== TEST CASE: $description ===');
-
           final server = NasServer.create(
             name: 'Edge Case Server',
             host: '192.168.1.100',
@@ -232,10 +204,8 @@ void main() {
 
           if (localUrl.isEmpty) {
             expect(serverFromDb!.localUrl, isNull);
-            print('Empty string correctly saved as null');
           } else {
             expect(serverFromDb!.localUrl, localUrl);
-            print('Value "$localUrl" saved correctly');
           }
 
           // Clean up

@@ -16,7 +16,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(grep:*)",
       "Bash(dart format:*)",
-      "Bash(gh repo view:*)"
+      "Bash(gh repo view:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh label:*)"
     ],
     "deny": []
   }

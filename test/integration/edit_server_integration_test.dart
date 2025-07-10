@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
-import 'package:truenas_manager/screens/server_detail_screen.dart';
 import 'package:truenas_manager/services/database.dart';
 
 void main() {

@@ -133,7 +133,6 @@ class SettingsScreen extends StatelessWidget {
 
         if (await dbFile.exists()) {
           await dbFile.delete();
-          print('Deleted old database file: $dbPath');
         }
 
         // Also delete any associated files (WAL, SHM)
@@ -141,16 +140,11 @@ class SettingsScreen extends StatelessWidget {
         final shmFile = File('$dbPath-shm');
         if (await walFile.exists()) await walFile.delete();
         if (await shmFile.exists()) await shmFile.delete();
-
-        print('Database files completely removed');
       } catch (e) {
-        print('Error deleting database files: $e');
-
         // Fallback: Drop table method
         final database = AppDatabase();
         await database.customStatement('DROP TABLE IF EXISTS nas_servers');
         await database.close();
-        print('Fallback: Dropped nas_servers table');
       }
 
       // Reload servers in the provider - this will create a fresh database
