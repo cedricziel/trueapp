@@ -11,8 +11,9 @@ import 'package:truenas_manager/models/connection_error.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/services/network_service.dart';
+import 'package:truenas_manager/services/api_client_interface.dart';
 
-class TrueNasApiClient {
+class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
   Peer? _client;
@@ -150,6 +151,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<void> close() async {
     await unsubscribeFromSystemStats();
     await _client?.close();
@@ -157,6 +159,7 @@ class TrueNasApiClient {
   }
 
   // Authentication methods
+  @override
   Future<bool> validateLogin(
     String username,
     String password, [
@@ -186,6 +189,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<UserInfo> getCurrentUser() async {
     try {
       await _ensureAuthenticated();
@@ -197,6 +201,7 @@ class TrueNasApiClient {
   }
 
   // System information methods
+  @override
   Future<Map<String, dynamic>> getSystemInfo() async {
     try {
       await _ensureAuthenticated();
@@ -207,6 +212,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getSystemCpuInfo() async {
     try {
       await _ensureAuthenticated();
@@ -217,6 +223,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getSystemMemoryInfo() async {
     try {
       await _ensureAuthenticated();
@@ -227,6 +234,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<double> getSystemTemperature() async {
     try {
       await _ensureAuthenticated();
@@ -238,6 +246,7 @@ class TrueNasApiClient {
   }
 
   // Pool management methods
+  @override
   Future<List<Map<String, dynamic>>> queryPools() async {
     try {
       await _ensureAuthenticated();
@@ -248,6 +257,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getPoolById(String id) async {
     try {
       await _ensureAuthenticated();
@@ -259,6 +269,7 @@ class TrueNasApiClient {
   }
 
   // Dataset management methods
+  @override
   Future<List<Map<String, dynamic>>> queryDatasets() async {
     try {
       await _ensureAuthenticated();
@@ -269,6 +280,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getDatasetById(String id) async {
     try {
       await _ensureAuthenticated();
@@ -282,6 +294,7 @@ class TrueNasApiClient {
   }
 
   // File system methods
+  @override
   Future<List<Map<String, dynamic>>> listDirectory(String path) async {
     try {
       await _ensureAuthenticated();
@@ -294,6 +307,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getFileInfo(String path) async {
     try {
       await _ensureAuthenticated();
@@ -307,6 +321,7 @@ class TrueNasApiClient {
   }
 
   // Disk information methods
+  @override
   Future<List<Map<String, dynamic>>> queryDisks() async {
     try {
       await _ensureAuthenticated();
@@ -317,6 +332,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getDiskById(String id) async {
     try {
       await _ensureAuthenticated();
@@ -328,6 +344,7 @@ class TrueNasApiClient {
   }
 
   // Network information methods
+  @override
   Future<Map<String, dynamic>> getNetworkInfo() async {
     try {
       await _ensureAuthenticated();
@@ -338,6 +355,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
     try {
       await _ensureAuthenticated();
@@ -349,6 +367,7 @@ class TrueNasApiClient {
   }
 
   // Higher-level methods
+  @override
   Future<ServerHealth> getServerHealth() async {
     try {
       await getSystemInfo();
@@ -374,6 +393,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<List<FileItem>> getDirectoryListing(String path) async {
     try {
       final response = await listDirectory(path);
@@ -383,6 +403,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<List<Map<String, dynamic>>> getPools() async {
     try {
       return await queryPools();
@@ -391,6 +412,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<List<Map<String, dynamic>>> getDatasets() async {
     try {
       return await queryDatasets();
@@ -399,6 +421,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<bool> testConnection() async {
     try {
       await getSystemInfo().timeout(const Duration(seconds: 10));
@@ -409,6 +432,7 @@ class TrueNasApiClient {
   }
 
   // App management methods
+  @override
   Future<List<App>> getAvailableApps() async {
     try {
       await _ensureAuthenticated();
@@ -421,6 +445,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<List<String>> getAppCategories() async {
     try {
       await _ensureAuthenticated();
@@ -431,6 +456,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getDockerStatus() async {
     try {
       await _ensureAuthenticated();
@@ -442,11 +468,13 @@ class TrueNasApiClient {
   }
 
   // System stats subscription methods
+  @override
   Stream<SystemStats> get systemStatsStream {
     _systemStatsController ??= StreamController<SystemStats>.broadcast();
     return _systemStatsController!.stream;
   }
 
+  @override
   Future<void> subscribeToSystemStats() async {
     if (_isSubscribedToRealtime) {
       if (kDebugMode) {
@@ -484,6 +512,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<void> unsubscribeFromSystemStats() async {
     if (!_isSubscribedToRealtime || _realtimeSubscriptionId == null) {
       return;
@@ -518,6 +547,7 @@ class TrueNasApiClient {
   }
 
   // System information methods (additional)
+  @override
   Future<Map<String, dynamic>> getSystemGeneralConfig() async {
     try {
       await _ensureAuthenticated();
@@ -528,6 +558,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
     try {
       await _ensureAuthenticated();
@@ -538,6 +569,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<String> getSystemProductType() async {
     try {
       await _ensureAuthenticated();
@@ -548,6 +580,7 @@ class TrueNasApiClient {
     }
   }
 
+  @override
   Future<bool> isIxHardware() async {
     try {
       await _ensureAuthenticated();

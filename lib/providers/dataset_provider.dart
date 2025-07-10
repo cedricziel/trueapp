@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class DatasetProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;
+  String? _currentServerId;
   List<Map<String, dynamic>> _datasets = [];
   bool _isLoading = false;
   String? _error;
@@ -12,19 +14,46 @@ class DatasetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  void setServer(NasServer? server) {
-    _apiClient?.close();
-    _apiClient = server != null ? TrueNasApiClient(server) : null;
+  Future<void> setServer(NasServer? server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server?.id;
+    _apiClient = null;
     _datasets = [];
     _error = null;
+
+    if (server != null) {
+      try {
+        _apiClient = await ApiClientManager.getClient(server);
+      } catch (e) {
+        if (kDebugMode) {
+          print('DatasetProvider: Failed to get API client: $e');
+        }
+      }
+    }
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) {
-    _apiClient?.close();
-    _apiClient = TrueNasApiClient(server);
+  Future<void> setApiClient(NasServer server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server.id;
     _datasets = [];
     _error = null;
+
+    try {
+      _apiClient = await ApiClientManager.getClient(server);
+    } catch (e) {
+      if (kDebugMode) {
+        print('DatasetProvider: Failed to get API client: $e');
+      }
+    }
     notifyListeners();
   }
 
@@ -51,7 +80,10 @@ class DatasetProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _apiClient?.close();
+    if (_currentServerId != null) {
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_currentServerId!);
+    }
     super.dispose();
   }
 }

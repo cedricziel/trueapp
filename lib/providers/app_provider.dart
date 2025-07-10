@@ -3,9 +3,11 @@ import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/connection_error.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class AppProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;
+  String? _currentServerId;
   List<App> _apps = [];
   List<String> _categories = [];
   bool _isLoading = false;
@@ -20,21 +22,48 @@ class AppProvider extends ChangeNotifier {
   List<App> get installedApps => _apps.where((app) => app.installed).toList();
   List<App> get availableApps => _apps.where((app) => !app.installed).toList();
 
-  void setServer(NasServer? server) {
-    _apiClient?.close();
-    _apiClient = server != null ? TrueNasApiClient(server) : null;
+  Future<void> setServer(NasServer? server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server?.id;
+    _apiClient = null;
     _apps = [];
     _categories = [];
     _connectionError = null;
+
+    if (server != null) {
+      try {
+        _apiClient = await ApiClientManager.getClient(server);
+      } catch (e) {
+        if (kDebugMode) {
+          print('AppProvider: Failed to get API client: $e');
+        }
+      }
+    }
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) {
-    _apiClient?.close();
-    _apiClient = TrueNasApiClient(server);
+  Future<void> setApiClient(NasServer server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server.id;
     _apps = [];
     _categories = [];
     _connectionError = null;
+
+    try {
+      _apiClient = await ApiClientManager.getClient(server);
+    } catch (e) {
+      if (kDebugMode) {
+        print('AppProvider: Failed to get API client: $e');
+      }
+    }
     notifyListeners();
   }
 
@@ -78,7 +107,10 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _apiClient?.close();
+    if (_currentServerId != null) {
+      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
+      ApiClientManager.releaseClient(_currentServerId!);
+    }
     super.dispose();
   }
 }
