@@ -13,7 +13,11 @@ abstract class ApiClientInterface {
   Future<bool> testConnection();
 
   // Authentication methods
-  Future<bool> validateLogin(String username, String password, [String? otpToken]);
+  Future<bool> validateLogin(
+    String username,
+    String password, [
+    String? otpToken,
+  ]);
   Future<UserInfo> getCurrentUser();
 
   // System information methods

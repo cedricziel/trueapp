@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   server: server,
                   onTap: () async {
                     await serverProvider.selectServer(server);
-                    if (mounted) {
+                    if (context.mounted) {
                       Navigator.push(
                         context,
                         CupertinoPageRoute(
