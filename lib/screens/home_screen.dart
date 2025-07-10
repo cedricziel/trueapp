@@ -19,9 +19,7 @@ class HomeScreen extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              CupertinoPageRoute(
-                builder: (context) => const AddServerScreen(),
-              ),
+              CupertinoPageRoute(builder: (context) => const AddServerScreen()),
             );
           },
         ),
@@ -71,9 +69,8 @@ class HomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       CupertinoPageRoute(
-                        builder: (context) => ServerDetailScreen(
-                          server: server,
-                        ),
+                        builder: (context) =>
+                            ServerDetailScreen(server: server),
                       ),
                     );
                   },

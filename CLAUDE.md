@@ -14,6 +14,7 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 - `flutter run -d macos` - Run on macOS
 - `flutter analyze` - Run static analysis
 - `dart run build_runner build` - Generate database code (required after modifying database schema)
+- `dart format` - Run dart formatter before committing
 
 ### Building
 - `flutter build ios` - Build iOS app

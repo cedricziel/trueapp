@@ -4,10 +4,7 @@ import 'package:truenas_manager/models/nas_server.dart';
 class ServerFilesScreen extends StatelessWidget {
   final NasServer server;
 
-  const ServerFilesScreen({
-    super.key,
-    required this.server,
-  });
+  const ServerFilesScreen({super.key, required this.server});
 
   @override
   Widget build(BuildContext context) {
