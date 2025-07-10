@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
+import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
 
-class ServerDetailScreen extends StatelessWidget {
+class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
 
   const ServerDetailScreen({
@@ -13,10 +15,25 @@ class ServerDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<ServerDetailScreen> createState() => _ServerDetailScreenState();
+}
+
+class _ServerDetailScreenState extends State<ServerDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<ServerProvider>();
+      provider.selectServer(widget.server);
+      provider.loadCurrentUser();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text(server.name),
+        middle: Text(widget.server.name),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.ellipsis),
@@ -33,7 +50,7 @@ class ServerDetailScreen extends StatelessWidget {
                         context,
                         CupertinoPageRoute(
                           builder: (context) => EditServerScreen(
-                            server: server,
+                            server: widget.server,
                           ),
                         ),
                       );
@@ -51,15 +68,21 @@ class ServerDetailScreen extends StatelessWidget {
         ),
       ),
       child: SafeArea(
-        child: ListView(
-          children: [
-            const SizedBox(height: 20),
-            _buildServerInfo(),
-            const SizedBox(height: 30),
-            _buildActionButtons(context),
-            const SizedBox(height: 30),
-            _buildConnectionStatus(),
-          ],
+        child: Consumer<ServerProvider>(
+          builder: (context, provider, child) {
+            return ListView(
+              children: [
+                const SizedBox(height: 20),
+                _buildServerInfo(),
+                const SizedBox(height: 20),
+                _buildUserInfo(provider),
+                const SizedBox(height: 30),
+                _buildActionButtons(context),
+                const SizedBox(height: 30),
+                _buildConnectionStatus(),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -75,13 +98,13 @@ class ServerDetailScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Host', server.host),
+          _buildInfoRow('Host', widget.server.host),
           const SizedBox(height: 8),
-          _buildInfoRow('Port', server.port.toString()),
+          _buildInfoRow('Port', widget.server.port.toString()),
           const SizedBox(height: 8),
-          _buildInfoRow('Protocol', server.useHttps ? 'HTTPS' : 'HTTP'),
+          _buildInfoRow('Protocol', widget.server.useHttps ? 'HTTPS' : 'HTTP'),
           const SizedBox(height: 8),
-          _buildInfoRow('Username', server.username),
+          _buildInfoRow('Username', widget.server.username),
         ],
       ),
     );
@@ -123,7 +146,7 @@ class ServerDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerFilesScreen(server: server),
+                  builder: (context) => ServerFilesScreen(server: widget.server),
                 ),
               );
             },
@@ -138,7 +161,7 @@ class ServerDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerHealthScreen(server: server),
+                  builder: (context) => ServerHealthScreen(server: widget.server),
                 ),
               );
             },
@@ -216,9 +239,118 @@ class ServerDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildUserInfo(ServerProvider provider) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemGrey6,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                CupertinoIcons.person_circle,
+                color: CupertinoColors.activeBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Current User',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              if (provider.isLoadingUser)
+                const CupertinoActivityIndicator()
+              else if (provider.currentUser == null && provider.userError == null)
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Text('Load'),
+                  onPressed: () => provider.loadCurrentUser(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (provider.userError != null)
+            Text(
+              'Error: ${provider.userError}',
+              style: const TextStyle(
+                color: CupertinoColors.systemRed,
+                fontSize: 14,
+              ),
+            )
+          else if (provider.currentUser != null) ...[
+            _buildInfoRow('Name', provider.currentUser!.displayName),
+            const SizedBox(height: 8),
+            _buildInfoRow('Username', provider.currentUser!.username),
+            const SizedBox(height: 8),
+            _buildInfoRow('Source', provider.currentUser!.sourceDisplayName),
+            const SizedBox(height: 8),
+            _buildInfoRow('Home Directory', provider.currentUser!.homeDirectory),
+            if (provider.currentUser!.isAdministrator) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.checkmark_shield,
+                    color: CupertinoColors.activeGreen,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Administrator',
+                    style: TextStyle(
+                      color: CupertinoColors.activeGreen,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (provider.currentUser!.hasTwoFactor) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.lock_shield,
+                    color: CupertinoColors.activeBlue,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Two-Factor Enabled',
+                    style: TextStyle(
+                      color: CupertinoColors.activeBlue,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ] else
+            const Text(
+              'User information not loaded',
+              style: TextStyle(
+                color: CupertinoColors.systemGrey,
+                fontSize: 14,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildConnectionStatus() {
-    final isConnected = server.lastConnected != null &&
-        DateTime.now().difference(server.lastConnected!).inMinutes < 5;
+    final isConnected = widget.server.lastConnected != null &&
+        DateTime.now().difference(widget.server.lastConnected!).inMinutes < 5;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -252,9 +384,9 @@ class ServerDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (server.lastConnected != null)
+                if (widget.server.lastConnected != null)
                   Text(
-                    'Last connected: ${_formatLastConnected(server.lastConnected!)}',
+                    'Last connected: ${_formatLastConnected(widget.server.lastConnected!)}',
                     style: const TextStyle(
                       fontSize: 14,
                       color: CupertinoColors.systemGrey,

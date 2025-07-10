@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 import 'package:truenas_manager/models/server_health.dart';
+import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
 
@@ -12,6 +13,9 @@ class ServerProvider extends ChangeNotifier {
   ServerHealth? _serverHealth;
   bool _isLoadingHealth = false;
   String? _healthError;
+  UserInfo? _currentUser;
+  bool _isLoadingUser = false;
+  String? _userError;
 
   ServerProvider(this._database) {
     loadServers();
@@ -22,6 +26,9 @@ class ServerProvider extends ChangeNotifier {
   ServerHealth? get serverHealth => _serverHealth;
   bool get isLoadingHealth => _isLoadingHealth;
   String? get healthError => _healthError;
+  UserInfo? get currentUser => _currentUser;
+  bool get isLoadingUser => _isLoadingUser;
+  String? get userError => _userError;
 
   Future<void> loadServers() async {
     _servers = await _database.getAllServers();
@@ -52,6 +59,8 @@ class ServerProvider extends ChangeNotifier {
     _apiClient = server != null ? TrueNasApiClient(server) : null;
     _serverHealth = null;
     _healthError = null;
+    _currentUser = null;
+    _userError = null;
     
     if (server != null) {
       _database.updateLastConnected(server.id);
@@ -82,6 +91,23 @@ class ServerProvider extends ChangeNotifier {
       _healthError = e.toString();
     } finally {
       _isLoadingHealth = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadCurrentUser() async {
+    if (_apiClient == null) return;
+
+    _isLoadingUser = true;
+    _userError = null;
+    notifyListeners();
+
+    try {
+      _currentUser = await _apiClient!.getCurrentUser();
+    } catch (e) {
+      _userError = e.toString();
+    } finally {
+      _isLoadingUser = false;
       notifyListeners();
     }
   }

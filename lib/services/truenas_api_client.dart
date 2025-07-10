@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:stream_channel/stream_channel.dart';
-import 'package:truenas_manager/api/truenas_rpc_interface.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
+import 'package:truenas_manager/models/user_info.dart';
 
 class TrueNasApiClient {
   final NasServer _server;
   final Dio _dio;
-  late final TrueNasRpcInterfaceClient _client;
+  late final Client _client;
 
   TrueNasApiClient(this._server) : _dio = Dio() {
     _setupClient();
@@ -19,21 +19,176 @@ class TrueNasApiClient {
 
   void _setupClient() {
     final channel = _TrueNasHttpChannel(_dio, _server);
-    _client = TrueNasRpcInterfaceClient(channel);
+    _client = Client(channel);
   }
 
   Future<void> close() async {
     await _client.close();
   }
 
+  // Authentication methods
+  Future<bool> validateLogin(String username, String password, [String? otpToken]) async {
+    try {
+      final result = await _client.sendRequest(
+        'auth.login',
+        [username, password, if (otpToken != null) otpToken],
+      );
+      return result as bool;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<UserInfo> getCurrentUser() async {
+    try {
+      final result = await _client.sendRequest('auth.me');
+      return UserInfo.fromJson(result as Map<String, dynamic>);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // System information methods
+  Future<Map<String, dynamic>> getSystemInfo() async {
+    try {
+      final result = await _client.sendRequest('system.info');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getSystemCpuInfo() async {
+    try {
+      final result = await _client.sendRequest('system.cpu_info');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getSystemMemoryInfo() async {
+    try {
+      final result = await _client.sendRequest('system.memory_info');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<double> getSystemTemperature() async {
+    try {
+      final result = await _client.sendRequest('system.temperature');
+      return (result as num).toDouble();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Pool management methods
+  Future<List<Map<String, dynamic>>> queryPools() async {
+    try {
+      final result = await _client.sendRequest('pool.query');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getPoolById(String id) async {
+    try {
+      final result = await _client.sendRequest('pool.query', {'id': id});
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Dataset management methods
+  Future<List<Map<String, dynamic>>> queryDatasets() async {
+    try {
+      final result = await _client.sendRequest('pool.dataset.query');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getDatasetById(String id) async {
+    try {
+      final result = await _client.sendRequest('pool.dataset.query', {'id': id});
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // File system methods
+  Future<List<Map<String, dynamic>>> listDirectory(String path) async {
+    try {
+      final result = await _client.sendRequest('filesystem.listdir', {'path': path});
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getFileInfo(String path) async {
+    try {
+      final result = await _client.sendRequest('filesystem.stat', {'path': path});
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Disk information methods
+  Future<List<Map<String, dynamic>>> queryDisks() async {
+    try {
+      final result = await _client.sendRequest('disk.query');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getDiskById(String id) async {
+    try {
+      final result = await _client.sendRequest('disk.query', {'id': id});
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Network information methods
+  Future<Map<String, dynamic>> getNetworkInfo() async {
+    try {
+      final result = await _client.sendRequest('network.general.summary');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
+    try {
+      final result = await _client.sendRequest('interface.query');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Higher-level methods
   Future<ServerHealth> getServerHealth() async {
     try {
-      await _client.getSystemInfo();
-      final cpuInfo = await _client.getSystemCpuInfo();
-      final memoryInfo = await _client.getSystemMemoryInfo();
-      final diskInfo = await _client.queryDisks();
-      final temperature = await _client.getSystemTemperature();
-      final networkInfo = await _client.getNetworkInfo();
+      await getSystemInfo();
+      final cpuInfo = await getSystemCpuInfo();
+      final memoryInfo = await getSystemMemoryInfo();
+      final diskInfo = await queryDisks();
+      final temperature = await getSystemTemperature();
+      final networkInfo = await getNetworkInfo();
       
       return ServerHealth(
         serverId: _server.id,
@@ -53,7 +208,7 @@ class TrueNasApiClient {
 
   Future<List<FileItem>> getDirectoryListing(String path) async {
     try {
-      final response = await _client.listDirectory(path);
+      final response = await listDirectory(path);
       return response.map((item) => FileItem.fromJson(item)).toList();
     } catch (e) {
       throw _handleError(e);
@@ -62,7 +217,7 @@ class TrueNasApiClient {
 
   Future<List<Map<String, dynamic>>> getPools() async {
     try {
-      return await _client.queryPools();
+      return await queryPools();
     } catch (e) {
       throw _handleError(e);
     }
@@ -70,7 +225,7 @@ class TrueNasApiClient {
 
   Future<List<Map<String, dynamic>>> getDatasets() async {
     try {
-      return await _client.queryDatasets();
+      return await queryDatasets();
     } catch (e) {
       throw _handleError(e);
     }
@@ -78,21 +233,8 @@ class TrueNasApiClient {
 
   Future<bool> testConnection() async {
     try {
-      await _client.getSystemInfo();
+      await getSystemInfo();
       return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<bool> validateLogin(String username, String password, [String? otpToken]) async {
-    try {
-      // Call auth.login directly using the JSON-RPC client
-      final result = await _client.jsonRpcInstance.sendRequest(
-        'auth.login',
-        [username, password, if (otpToken != null) otpToken],
-      );
-      return result as bool;
     } catch (e) {
       return false;
     }

@@ -57,7 +57,6 @@ dependencies:
   # UI enhancements
   flutter_slidable: ^3.0.1
   fl_chart: ^0.66.0
-  json_rpc_codegen: ^1.1.0
   stream_channel: ^2.1.4
 
 dev_dependencies:
@@ -72,7 +71,6 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   drift_dev: ^2.26.0
   build_runner: ^2.5.4
-  json_rpc_codegen_builder: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
