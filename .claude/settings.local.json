@@ -3,7 +3,11 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(flutter pub:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh issue list:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pub.dev)",
+      "WebFetch(domain:www.gnu.org)"
     ],
     "deny": []
   }
