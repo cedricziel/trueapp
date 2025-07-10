@@ -15,7 +15,8 @@
       "WebFetch(domain:api.truenas.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(grep:*)",
-      "Bash(dart format:*)"
+      "Bash(dart format:*)",
+      "Bash(gh repo view:*)"
     ],
     "deny": []
   }

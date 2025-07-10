@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/screens/add_server_screen.dart';
 import 'package:truenas_manager/screens/server_detail_screen.dart';
+import 'package:truenas_manager/screens/settings_screen.dart';
 import 'package:truenas_manager/widgets/server_list_tile.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -13,6 +14,16 @@ class HomeScreen extends StatelessWidget {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('TrueNAS Manager'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.settings),
+          onPressed: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.add),
