@@ -6,8 +6,6 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
-    reviewers:
-      - "cedricziel"
     commit-message:
       prefix: "chore"
       include: "scope"
