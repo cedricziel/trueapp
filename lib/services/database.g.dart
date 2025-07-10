@@ -12,83 +12,126 @@ class $NasServersTable extends NasServers
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
-      'name', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _hostMeta = const VerificationMeta('host');
   @override
   late final GeneratedColumn<String> host = GeneratedColumn<String>(
-      'host', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+    'host',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _portMeta = const VerificationMeta('port');
   @override
   late final GeneratedColumn<int> port = GeneratedColumn<int>(
-      'port', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(80));
-  static const VerificationMeta _usernameMeta =
-      const VerificationMeta('username');
+    'port',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(80),
+  );
+  static const VerificationMeta _usernameMeta = const VerificationMeta(
+    'username',
+  );
   @override
   late final GeneratedColumn<String> username = GeneratedColumn<String>(
-      'username', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _passwordMeta =
-      const VerificationMeta('password');
+    'username',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _passwordMeta = const VerificationMeta(
+    'password',
+  );
   @override
   late final GeneratedColumn<String> password = GeneratedColumn<String>(
-      'password', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _useHttpsMeta =
-      const VerificationMeta('useHttps');
+    'password',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _useHttpsMeta = const VerificationMeta(
+    'useHttps',
+  );
   @override
   late final GeneratedColumn<bool> useHttps = GeneratedColumn<bool>(
-      'use_https', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("use_https" IN (0, 1))'),
-      defaultValue: const Constant(true));
-  static const VerificationMeta _lastConnectedMeta =
-      const VerificationMeta('lastConnected');
+    'use_https',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("use_https" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _lastConnectedMeta = const VerificationMeta(
+    'lastConnected',
+  );
   @override
   late final GeneratedColumn<DateTime> lastConnected =
-      GeneratedColumn<DateTime>('last_connected', aliasedName, true,
-          type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _isActiveMeta =
-      const VerificationMeta('isActive');
+      GeneratedColumn<DateTime>(
+        'last_connected',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
   @override
   late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
-      'is_active', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
-      defaultValue: const Constant(true));
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
-        id,
-        name,
-        host,
-        port,
-        username,
-        password,
-        useHttps,
-        lastConnected,
-        isActive
-      ];
+    id,
+    name,
+    host,
+    port,
+    username,
+    password,
+    useHttps,
+    lastConnected,
+    isActive,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'nas_servers';
   @override
-  VerificationContext validateIntegrity(Insertable<NasServerData> instance,
-      {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<NasServerData> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -98,45 +141,62 @@ class $NasServersTable extends NasServers
     }
     if (data.containsKey('name')) {
       context.handle(
-          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
     if (data.containsKey('host')) {
       context.handle(
-          _hostMeta, host.isAcceptableOrUnknown(data['host']!, _hostMeta));
+        _hostMeta,
+        host.isAcceptableOrUnknown(data['host']!, _hostMeta),
+      );
     } else if (isInserting) {
       context.missing(_hostMeta);
     }
     if (data.containsKey('port')) {
       context.handle(
-          _portMeta, port.isAcceptableOrUnknown(data['port']!, _portMeta));
+        _portMeta,
+        port.isAcceptableOrUnknown(data['port']!, _portMeta),
+      );
     }
     if (data.containsKey('username')) {
-      context.handle(_usernameMeta,
-          username.isAcceptableOrUnknown(data['username']!, _usernameMeta));
+      context.handle(
+        _usernameMeta,
+        username.isAcceptableOrUnknown(data['username']!, _usernameMeta),
+      );
     } else if (isInserting) {
       context.missing(_usernameMeta);
     }
     if (data.containsKey('password')) {
-      context.handle(_passwordMeta,
-          password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+      context.handle(
+        _passwordMeta,
+        password.isAcceptableOrUnknown(data['password']!, _passwordMeta),
+      );
     } else if (isInserting) {
       context.missing(_passwordMeta);
     }
     if (data.containsKey('use_https')) {
-      context.handle(_useHttpsMeta,
-          useHttps.isAcceptableOrUnknown(data['use_https']!, _useHttpsMeta));
+      context.handle(
+        _useHttpsMeta,
+        useHttps.isAcceptableOrUnknown(data['use_https']!, _useHttpsMeta),
+      );
     }
     if (data.containsKey('last_connected')) {
       context.handle(
+        _lastConnectedMeta,
+        lastConnected.isAcceptableOrUnknown(
+          data['last_connected']!,
           _lastConnectedMeta,
-          lastConnected.isAcceptableOrUnknown(
-              data['last_connected']!, _lastConnectedMeta));
+        ),
+      );
     }
     if (data.containsKey('is_active')) {
-      context.handle(_isActiveMeta,
-          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
     }
     return context;
   }
@@ -147,24 +207,42 @@ class $NasServersTable extends NasServers
   NasServerData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return NasServerData(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      name: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      host: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}host'])!,
-      port: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}port'])!,
-      username: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}username'])!,
-      password: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}password'])!,
-      useHttps: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}use_https'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      host: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}host'],
+      )!,
+      port: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}port'],
+      )!,
+      username: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}username'],
+      )!,
+      password: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password'],
+      )!,
+      useHttps: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}use_https'],
+      )!,
       lastConnected: attachedDatabase.typeMapping.read(
-          DriftSqlType.dateTime, data['${effectivePrefix}last_connected']),
-      isActive: attachedDatabase.typeMapping
-          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_connected'],
+      ),
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
     );
   }
 
@@ -184,16 +262,17 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final bool useHttps;
   final DateTime? lastConnected;
   final bool isActive;
-  const NasServerData(
-      {required this.id,
-      required this.name,
-      required this.host,
-      required this.port,
-      required this.username,
-      required this.password,
-      required this.useHttps,
-      this.lastConnected,
-      required this.isActive});
+  const NasServerData({
+    required this.id,
+    required this.name,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.password,
+    required this.useHttps,
+    this.lastConnected,
+    required this.isActive,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -227,8 +306,10 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     );
   }
 
-  factory NasServerData.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
+  factory NasServerData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return NasServerData(
       id: serializer.fromJson<String>(json['id']),
@@ -258,28 +339,29 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     };
   }
 
-  NasServerData copyWith(
-          {String? id,
-          String? name,
-          String? host,
-          int? port,
-          String? username,
-          String? password,
-          bool? useHttps,
-          Value<DateTime?> lastConnected = const Value.absent(),
-          bool? isActive}) =>
-      NasServerData(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        host: host ?? this.host,
-        port: port ?? this.port,
-        username: username ?? this.username,
-        password: password ?? this.password,
-        useHttps: useHttps ?? this.useHttps,
-        lastConnected:
-            lastConnected.present ? lastConnected.value : this.lastConnected,
-        isActive: isActive ?? this.isActive,
-      );
+  NasServerData copyWith({
+    String? id,
+    String? name,
+    String? host,
+    int? port,
+    String? username,
+    String? password,
+    bool? useHttps,
+    Value<DateTime?> lastConnected = const Value.absent(),
+    bool? isActive,
+  }) => NasServerData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    host: host ?? this.host,
+    port: port ?? this.port,
+    username: username ?? this.username,
+    password: password ?? this.password,
+    useHttps: useHttps ?? this.useHttps,
+    lastConnected: lastConnected.present
+        ? lastConnected.value
+        : this.lastConnected,
+    isActive: isActive ?? this.isActive,
+  );
   NasServerData copyWithCompanion(NasServersCompanion data) {
     return NasServerData(
       id: data.id.present ? data.id.value : this.id,
@@ -313,8 +395,17 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, host, port, username, password,
-      useHttps, lastConnected, isActive);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    host,
+    port,
+    username,
+    password,
+    useHttps,
+    lastConnected,
+    isActive,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -364,11 +455,11 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
-  })  : id = Value(id),
-        name = Value(name),
-        host = Value(host),
-        username = Value(username),
-        password = Value(password);
+  }) : id = Value(id),
+       name = Value(name),
+       host = Value(host),
+       username = Value(username),
+       password = Value(password);
   static Insertable<NasServerData> custom({
     Expression<String>? id,
     Expression<String>? name,
@@ -395,17 +486,18 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     });
   }
 
-  NasServersCompanion copyWith(
-      {Value<String>? id,
-      Value<String>? name,
-      Value<String>? host,
-      Value<int>? port,
-      Value<String>? username,
-      Value<String>? password,
-      Value<bool>? useHttps,
-      Value<DateTime?>? lastConnected,
-      Value<bool>? isActive,
-      Value<int>? rowid}) {
+  NasServersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? host,
+    Value<int>? port,
+    Value<String>? username,
+    Value<String>? password,
+    Value<bool>? useHttps,
+    Value<DateTime?>? lastConnected,
+    Value<bool>? isActive,
+    Value<int>? rowid,
+  }) {
     return NasServersCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -485,30 +577,32 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [nasServers];
 }
 
-typedef $$NasServersTableCreateCompanionBuilder = NasServersCompanion Function({
-  required String id,
-  required String name,
-  required String host,
-  Value<int> port,
-  required String username,
-  required String password,
-  Value<bool> useHttps,
-  Value<DateTime?> lastConnected,
-  Value<bool> isActive,
-  Value<int> rowid,
-});
-typedef $$NasServersTableUpdateCompanionBuilder = NasServersCompanion Function({
-  Value<String> id,
-  Value<String> name,
-  Value<String> host,
-  Value<int> port,
-  Value<String> username,
-  Value<String> password,
-  Value<bool> useHttps,
-  Value<DateTime?> lastConnected,
-  Value<bool> isActive,
-  Value<int> rowid,
-});
+typedef $$NasServersTableCreateCompanionBuilder =
+    NasServersCompanion Function({
+      required String id,
+      required String name,
+      required String host,
+      Value<int> port,
+      required String username,
+      required String password,
+      Value<bool> useHttps,
+      Value<DateTime?> lastConnected,
+      Value<bool> isActive,
+      Value<int> rowid,
+    });
+typedef $$NasServersTableUpdateCompanionBuilder =
+    NasServersCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> host,
+      Value<int> port,
+      Value<String> username,
+      Value<String> password,
+      Value<bool> useHttps,
+      Value<DateTime?> lastConnected,
+      Value<bool> isActive,
+      Value<int> rowid,
+    });
 
 class $$NasServersTableFilterComposer
     extends Composer<_$AppDatabase, $NasServersTable> {
@@ -520,31 +614,49 @@ class $$NasServersTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnFilters(column));
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get host => $composableBuilder(
-      column: $table.host, builder: (column) => ColumnFilters(column));
+    column: $table.host,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<int> get port => $composableBuilder(
-      column: $table.port, builder: (column) => ColumnFilters(column));
+    column: $table.port,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get username => $composableBuilder(
-      column: $table.username, builder: (column) => ColumnFilters(column));
+    column: $table.username,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get password => $composableBuilder(
-      column: $table.password, builder: (column) => ColumnFilters(column));
+    column: $table.password,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<bool> get useHttps => $composableBuilder(
-      column: $table.useHttps, builder: (column) => ColumnFilters(column));
+    column: $table.useHttps,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<DateTime> get lastConnected => $composableBuilder(
-      column: $table.lastConnected, builder: (column) => ColumnFilters(column));
+    column: $table.lastConnected,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnFilters(column));
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$NasServersTableOrderingComposer
@@ -557,32 +669,49 @@ class $$NasServersTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnOrderings(column));
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get host => $composableBuilder(
-      column: $table.host, builder: (column) => ColumnOrderings(column));
+    column: $table.host,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<int> get port => $composableBuilder(
-      column: $table.port, builder: (column) => ColumnOrderings(column));
+    column: $table.port,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get username => $composableBuilder(
-      column: $table.username, builder: (column) => ColumnOrderings(column));
+    column: $table.username,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get password => $composableBuilder(
-      column: $table.password, builder: (column) => ColumnOrderings(column));
+    column: $table.password,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<bool> get useHttps => $composableBuilder(
-      column: $table.useHttps, builder: (column) => ColumnOrderings(column));
+    column: $table.useHttps,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<DateTime> get lastConnected => $composableBuilder(
-      column: $table.lastConnected,
-      builder: (column) => ColumnOrderings(column));
+    column: $table.lastConnected,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
-      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$NasServersTableAnnotationComposer
@@ -616,29 +745,35 @@ class $$NasServersTableAnnotationComposer
       $composableBuilder(column: $table.useHttps, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastConnected => $composableBuilder(
-      column: $table.lastConnected, builder: (column) => column);
+    column: $table.lastConnected,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
 }
 
-class $$NasServersTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $NasServersTable,
-    NasServerData,
-    $$NasServersTableFilterComposer,
-    $$NasServersTableOrderingComposer,
-    $$NasServersTableAnnotationComposer,
-    $$NasServersTableCreateCompanionBuilder,
-    $$NasServersTableUpdateCompanionBuilder,
-    (
-      NasServerData,
-      BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>
-    ),
-    NasServerData,
-    PrefetchHooks Function()> {
+class $$NasServersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NasServersTable,
+          NasServerData,
+          $$NasServersTableFilterComposer,
+          $$NasServersTableOrderingComposer,
+          $$NasServersTableAnnotationComposer,
+          $$NasServersTableCreateCompanionBuilder,
+          $$NasServersTableUpdateCompanionBuilder,
+          (
+            NasServerData,
+            BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>,
+          ),
+          NasServerData,
+          PrefetchHooks Function()
+        > {
   $$NasServersTableTableManager(_$AppDatabase db, $NasServersTable table)
-      : super(TableManagerState(
+    : super(
+        TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -647,76 +782,79 @@ class $$NasServersTableTableManager extends RootTableManager<
               $$NasServersTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$NasServersTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<String> host = const Value.absent(),
-            Value<int> port = const Value.absent(),
-            Value<String> username = const Value.absent(),
-            Value<String> password = const Value.absent(),
-            Value<bool> useHttps = const Value.absent(),
-            Value<DateTime?> lastConnected = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              NasServersCompanion(
-            id: id,
-            name: name,
-            host: host,
-            port: port,
-            username: username,
-            password: password,
-            useHttps: useHttps,
-            lastConnected: lastConnected,
-            isActive: isActive,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String name,
-            required String host,
-            Value<int> port = const Value.absent(),
-            required String username,
-            required String password,
-            Value<bool> useHttps = const Value.absent(),
-            Value<DateTime?> lastConnected = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              NasServersCompanion.insert(
-            id: id,
-            name: name,
-            host: host,
-            port: port,
-            username: username,
-            password: password,
-            useHttps: useHttps,
-            lastConnected: lastConnected,
-            isActive: isActive,
-            rowid: rowid,
-          ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> host = const Value.absent(),
+                Value<int> port = const Value.absent(),
+                Value<String> username = const Value.absent(),
+                Value<String> password = const Value.absent(),
+                Value<bool> useHttps = const Value.absent(),
+                Value<DateTime?> lastConnected = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NasServersCompanion(
+                id: id,
+                name: name,
+                host: host,
+                port: port,
+                username: username,
+                password: password,
+                useHttps: useHttps,
+                lastConnected: lastConnected,
+                isActive: isActive,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String host,
+                Value<int> port = const Value.absent(),
+                required String username,
+                required String password,
+                Value<bool> useHttps = const Value.absent(),
+                Value<DateTime?> lastConnected = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NasServersCompanion.insert(
+                id: id,
+                name: name,
+                host: host,
+                port: port,
+                username: username,
+                password: password,
+                useHttps: useHttps,
+                lastConnected: lastConnected,
+                isActive: isActive,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ));
+        ),
+      );
 }
 
-typedef $$NasServersTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $NasServersTable,
-    NasServerData,
-    $$NasServersTableFilterComposer,
-    $$NasServersTableOrderingComposer,
-    $$NasServersTableAnnotationComposer,
-    $$NasServersTableCreateCompanionBuilder,
-    $$NasServersTableUpdateCompanionBuilder,
-    (
+typedef $$NasServersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NasServersTable,
       NasServerData,
-      BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>
-    ),
-    NasServerData,
-    PrefetchHooks Function()>;
+      $$NasServersTableFilterComposer,
+      $$NasServersTableOrderingComposer,
+      $$NasServersTableAnnotationComposer,
+      $$NasServersTableCreateCompanionBuilder,
+      $$NasServersTableUpdateCompanionBuilder,
+      (
+        NasServerData,
+        BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>,
+      ),
+      NasServerData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -735,21 +873,16 @@ class $AppDatabaseManager {
 TConverted _$map<TConverted extends Object, TJson extends Object>(
   TJson $value,
   TConverted Function(TJson) $convert,
-) =>
-    $convert($value);
+) => $convert($value);
 @pragma('vm:prefer-inline')
 TConverted? _$maybeMap<TConverted extends Object, TJson extends Object>(
   TJson? $value,
   TConverted Function(TJson) $convert,
-) =>
-    $value == null ? null : $convert($value);
+) => $value == null ? null : $convert($value);
 
 extension _$JsonRpc2ParameterExtensions on Parameter {
   @pragma('vm:prefer-inline')
-  T $maybeOr<T>(
-    T Function(Parameter) getter,
-    T defaultValue,
-  ) =>
+  T $maybeOr<T>(T Function(Parameter) getter, T defaultValue) =>
       exists ? getter(this) : defaultValue;
   @pragma('vm:prefer-inline')
   T? $nullOr<T>(T Function(Parameter) getter) =>

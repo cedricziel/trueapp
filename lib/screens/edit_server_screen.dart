@@ -6,10 +6,7 @@ import 'package:truenas_manager/providers/server_provider.dart';
 class EditServerScreen extends StatefulWidget {
   final NasServer server;
 
-  const EditServerScreen({
-    super.key,
-    required this.server,
-  });
+  const EditServerScreen({super.key, required this.server});
 
   @override
   State<EditServerScreen> createState() => _EditServerScreenState();
@@ -30,7 +27,9 @@ class _EditServerScreenState extends State<EditServerScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.server.name);
     _hostController = TextEditingController(text: widget.server.host);
-    _portController = TextEditingController(text: widget.server.port.toString());
+    _portController = TextEditingController(
+      text: widget.server.port.toString(),
+    );
     _usernameController = TextEditingController(text: widget.server.username);
     _passwordController = TextEditingController(text: widget.server.password);
     _useHttps = widget.server.useHttps;
@@ -72,9 +71,13 @@ class _EditServerScreenState extends State<EditServerScreen> {
     );
 
     try {
-      final isValid = await context.read<ServerProvider>().validateServerCredentials(server);
+      final isValid = await context
+          .read<ServerProvider>()
+          .validateServerCredentials(server);
       setState(() {
-        _connectionTestResult = isValid ? 'Connection successful!' : 'Invalid credentials or connection failed';
+        _connectionTestResult = isValid
+            ? 'Connection successful!'
+            : 'Invalid credentials or connection failed';
         _isTestingConnection = false;
       });
     } catch (e) {
@@ -192,7 +195,9 @@ class _EditServerScreenState extends State<EditServerScreen> {
                   prefix: const Text('Test Connection'),
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    onPressed: _isValid && !_isTestingConnection ? _testConnection : null,
+                    onPressed: _isValid && !_isTestingConnection
+                        ? _testConnection
+                        : null,
                     child: _isTestingConnection
                         ? const CupertinoActivityIndicator()
                         : const Text('Test'),
@@ -204,7 +209,10 @@ class _EditServerScreenState extends State<EditServerScreen> {
                     child: Text(
                       _connectionTestResult!,
                       style: TextStyle(
-                        color: _connectionTestResult!.startsWith('Connection successful')
+                        color:
+                            _connectionTestResult!.startsWith(
+                              'Connection successful',
+                            )
                             ? CupertinoColors.systemGreen
                             : CupertinoColors.systemRed,
                       ),

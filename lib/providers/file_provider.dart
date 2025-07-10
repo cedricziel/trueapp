@@ -48,7 +48,10 @@ class FileProvider extends ChangeNotifier {
 
   Future<void> navigateUp() async {
     if (_currentPath != '/') {
-      final parentPath = _currentPath.split('/').sublist(0, _currentPath.split('/').length - 1).join('/');
+      final parentPath = _currentPath
+          .split('/')
+          .sublist(0, _currentPath.split('/').length - 1)
+          .join('/');
       await loadFiles(parentPath.isEmpty ? '/' : parentPath);
     }
   }

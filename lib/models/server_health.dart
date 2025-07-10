@@ -25,16 +25,16 @@ class ServerHealth extends Equatable {
 
   @override
   List<Object?> get props => [
-        serverId,
-        timestamp,
-        cpuUsage,
-        memoryUsage,
-        diskUsage,
-        temperature,
-        isOnline,
-        disks,
-        network,
-      ];
+    serverId,
+    timestamp,
+    cpuUsage,
+    memoryUsage,
+    diskUsage,
+    temperature,
+    isOnline,
+    disks,
+    network,
+  ];
 }
 
 class DiskInfo extends Equatable {
@@ -60,14 +60,14 @@ class DiskInfo extends Equatable {
 
   @override
   List<Object?> get props => [
-        name,
-        model,
-        serial,
-        size,
-        used,
-        temperature,
-        health,
-      ];
+    name,
+    model,
+    serial,
+    size,
+    used,
+    temperature,
+    health,
+  ];
 }
 
 class NetworkInfo extends Equatable {
@@ -85,9 +85,9 @@ class NetworkInfo extends Equatable {
 
   @override
   List<Object?> get props => [
-        downloadSpeed,
-        uploadSpeed,
-        totalDownload,
-        totalUpload,
-      ];
+    downloadSpeed,
+    uploadSpeed,
+    totalDownload,
+    totalUpload,
+  ];
 }

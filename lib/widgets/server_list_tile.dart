@@ -8,11 +8,7 @@ class ServerListTile extends StatelessWidget {
   final NasServer server;
   final VoidCallback onTap;
 
-  const ServerListTile({
-    super.key,
-    required this.server,
-    required this.onTap,
-  });
+  const ServerListTile({super.key, required this.server, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +57,7 @@ class ServerListTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
             border: Border(
-              bottom: BorderSide(
-                color: CupertinoColors.separator,
-                width: 0.5,
-              ),
+              bottom: BorderSide(color: CupertinoColors.separator, width: 0.5),
             ),
           ),
           child: Row(

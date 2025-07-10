@@ -12,7 +12,9 @@
       "Bash(dart run build_runner:*)",
       "Bash(flutter test:*)",
       "Bash(git push:*)",
-      "WebFetch(domain:api.truenas.com)"
+      "WebFetch(domain:api.truenas.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

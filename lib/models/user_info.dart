@@ -51,8 +51,8 @@ class UserInfo extends Equatable {
   bool get isAdministrator {
     // Check if user has administrative privileges
     return privilege['allowlist']?.contains('ADMIN') == true ||
-           privilege['web_shell'] == true ||
-           uid == 0; // root user
+        privilege['web_shell'] == true ||
+        uid == 0; // root user
   }
 
   String get sourceDisplayName {
@@ -70,17 +70,17 @@ class UserInfo extends Equatable {
 
   @override
   List<Object?> get props => [
-        username,
-        fullName,
-        homeDirectory,
-        shell,
-        uid,
-        gid,
-        source,
-        isLocal,
-        groupList,
-        attributes,
-        hasTwoFactor,
-        privilege,
-      ];
+    username,
+    fullName,
+    homeDirectory,
+    shell,
+    uid,
+    gid,
+    source,
+    isLocal,
+    groupList,
+    attributes,
+    hasTwoFactor,
+    privilege,
+  ];
 }

@@ -56,15 +56,16 @@ class _AddServerScreenState extends State<AddServerScreen> {
     );
 
     try {
-      print('AddServerScreen: Starting connection test to ${server.baseUrl}');
-      final isValid = await context.read<ServerProvider>().validateServerCredentials(server);
-      print('AddServerScreen: Connection test result: $isValid');
+      final isValid = await context
+          .read<ServerProvider>()
+          .validateServerCredentials(server);
       setState(() {
-        _connectionTestResult = isValid ? 'Connection successful!' : 'Invalid credentials or connection failed';
+        _connectionTestResult = isValid
+            ? 'Connection successful!'
+            : 'Invalid credentials or connection failed';
         _isTestingConnection = false;
       });
     } catch (e) {
-      print('AddServerScreen: Connection test error: $e');
       setState(() {
         _connectionTestResult = 'Connection failed: ${e.toString()}';
         _isTestingConnection = false;
@@ -179,7 +180,9 @@ class _AddServerScreenState extends State<AddServerScreen> {
                   prefix: const Text('Test Connection'),
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    onPressed: _isValid && !_isTestingConnection ? _testConnection : null,
+                    onPressed: _isValid && !_isTestingConnection
+                        ? _testConnection
+                        : null,
                     child: _isTestingConnection
                         ? const CupertinoActivityIndicator()
                         : const Text('Test'),
@@ -191,7 +194,10 @@ class _AddServerScreenState extends State<AddServerScreen> {
                     child: Text(
                       _connectionTestResult!,
                       style: TextStyle(
-                        color: _connectionTestResult!.startsWith('Connection successful')
+                        color:
+                            _connectionTestResult!.startsWith(
+                              'Connection successful',
+                            )
                             ? CupertinoColors.systemGreen
                             : CupertinoColors.systemRed,
                       ),

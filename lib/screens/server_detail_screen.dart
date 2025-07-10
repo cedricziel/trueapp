@@ -9,10 +9,7 @@ import 'package:truenas_manager/screens/edit_server_screen.dart';
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
 
-  const ServerDetailScreen({
-    super.key,
-    required this.server,
-  });
+  const ServerDetailScreen({super.key, required this.server});
 
   @override
   State<ServerDetailScreen> createState() => _ServerDetailScreenState();
@@ -49,9 +46,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                       Navigator.push(
                         context,
                         CupertinoPageRoute(
-                          builder: (context) => EditServerScreen(
-                            server: widget.server,
-                          ),
+                          builder: (context) =>
+                              EditServerScreen(server: widget.server),
                         ),
                       );
                     },
@@ -123,10 +119,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -146,7 +139,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerFilesScreen(server: widget.server),
+                  builder: (context) =>
+                      ServerFilesScreen(server: widget.server),
                 ),
               );
             },
@@ -161,7 +155,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerHealthScreen(server: widget.server),
+                  builder: (context) =>
+                      ServerHealthScreen(server: widget.server),
                 ),
               );
             },
@@ -185,10 +180,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: CupertinoColors.separator,
-            width: 0.5,
-          ),
+          border: Border.all(color: CupertinoColors.separator, width: 0.5),
         ),
         child: Row(
           children: [
@@ -199,11 +191,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 color: CupertinoColors.activeBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: CupertinoColors.activeBlue,
-                size: 24,
-              ),
+              child: Icon(icon, color: CupertinoColors.activeBlue, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -260,15 +248,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               const SizedBox(width: 8),
               const Text(
                 'Current User',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               if (provider.isLoadingUser)
                 const CupertinoActivityIndicator()
-              else if (provider.currentUser == null && provider.userError == null)
+              else if (provider.currentUser == null &&
+                  provider.userError == null)
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   child: const Text('Load'),
@@ -292,7 +278,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             const SizedBox(height: 8),
             _buildInfoRow('Source', provider.currentUser!.sourceDisplayName),
             const SizedBox(height: 8),
-            _buildInfoRow('Home Directory', provider.currentUser!.homeDirectory),
+            _buildInfoRow(
+              'Home Directory',
+              provider.currentUser!.homeDirectory,
+            ),
             if (provider.currentUser!.isAdministrator) ...[
               const SizedBox(height: 8),
               Row(
@@ -338,10 +327,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           ] else
             const Text(
               'User information not loaded',
-              style: TextStyle(
-                color: CupertinoColors.systemGrey,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: CupertinoColors.systemGrey, fontSize: 14),
             ),
         ],
       ),
@@ -349,7 +335,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   }
 
   Widget _buildConnectionStatus() {
-    final isConnected = widget.server.lastConnected != null &&
+    final isConnected =
+        widget.server.lastConnected != null &&
         DateTime.now().difference(widget.server.lastConnected!).inMinutes < 5;
 
     return Container(

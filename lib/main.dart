@@ -6,16 +6,14 @@ import 'package:truenas_manager/services/database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   final database = AppDatabase();
-  
+
   runApp(
     MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: database),
-        ChangeNotifierProvider(
-          create: (context) => ServerProvider(database),
-        ),
+        ChangeNotifierProvider(create: (context) => ServerProvider(database)),
       ],
       child: const TrueNASManagerApp(),
     ),

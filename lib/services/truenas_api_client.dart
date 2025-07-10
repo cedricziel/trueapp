@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
-import 'package:stream_channel/stream_channel.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
@@ -10,41 +9,97 @@ import 'package:truenas_manager/models/user_info.dart';
 
 class TrueNasApiClient {
   final NasServer _server;
-  final Dio _dio;
-  late final Client _client;
+  Client? _client;
+  WebSocketChannel? _wsChannel;
+  bool _isAuthenticated = false;
 
-  TrueNasApiClient(this._server) : _dio = Dio() {
-    _setupClient();
+  TrueNasApiClient(this._server);
+
+  Future<void> _ensureConnected() async {
+    if (_client != null && !_client!.isClosed) {
+      return;
+    }
+
+    final wsUrl = '${_server.baseUrl.replaceFirst('http', 'ws')}/api/current';
+    if (kDebugMode) {
+      print('TrueNAS API: Connecting to WebSocket: $wsUrl');
+    }
+    _wsChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+    _client = Client(_wsChannel!.cast<String>());
+
+    // Start listening for responses - this is critical!
+    _client!.listen();
+
+    _isAuthenticated = false;
+    if (kDebugMode) {
+      print('TrueNAS API: WebSocket connection established and listening');
+    }
   }
 
-  void _setupClient() {
-    final channel = _TrueNasHttpChannel(_dio, _server);
-    _client = Client(channel);
+  Future<void> _ensureAuthenticated() async {
+    if (_isAuthenticated) return;
+
+    await _ensureConnected();
+    if (kDebugMode) {
+      print(
+        'TrueNAS API: Attempting authentication for user: ${_server.username}',
+      );
+    }
+    final result = await _client!.sendRequest('auth.login', [
+      _server.username,
+      _server.password,
+    ]);
+    if (kDebugMode) {
+      print('TrueNAS API: Authentication result: $result');
+    }
+    if (result != true) {
+      throw Exception('Authentication failed');
+    }
+    _isAuthenticated = true;
+    if (kDebugMode) {
+      print('TrueNAS API: Successfully authenticated');
+    }
   }
 
   Future<void> close() async {
-    await _client.close();
+    await _client?.close();
+    await _wsChannel?.sink.close();
   }
 
   // Authentication methods
-  Future<bool> validateLogin(String username, String password, [String? otpToken]) async {
+  Future<bool> validateLogin(
+    String username,
+    String password, [
+    String? otpToken,
+  ]) async {
     try {
-      print('TrueNasApiClient: Attempting login for user: $username to ${_server.baseUrl}');
-      final result = await _client.sendRequest(
-        'auth.login',
-        [username, password, if (otpToken != null) otpToken],
-      ).timeout(const Duration(seconds: 10));
-      print('TrueNasApiClient: Login result: $result');
+      await _ensureConnected();
+      if (kDebugMode) {
+        print('TrueNAS API: Validating login for user: $username');
+      }
+      final result = await _client!
+          .sendRequest('auth.login', [
+            username,
+            password,
+            if (otpToken != null) otpToken,
+          ])
+          .timeout(const Duration(seconds: 10));
+      if (kDebugMode) {
+        print('TrueNAS API: Login validation result: $result');
+      }
       return result as bool;
     } catch (e) {
-      print('TrueNasApiClient: Login failed with error: $e');
+      if (kDebugMode) {
+        print('TrueNAS API: Login validation failed: $e');
+      }
       return false;
     }
   }
 
   Future<UserInfo> getCurrentUser() async {
     try {
-      final result = await _client.sendRequest('auth.me');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('auth.me');
       return UserInfo.fromJson(result as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
@@ -54,7 +109,8 @@ class TrueNasApiClient {
   // System information methods
   Future<Map<String, dynamic>> getSystemInfo() async {
     try {
-      final result = await _client.sendRequest('system.info');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -63,7 +119,8 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getSystemCpuInfo() async {
     try {
-      final result = await _client.sendRequest('system.cpu_info');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.cpu_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -72,7 +129,8 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getSystemMemoryInfo() async {
     try {
-      final result = await _client.sendRequest('system.memory_info');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.memory_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -81,7 +139,8 @@ class TrueNasApiClient {
 
   Future<double> getSystemTemperature() async {
     try {
-      final result = await _client.sendRequest('system.temperature');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.temperature');
       return (result as num).toDouble();
     } catch (e) {
       throw _handleError(e);
@@ -91,7 +150,8 @@ class TrueNasApiClient {
   // Pool management methods
   Future<List<Map<String, dynamic>>> queryPools() async {
     try {
-      final result = await _client.sendRequest('pool.query');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('pool.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -100,7 +160,8 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getPoolById(String id) async {
     try {
-      final result = await _client.sendRequest('pool.query', {'id': id});
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('pool.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -110,7 +171,8 @@ class TrueNasApiClient {
   // Dataset management methods
   Future<List<Map<String, dynamic>>> queryDatasets() async {
     try {
-      final result = await _client.sendRequest('pool.dataset.query');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('pool.dataset.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -119,7 +181,10 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getDatasetById(String id) async {
     try {
-      final result = await _client.sendRequest('pool.dataset.query', {'id': id});
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('pool.dataset.query', {
+        'id': id,
+      });
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -129,7 +194,10 @@ class TrueNasApiClient {
   // File system methods
   Future<List<Map<String, dynamic>>> listDirectory(String path) async {
     try {
-      final result = await _client.sendRequest('filesystem.listdir', {'path': path});
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('filesystem.listdir', {
+        'path': path,
+      });
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -138,7 +206,10 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getFileInfo(String path) async {
     try {
-      final result = await _client.sendRequest('filesystem.stat', {'path': path});
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('filesystem.stat', {
+        'path': path,
+      });
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -148,7 +219,8 @@ class TrueNasApiClient {
   // Disk information methods
   Future<List<Map<String, dynamic>>> queryDisks() async {
     try {
-      final result = await _client.sendRequest('disk.query');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('disk.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -157,7 +229,8 @@ class TrueNasApiClient {
 
   Future<Map<String, dynamic>> getDiskById(String id) async {
     try {
-      final result = await _client.sendRequest('disk.query', {'id': id});
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('disk.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -167,7 +240,8 @@ class TrueNasApiClient {
   // Network information methods
   Future<Map<String, dynamic>> getNetworkInfo() async {
     try {
-      final result = await _client.sendRequest('network.general.summary');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('network.general.summary');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -176,7 +250,8 @@ class TrueNasApiClient {
 
   Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
     try {
-      final result = await _client.sendRequest('interface.query');
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('interface.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -192,7 +267,7 @@ class TrueNasApiClient {
       final diskInfo = await queryDisks();
       final temperature = await getSystemTemperature();
       final networkInfo = await getNetworkInfo();
-      
+
       return ServerHealth(
         serverId: _server.id,
         timestamp: DateTime.now(),
@@ -236,12 +311,9 @@ class TrueNasApiClient {
 
   Future<bool> testConnection() async {
     try {
-      print('TrueNasApiClient: Testing connection to ${_server.baseUrl}');
       await getSystemInfo().timeout(const Duration(seconds: 10));
-      print('TrueNasApiClient: Connection test successful');
       return true;
     } catch (e) {
-      print('TrueNasApiClient: Connection test failed with error: $e');
       return false;
     }
   }
@@ -258,28 +330,32 @@ class TrueNasApiClient {
 
   double _extractDiskUsage(List<Map<String, dynamic>> diskInfo) {
     if (diskInfo.isEmpty) return 0.0;
-    
+
     double totalUsed = 0.0;
     double totalSize = 0.0;
-    
+
     for (final disk in diskInfo) {
       totalUsed += (disk['used'] as num?)?.toDouble() ?? 0.0;
       totalSize += (disk['size'] as num?)?.toDouble() ?? 0.0;
     }
-    
+
     return totalSize > 0 ? (totalUsed / totalSize) * 100 : 0.0;
   }
 
   List<DiskInfo> _extractDisks(List<Map<String, dynamic>> diskInfo) {
-    return diskInfo.map((disk) => DiskInfo(
-      name: disk['name'] as String? ?? 'Unknown',
-      model: disk['model'] as String? ?? 'Unknown',
-      serial: disk['serial'] as String? ?? 'Unknown',
-      size: (disk['size'] as num?)?.toInt() ?? 0,
-      used: (disk['used'] as num?)?.toInt() ?? 0,
-      temperature: (disk['temperature'] as num?)?.toInt() ?? 0,
-      health: disk['health'] as String? ?? 'Unknown',
-    )).toList();
+    return diskInfo
+        .map(
+          (disk) => DiskInfo(
+            name: disk['name'] as String? ?? 'Unknown',
+            model: disk['model'] as String? ?? 'Unknown',
+            serial: disk['serial'] as String? ?? 'Unknown',
+            size: (disk['size'] as num?)?.toInt() ?? 0,
+            used: (disk['used'] as num?)?.toInt() ?? 0,
+            temperature: (disk['temperature'] as num?)?.toInt() ?? 0,
+            health: disk['health'] as String? ?? 'Unknown',
+          ),
+        )
+        .toList();
   }
 
   NetworkInfo _extractNetwork(Map<String, dynamic> networkInfo) {
@@ -295,77 +371,6 @@ class TrueNasApiClient {
     if (error is RpcException) {
       return Exception('TrueNAS RPC Error: ${error.message}');
     }
-    if (error is DioException) {
-      return Exception('Network Error: ${error.message}');
-    }
     return Exception('API Error: $error');
   }
-}
-
-class _TrueNasHttpChannel extends StreamChannelMixin<String> {
-  final Dio _dio;
-  final NasServer _server;
-  late final StreamController<String> _requestController;
-  late final StreamController<String> _responseController;
-
-  _TrueNasHttpChannel(this._dio, this._server) {
-    _requestController = StreamController<String>();
-    _responseController = StreamController<String>();
-    _setupDio();
-    _setupRequestHandler();
-  }
-
-  void _setupDio() {
-    _dio.options.baseUrl = '${_server.baseUrl}/api/v2.0';
-    _dio.options.headers['Content-Type'] = 'application/json';
-    _dio.options.headers['Authorization'] = 'Basic ${_getAuthHeader()}';
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
-    
-    print('TrueNasHttpChannel: Configured baseUrl: ${_dio.options.baseUrl}');
-    print('TrueNasHttpChannel: Authorization header set');
-  }
-
-  void _setupRequestHandler() {
-    _requestController.stream.listen((request) async {
-      try {
-        print('TrueNasHttpChannel: Sending request to ${_dio.options.baseUrl}/call');
-        print('TrueNasHttpChannel: Request data: $request');
-        
-        final response = await _dio.post(
-          '/call',
-          data: request,
-        );
-        
-        print('TrueNasHttpChannel: Response status: ${response.statusCode}');
-        print('TrueNasHttpChannel: Response data type: ${response.data.runtimeType}');
-        
-        if (response.statusCode == 200) {
-          final responseData = response.data is String 
-              ? response.data 
-              : jsonEncode(response.data);
-          print('TrueNasHttpChannel: Sending response: $responseData');
-          _responseController.add(responseData);
-        } else {
-          final errorMsg = 'HTTP ${response.statusCode}: ${response.statusMessage}';
-          print('TrueNasHttpChannel: HTTP error: $errorMsg');
-          _responseController.addError(errorMsg);
-        }
-      } catch (e) {
-        print('TrueNasHttpChannel: Request failed with error: $e');
-        _responseController.addError(e);
-      }
-    });
-  }
-
-  String _getAuthHeader() {
-    final credentials = '${_server.username}:${_server.password}';
-    return base64Encode(utf8.encode(credentials));
-  }
-
-  @override
-  StreamSink<String> get sink => _requestController.sink;
-
-  @override
-  Stream<String> get stream => _responseController.stream;
 }

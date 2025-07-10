@@ -50,14 +50,14 @@ class FileItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        name,
-        path,
-        isDirectory,
-        size,
-        modifiedTime,
-        mimeType,
-        permissions,
-        owner,
-        group,
-      ];
+    name,
+    path,
+    isDirectory,
+    size,
+    modifiedTime,
+    mimeType,
+    permissions,
+    owner,
+    group,
+  ];
 }
