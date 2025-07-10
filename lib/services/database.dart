@@ -23,9 +23,9 @@ class NasServers extends Table {
 @DriftDatabase(tables: [NasServers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'truenas_manager'));
-  
+
   // Constructor for testing that accepts a custom QueryExecutor
-  AppDatabase.forTesting(QueryExecutor e) : super(e);
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
