@@ -4,6 +4,7 @@ import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class ServerProvider extends ChangeNotifier {
   final AppDatabase _database;
@@ -81,24 +82,38 @@ class ServerProvider extends ChangeNotifier {
     await loadServers();
   }
 
-  void selectServer(models.NasServer? server) {
+  void selectServer(models.NasServer? server) async {
+    // Release previous client if any
+    if (_selectedServer != null) {
+      await ApiClientManager.releaseClient(_selectedServer!.id);
+    }
+
     _selectedServer = server;
-    _apiClient?.close();
-    _apiClient = server != null ? TrueNasApiClient(server) : null;
+    _apiClient = null;
     _serverHealth = null;
     _healthError = null;
     _currentUser = null;
     _userError = null;
 
     if (server != null) {
-      _database.updateLastConnected(server.id);
+      try {
+        _apiClient = await ApiClientManager.getClient(server);
+        _database.updateLastConnected(server.id);
+      } catch (e) {
+        if (kDebugMode) {
+          print('ServerProvider: Failed to get API client: $e');
+        }
+      }
     }
     notifyListeners();
   }
 
-  void clearSelectedServer() {
+  void clearSelectedServer() async {
+    if (_selectedServer != null) {
+      await ApiClientManager.releaseClient(_selectedServer!.id);
+    }
+
     _selectedServer = null;
-    _apiClient?.close();
     _apiClient = null;
     _serverHealth = null;
     _healthError = null;
@@ -194,8 +209,10 @@ class ServerProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
-    _apiClient?.close();
+  void dispose() async {
+    if (_selectedServer != null) {
+      await ApiClientManager.releaseClient(_selectedServer!.id);
+    }
     super.dispose();
   }
 }

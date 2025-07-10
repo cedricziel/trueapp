@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class SystemStatsProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;
+  String? _currentServerId;
   SystemStats? _currentStats;
   String? _error;
   bool _isLoading = false;
@@ -18,11 +20,25 @@ class SystemStatsProvider extends ChangeNotifier {
   bool get isSubscribed => _isSubscribed;
   bool get hasData => _currentStats != null;
 
-  void setApiClient(NasServer server) {
+  void setApiClient(NasServer server) async {
     if (_apiClient != null) {
-      unsubscribeFromStats();
+      await unsubscribeFromStats();
     }
-    _apiClient = TrueNasApiClient(server);
+
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server.id;
+
+    try {
+      _apiClient = await ApiClientManager.getClient(server);
+    } catch (e) {
+      if (kDebugMode) {
+        print('SystemStatsProvider: Failed to get API client: $e');
+      }
+    }
   }
 
   Future<void> subscribeToStats() async {
@@ -207,11 +223,15 @@ class SystemStatsProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void dispose() async {
     if (kDebugMode) {
       print('SystemStatsProvider: Disposing');
     }
-    unsubscribeFromStats();
+    await unsubscribeFromStats();
+
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
     super.dispose();
   }
 }

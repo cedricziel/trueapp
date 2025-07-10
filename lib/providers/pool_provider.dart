@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/connection_error.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class PoolProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;
+  String? _currentServerId;
   List<Map<String, dynamic>> _pools = [];
   bool _isLoading = false;
   ConnectionError? _connectionError;
@@ -14,19 +16,46 @@ class PoolProvider extends ChangeNotifier {
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
-  void setServer(NasServer? server) {
-    _apiClient?.close();
-    _apiClient = server != null ? TrueNasApiClient(server) : null;
+  void setServer(NasServer? server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server?.id;
+    _apiClient = null;
     _pools = [];
     _connectionError = null;
+
+    if (server != null) {
+      try {
+        _apiClient = await ApiClientManager.getClient(server);
+      } catch (e) {
+        if (kDebugMode) {
+          print('PoolProvider: Failed to get API client: $e');
+        }
+      }
+    }
     notifyListeners();
   }
 
-  void setApiClient(NasServer server) {
-    _apiClient?.close();
-    _apiClient = TrueNasApiClient(server);
+  void setApiClient(NasServer server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server.id;
     _pools = [];
     _connectionError = null;
+
+    try {
+      _apiClient = await ApiClientManager.getClient(server);
+    } catch (e) {
+      if (kDebugMode) {
+        print('PoolProvider: Failed to get API client: $e');
+      }
+    }
     notifyListeners();
   }
 
@@ -57,8 +86,10 @@ class PoolProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
-    _apiClient?.close();
+  void dispose() async {
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
     super.dispose();
   }
 }

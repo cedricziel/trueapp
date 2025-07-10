@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/file_item.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/services/api_client_manager.dart';
 
 class FileProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;
+  String? _currentServerId;
   List<FileItem> _files = [];
   String _currentPath = '/';
   bool _isLoading = false;
@@ -15,12 +17,27 @@ class FileProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  void setServer(NasServer? server) {
-    _apiClient?.close();
-    _apiClient = server != null ? TrueNasApiClient(server) : null;
+  void setServer(NasServer? server) async {
+    // Release previous client if any
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
+
+    _currentServerId = server?.id;
+    _apiClient = null;
     _files = [];
     _currentPath = '/';
     _error = null;
+
+    if (server != null) {
+      try {
+        _apiClient = await ApiClientManager.getClient(server);
+      } catch (e) {
+        if (kDebugMode) {
+          print('FileProvider: Failed to get API client: $e');
+        }
+      }
+    }
     notifyListeners();
   }
 
@@ -61,8 +78,10 @@ class FileProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
-    _apiClient?.close();
+  void dispose() async {
+    if (_currentServerId != null) {
+      await ApiClientManager.releaseClient(_currentServerId!);
+    }
     super.dispose();
   }
 }
