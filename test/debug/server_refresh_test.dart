@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/services/database.dart';
@@ -50,8 +48,6 @@ void main() {
       // Verify the selectedServer was refreshed with new data
       expect(serverProvider.selectedServer?.name, 'Updated Name');
       expect(serverProvider.selectedServer?.host, 'updated.example.com');
-
-      print('✅ Server provider refreshes selectedServer when updated');
     });
 
     test('should update server in database correctly', () async {
@@ -88,10 +84,6 @@ void main() {
       // Verify port was cleared
       final finalServer = await database.getServer(testServer.id);
       expect(finalServer?.port, null);
-
-      print(
-        '✅ Server provider updates database correctly including nullable ports',
-      );
     });
 
     test('should notify listeners when server is updated', () async {
@@ -121,8 +113,6 @@ void main() {
 
       // Verify listeners were notified
       expect(listenerCalled, true);
-
-      print('✅ Server provider notifies listeners on update');
     });
   });
 }

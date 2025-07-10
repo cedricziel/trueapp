@@ -10,7 +10,6 @@ void main() {
 
       // Verify schema version is 1
       expect(database.schemaVersion, 1);
-      print('✅ Database schema version: ${database.schemaVersion}');
 
       // Test inserting server with null port
       final serverWithoutPort = models.NasServer.create(
@@ -23,12 +22,10 @@ void main() {
       );
 
       await database.insertServer(serverWithoutPort);
-      print('✅ Successfully inserted server with null port');
 
       // Verify it was saved correctly
       final savedServer = await database.getServer(serverWithoutPort.id);
       expect(savedServer?.port, null);
-      print('✅ Server saved with null port: ${savedServer?.port}');
 
       // Test inserting server with port
       final serverWithPort = models.NasServer.create(
@@ -41,7 +38,6 @@ void main() {
       );
 
       await database.insertServer(serverWithPort);
-      print('✅ Successfully inserted server with port: ${serverWithPort.port}');
 
       // Test updating port to null
       final updatedServer = serverWithPort.copyWith(
@@ -53,13 +49,11 @@ void main() {
 
       final finalServer = await database.getServer(serverWithPort.id);
       expect(finalServer?.port, null);
-      print('✅ Successfully updated port to null: ${finalServer?.port}');
 
       // Verify all servers
       final allServers = await database.getAllServers();
       expect(allServers.length, 2);
       expect(allServers.every((s) => s.port == null), true);
-      print('✅ All servers have null ports as expected');
 
       await database.close();
     });
@@ -108,8 +102,6 @@ void main() {
       expect(full.localUrl, 'http://192.168.1.100:8080');
       expect(full.trustedWifiSsids, ['HomeWiFi', 'OfficeWiFi']);
       expect(full.allowUntrustedCertificates, true);
-
-      print('✅ All field combinations work correctly');
 
       await database.close();
     });

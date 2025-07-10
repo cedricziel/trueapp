@@ -45,17 +45,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<models.NasServer?> getServer(String id) async {
-    print('AppDatabase.getServer: Loading server $id');
     final query = select(nasServers)..where((tbl) => tbl.id.equals(id));
     final row = await query.getSingleOrNull();
     if (row != null) {
-      print('  Found server in database');
-      print('  localUrl from DB: ${row.localUrl}');
       final server = _mapRowToNasServer(row);
-      print('  Mapped server localUrl: ${server.localUrl}');
       return server;
     } else {
-      print('  Server not found in database');
       return null;
     }
   }
@@ -80,15 +75,6 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateServer(models.NasServer server) async {
-    print('AppDatabase.updateServer: Updating server ${server.id}');
-    print('  name: ${server.name}');
-    print('  host: ${server.host}');
-    print('  localUrl: ${server.localUrl}');
-    print('  port: ${server.port}');
-    print('  useHttps: ${server.useHttps}');
-    print('  allowUntrustedCertificates: ${server.allowUntrustedCertificates}');
-    print('  trustedWifiSsids: ${server.trustedWifiSsids}');
-
     await (update(nasServers)..where((tbl) => tbl.id.equals(server.id))).write(
       NasServersCompanion(
         name: Value(server.name),
@@ -104,8 +90,6 @@ class AppDatabase extends _$AppDatabase {
         isActive: Value(server.isActive),
       ),
     );
-
-    print('  Database update completed');
   }
 
   Future<void> deleteServer(String id) async {

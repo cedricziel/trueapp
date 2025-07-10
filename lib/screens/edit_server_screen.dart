@@ -35,11 +35,6 @@ class _EditServerScreenState extends State<EditServerScreen> {
     super.initState();
 
     // Debug logging for initialization
-    print(
-      'EditServerScreen.initState: Initializing with server ${widget.server.id}',
-    );
-    print('  Server name: ${widget.server.name}');
-    print('  Server localUrl: ${widget.server.localUrl}');
 
     _nameController = TextEditingController(text: widget.server.name);
     _hostController = TextEditingController(text: widget.server.host);
@@ -55,10 +50,6 @@ class _EditServerScreenState extends State<EditServerScreen> {
     _useHttps = widget.server.useHttps;
     _allowUntrustedCertificates = widget.server.allowUntrustedCertificates;
     _trustedWifiSsids = List.from(widget.server.trustedWifiSsids);
-
-    print(
-      '  LocalUrl controller initialized with: "${_localUrlController.text}"',
-    );
   }
 
   @override
@@ -215,11 +206,6 @@ class _EditServerScreenState extends State<EditServerScreen> {
     if (!_isValid) return;
 
     // Debug logging for save operation
-    print('EditServerScreen._saveChanges: Starting save');
-    print('  Original server ID: ${widget.server.id}');
-    print('  Original localUrl: ${widget.server.localUrl}');
-    print('  New localUrl from controller: "${_localUrlController.text}"');
-    print('  New localUrl isEmpty: ${_localUrlController.text.isEmpty}');
 
     final updatedServer = widget.server.copyWith(
       name: _nameController.text,
@@ -239,17 +225,9 @@ class _EditServerScreenState extends State<EditServerScreen> {
       allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
-    print('  Updated server localUrl: ${updatedServer.localUrl}');
-    if (_localUrlController.text.isEmpty && widget.server.localUrl != null) {
-      print(
-        '  ✅ Local URL is being cleared (was: "${widget.server.localUrl}")',
-      );
-    }
-    print('  Calling serverProvider.updateServer...');
+    if (_localUrlController.text.isEmpty && widget.server.localUrl != null) {}
 
     await context.read<ServerProvider>().updateServer(updatedServer);
-
-    print('  Server update completed');
 
     if (mounted) {
       Navigator.pop(context, true); // Return true to indicate changes were made
@@ -311,9 +289,6 @@ class _EditServerScreenState extends State<EditServerScreen> {
                   prefix: const Text('Local URL'),
                   keyboardType: TextInputType.url,
                   onChanged: (value) {
-                    print(
-                      'EditServerScreen: Local URL field changed to: "$value"',
-                    );
                     setState(() {});
                   },
                 ),
