@@ -35,6 +35,29 @@ class ServerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadServersAndAutoSelect() async {
+    await loadServers();
+    await _autoSelectServer();
+  }
+
+  Future<void> _autoSelectServer() async {
+    if (_selectedServer != null) {
+      return; // Don't auto-select if server already selected
+    }
+
+    // First check for default server
+    final defaultServer = await _database.getDefaultServer();
+    if (defaultServer != null) {
+      selectServer(defaultServer);
+      return;
+    }
+
+    // If no default server and only one server exists, auto-select it
+    if (_servers.length == 1) {
+      selectServer(_servers.first);
+    }
+  }
+
   Future<void> addServer(models.NasServer server) async {
     await _database.insertServer(server);
     await loadServers();
@@ -149,6 +172,24 @@ class ServerProvider extends ChangeNotifier {
       return result;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<void> setDefaultServer(String serverId) async {
+    await _database.setDefaultServer(serverId);
+    await loadServers();
+  }
+
+  Future<void> clearDefaultServer() async {
+    await _database.clearDefaultServer();
+    await loadServers();
+  }
+
+  models.NasServer? get defaultServer {
+    try {
+      return _servers.firstWhere((server) => server.isDefault);
+    } catch (e) {
+      return null;
     }
   }
 

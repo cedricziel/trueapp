@@ -23,6 +23,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
   late TextEditingController _wifiSsidController;
   late bool _useHttps;
   late bool _allowUntrustedCertificates;
+  late bool _isDefault;
   bool _isTestingConnection = false;
   String? _connectionTestResult;
   late List<String> _trustedWifiSsids;
@@ -49,6 +50,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
     _wifiSsidController = TextEditingController();
     _useHttps = widget.server.useHttps;
     _allowUntrustedCertificates = widget.server.allowUntrustedCertificates;
+    _isDefault = widget.server.isDefault;
     _trustedWifiSsids = List.from(widget.server.trustedWifiSsids);
   }
 
@@ -223,11 +225,19 @@ class _EditServerScreenState extends State<EditServerScreen> {
       password: _passwordController.text,
       useHttps: _useHttps,
       allowUntrustedCertificates: _allowUntrustedCertificates,
+      isDefault: _isDefault,
     );
 
     if (_localUrlController.text.isEmpty && widget.server.localUrl != null) {}
 
-    await context.read<ServerProvider>().updateServer(updatedServer);
+    // If setting this server as default, handle the database update
+    if (_isDefault && !widget.server.isDefault) {
+      await context.read<ServerProvider>().setDefaultServer(widget.server.id);
+    } else if (!_isDefault && widget.server.isDefault) {
+      await context.read<ServerProvider>().clearDefaultServer();
+    } else {
+      await context.read<ServerProvider>().updateServer(updatedServer);
+    }
 
     if (mounted) {
       Navigator.pop(context, true); // Return true to indicate changes were made
@@ -409,6 +419,17 @@ class _EditServerScreenState extends State<EditServerScreen> {
                     onChanged: (value) {
                       setState(() {
                         _allowUntrustedCertificates = value;
+                      });
+                    },
+                  ),
+                ),
+                CupertinoFormRow(
+                  prefix: const Text('Set as Default Server'),
+                  child: CupertinoSwitch(
+                    value: _isDefault,
+                    onChanged: (value) {
+                      setState(() {
+                        _isDefault = value;
                       });
                     },
                   ),

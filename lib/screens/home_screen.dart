@@ -6,8 +6,36 @@ import 'package:truenas_manager/screens/server_detail_screen.dart';
 import 'package:truenas_manager/screens/settings_screen.dart';
 import 'package:truenas_manager/widgets/server_list_tile.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final serverProvider = Provider.of<ServerProvider>(
+        context,
+        listen: false,
+      );
+      serverProvider.loadServersAndAutoSelect().then((_) {
+        // If a server was auto-selected, navigate to it
+        if (mounted && serverProvider.selectedServer != null) {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) =>
+                  ServerDetailScreen(server: serverProvider.selectedServer!),
+            ),
+          );
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
