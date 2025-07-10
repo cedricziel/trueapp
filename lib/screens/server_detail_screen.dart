@@ -8,6 +8,7 @@ import 'package:truenas_manager/screens/server_health_screen.dart';
 import 'package:truenas_manager/screens/server_pools_screen.dart';
 import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
+import 'package:truenas_manager/screens/user_profile_screen.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -39,6 +40,18 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(widget.server.name),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.person_circle),
+          onPressed: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => UserProfileScreen(server: widget.server),
+              ),
+            );
+          },
+        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.ellipsis),
@@ -78,8 +91,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               children: [
                 const SizedBox(height: 20),
                 _buildServerInfo(),
-                const SizedBox(height: 20),
-                _buildUserInfo(provider),
                 const SizedBox(height: 20),
                 _buildPoolsSection(),
                 const SizedBox(height: 30),
@@ -253,112 +264,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildUserInfo(ServerProvider provider) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                CupertinoIcons.person_circle,
-                color: CupertinoColors.activeBlue,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Current User',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              if (provider.isLoadingUser)
-                const CupertinoActivityIndicator()
-              else if (provider.currentUser == null &&
-                  provider.userError == null)
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Text('Load'),
-                  onPressed: () => provider.loadCurrentUser(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (provider.userError != null)
-            Text(
-              'Error: ${provider.userError}',
-              style: const TextStyle(
-                color: CupertinoColors.systemRed,
-                fontSize: 14,
-              ),
-            )
-          else if (provider.currentUser != null) ...[
-            _buildInfoRow('Name', provider.currentUser!.displayName),
-            const SizedBox(height: 8),
-            _buildInfoRow('Username', provider.currentUser!.username),
-            const SizedBox(height: 8),
-            _buildInfoRow('Source', provider.currentUser!.sourceDisplayName),
-            const SizedBox(height: 8),
-            _buildInfoRow(
-              'Home Directory',
-              provider.currentUser!.homeDirectory,
-            ),
-            if (provider.currentUser!.isAdministrator) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    CupertinoIcons.checkmark_shield,
-                    color: CupertinoColors.activeGreen,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Administrator',
-                    style: TextStyle(
-                      color: CupertinoColors.activeGreen,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (provider.currentUser!.hasTwoFactor) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    CupertinoIcons.lock_shield,
-                    color: CupertinoColors.activeBlue,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Two-Factor Enabled',
-                    style: TextStyle(
-                      color: CupertinoColors.activeBlue,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ] else
-            const Text(
-              'User information not loaded',
-              style: TextStyle(color: CupertinoColors.systemGrey, fontSize: 14),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildConnectionStatus() {
     final isConnected =
@@ -745,10 +650,12 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '${bytes}B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-    if (bytes < 1024 * 1024 * 1024 * 1024)
+    }
+    if (bytes < 1024 * 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+    }
     return '${(bytes / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1)}TB';
   }
 
