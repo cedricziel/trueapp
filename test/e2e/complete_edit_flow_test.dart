@@ -45,14 +45,14 @@ void main() {
       (WidgetTester tester) async {
         // Create the complete app with providers
         Widget createTestApp() {
-          return CupertinoApp(
-            home: MultiProvider(
-              providers: [
-                Provider<AppDatabase>.value(value: database),
-                ChangeNotifierProvider.value(value: serverProvider),
-                ChangeNotifierProvider.value(value: poolProvider),
-              ],
-              child: const HomeScreen(),
+          return MultiProvider(
+            providers: [
+              Provider<AppDatabase>.value(value: database),
+              ChangeNotifierProvider.value(value: serverProvider),
+              ChangeNotifierProvider.value(value: poolProvider),
+            ],
+            child: const CupertinoApp(
+              home: HomeScreen(),
             ),
           );
         }
@@ -253,14 +253,14 @@ void main() {
       'should handle edit cancellation without affecting provider state',
       (WidgetTester tester) async {
         Widget createTestApp() {
-          return CupertinoApp(
-            home: MultiProvider(
-              providers: [
-                Provider<AppDatabase>.value(value: database),
-                ChangeNotifierProvider.value(value: serverProvider),
-                ChangeNotifierProvider.value(value: poolProvider),
-              ],
-              child: const HomeScreen(),
+          return MultiProvider(
+            providers: [
+              Provider<AppDatabase>.value(value: database),
+              ChangeNotifierProvider.value(value: serverProvider),
+              ChangeNotifierProvider.value(value: poolProvider),
+            ],
+            child: const CupertinoApp(
+              home: HomeScreen(),
             ),
           );
         }
@@ -316,14 +316,14 @@ void main() {
       WidgetTester tester,
     ) async {
       Widget createTestApp() {
-        return CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-              ChangeNotifierProvider.value(value: poolProvider),
-            ],
-            child: const HomeScreen(),
+        return MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+            ChangeNotifierProvider.value(value: poolProvider),
+          ],
+          child: const CupertinoApp(
+            home: HomeScreen(),
           ),
         );
       }

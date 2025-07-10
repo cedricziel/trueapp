@@ -39,13 +39,13 @@ void main() {
 
   group('EditServerScreen', () {
     Widget createTestWidget() {
-      return CupertinoApp(
-        home: MultiProvider(
-          providers: [
-            Provider<AppDatabase>.value(value: database),
-            ChangeNotifierProvider.value(value: serverProvider),
-          ],
-          child: EditServerScreen(server: testServer),
+      return MultiProvider(
+        providers: [
+          Provider<AppDatabase>.value(value: database),
+          ChangeNotifierProvider.value(value: serverProvider),
+        ],
+        child: CupertinoApp(
+          home: EditServerScreen(server: testServer),
         ),
       );
     }
@@ -64,56 +64,34 @@ void main() {
       expect(find.text('admin'), findsAtLeastNWidgets(1));
       expect(find.text('HomeWiFi'), findsOneWidget);
 
-      // Check that HTTPS toggle is enabled
+      // Scroll down to see all content including switches
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
+      // Check that HTTPS toggle is enabled - find by text first, then descendant switch
+      final httpsRow = find.text('Use HTTPS');
+      expect(httpsRow, findsOneWidget);
       final httpsSwitch = tester.widget<CupertinoSwitch>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is CupertinoSwitch &&
-              find
-                  .ancestor(
-                    of: find.byWidget(widget),
-                    matching: find.byWidgetPredicate(
-                      (parent) =>
-                          parent is CupertinoFormRow &&
-                          find
-                              .descendant(
-                                of: find.byWidget(parent),
-                                matching: find.text('Use HTTPS'),
-                              )
-                              .evaluate()
-                              .isNotEmpty,
-                    ),
-                  )
-                  .evaluate()
-                  .isNotEmpty,
+        find.descendant(
+          of: find.ancestor(
+            of: httpsRow,
+            matching: find.byType(CupertinoFormRow),
+          ),
+          matching: find.byType(CupertinoSwitch),
         ),
       );
       expect(httpsSwitch.value, isTrue);
 
       // Check that untrusted certificates toggle is disabled
+      final untrustedCertRow = find.text('Allow Untrusted Certificates');
+      expect(untrustedCertRow, findsOneWidget);
       final untrustedCertSwitch = tester.widget<CupertinoSwitch>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is CupertinoSwitch &&
-              find
-                  .ancestor(
-                    of: find.byWidget(widget),
-                    matching: find.byWidgetPredicate(
-                      (parent) =>
-                          parent is CupertinoFormRow &&
-                          find
-                              .descendant(
-                                of: find.byWidget(parent),
-                                matching: find.text(
-                                  'Allow Untrusted Certificates',
-                                ),
-                              )
-                              .evaluate()
-                              .isNotEmpty,
-                    ),
-                  )
-                  .evaluate()
-                  .isNotEmpty,
+        find.descendant(
+          of: find.ancestor(
+            of: untrustedCertRow,
+            matching: find.byType(CupertinoFormRow),
+          ),
+          matching: find.byType(CupertinoSwitch),
         ),
       );
       expect(untrustedCertSwitch.value, isFalse);
@@ -125,27 +103,11 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Find the name field and update it
+      // Find the name field by looking for the field with "Test Server" text
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Test Server',
       );
 
       await tester.enterText(nameField, 'Updated Test Server');
@@ -167,58 +129,39 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Find the HTTPS toggle
-      final httpsToggle = find.byWidgetPredicate(
-        (widget) =>
-            widget is CupertinoSwitch &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoFormRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Use HTTPS'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+      // Scroll down to see the switches
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
+      // Find the HTTPS toggle by text first
+      final httpsRow = find.text('Use HTTPS');
+      expect(httpsRow, findsOneWidget);
+      final httpsToggle = find.descendant(
+        of: find.ancestor(
+          of: httpsRow,
+          matching: find.byType(CupertinoFormRow),
+        ),
+        matching: find.byType(CupertinoSwitch),
       );
 
       // Toggle HTTPS off
       await tester.tap(httpsToggle);
       await tester.pumpAndSettle();
 
-      // Find the port field and verify it's cleared
+      // Scroll back up to see the port field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
+      // Find the port field by looking for the field with placeholder containing "port"
       final portField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Port'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.placeholder != null &&
+            widget.placeholder!.toLowerCase().contains('port') &&
+            widget.controller?.text == '',
       );
 
-      final portFieldWidget = tester.widget<CupertinoTextField>(portField);
-      expect(portFieldWidget.controller?.text, isEmpty);
+      expect(portField, findsOneWidget);
     });
 
     testWidgets('should add and remove trusted WiFi SSIDs', (
@@ -267,29 +210,19 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Find the untrusted certificates toggle
-      final untrustedCertToggle = find.byWidgetPredicate(
-        (widget) =>
-            widget is CupertinoSwitch &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoFormRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text(
-                                'Allow Untrusted Certificates',
-                              ),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+      // Scroll down to see the switches
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
+      // Find the untrusted certificates toggle by text first
+      final untrustedCertRow = find.text('Allow Untrusted Certificates');
+      expect(untrustedCertRow, findsOneWidget);
+      final untrustedCertToggle = find.descendant(
+        of: find.ancestor(
+          of: untrustedCertRow,
+          matching: find.byType(CupertinoFormRow),
+        ),
+        matching: find.byType(CupertinoSwitch),
       );
 
       // Toggle untrusted certificates on
@@ -312,13 +245,13 @@ void main() {
       bool? navigationResult;
 
       await tester.pumpWidget(
-        CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-            ],
-            child: CupertinoPageScaffold(
+        MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+          ],
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
               navigationBar: const CupertinoNavigationBar(
                 middle: Text('Test Navigation'),
               ),
@@ -348,27 +281,11 @@ void main() {
       await tester.tap(find.text('Edit Server'));
       await tester.pumpAndSettle();
 
-      // Make a change (update name)
+      // Make a change (update name) - find field with "Test Server" text
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Test Server',
       );
 
       await tester.enterText(nameField, 'Changed Name');
@@ -388,13 +305,13 @@ void main() {
       bool? navigationResult;
 
       await tester.pumpWidget(
-        CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-            ],
-            child: CupertinoPageScaffold(
+        MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+          ],
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
               navigationBar: const CupertinoNavigationBar(
                 middle: Text('Test Navigation'),
               ),
@@ -438,27 +355,11 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Clear the name field to make form invalid
+      // Clear the name field to make form invalid - find field with "Test Server" text
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Test Server',
       );
 
       await tester.enterText(nameField, '');
@@ -504,27 +405,11 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Update the server name
+      // Update the server name - find field with "Test Server" text
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Test Server',
       );
 
       await tester.enterText(nameField, 'Server Updated via Provider');
