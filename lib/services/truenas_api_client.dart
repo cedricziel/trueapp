@@ -8,14 +8,21 @@ import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
 import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/models/connection_error.dart';
+import 'package:truenas_manager/models/app.dart';
+import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/services/network_service.dart';
 
 class TrueNasApiClient {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
-  Client? _client;
+  Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
+
+  // System stats subscription management
+  StreamController<SystemStats>? _systemStatsController;
+  String? _realtimeSubscriptionId;
+  bool _isSubscribedToRealtime = false;
 
   TrueNasApiClient(this._server);
 
@@ -47,7 +54,10 @@ class TrueNasApiClient {
         protocols: ['json-rpc'],
       );
 
-      _client = Client(_wsChannel!.cast<String>());
+      _client = Peer(_wsChannel!.cast<String>());
+
+      // Register method to handle collection_update notifications from server
+      _setupCollectionUpdateHandler();
 
       // Start listening for responses with error handling
       _client!.listen().catchError((error) {
@@ -67,6 +77,32 @@ class TrueNasApiClient {
       }
       throw _handleConnectionError(e);
     }
+  }
+
+  void _setupCollectionUpdateHandler() {
+    if (_client == null) return;
+
+    // Register method to handle collection_update notifications from TrueNAS
+    _client!.registerMethod('collection_update', (parameters) {
+      try {
+        final collection = parameters['collection'].value as String?;
+        if (collection == 'reporting.realtime') {
+          final fields = parameters['fields'].value as Map<String, dynamic>;
+          final systemStats = SystemStats.fromJson(fields);
+          _systemStatsController?.add(systemStats);
+
+          if (kDebugMode) {
+            print(
+              'TrueNAS API: Received realtime stats - CPU: ${systemStats.cpu.overall.usage.toStringAsFixed(1)}%',
+            );
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('TrueNAS API: Error parsing collection_update: $e');
+        }
+      }
+    });
   }
 
   Future<void> _ensureAuthenticated() async {
@@ -115,6 +151,7 @@ class TrueNasApiClient {
   }
 
   Future<void> close() async {
+    await unsubscribeFromSystemStats();
     await _client?.close();
     await _wsChannel?.sink.close();
   }
@@ -368,6 +405,156 @@ class TrueNasApiClient {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  // App management methods
+  Future<List<App>> getAvailableApps() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.available');
+      return (result as List<dynamic>)
+          .map((app) => App.fromJson(app as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<List<String>> getAppCategories() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.categories');
+      return (result as List<dynamic>).cast<String>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getDockerStatus() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('docker.status');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // System stats subscription methods
+  Stream<SystemStats> get systemStatsStream {
+    _systemStatsController ??= StreamController<SystemStats>.broadcast();
+    return _systemStatsController!.stream;
+  }
+
+  Future<void> subscribeToSystemStats() async {
+    if (_isSubscribedToRealtime) {
+      if (kDebugMode) {
+        print('TrueNAS API: Already subscribed to realtime stats');
+      }
+      return;
+    }
+
+    try {
+      await _ensureAuthenticated();
+
+      _systemStatsController ??= StreamController<SystemStats>.broadcast();
+
+      // Subscribe to realtime reporting data
+      _realtimeSubscriptionId =
+          await _client!.sendRequest('core.subscribe', ['reporting.realtime'])
+              as String;
+
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: Subscribed to realtime stats with ID: $_realtimeSubscriptionId',
+        );
+      }
+
+      _isSubscribedToRealtime = true;
+
+      if (kDebugMode) {
+        print('TrueNAS API: Successfully subscribed to system stats stream');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to subscribe to system stats: $e');
+      }
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> unsubscribeFromSystemStats() async {
+    if (!_isSubscribedToRealtime || _realtimeSubscriptionId == null) {
+      return;
+    }
+
+    try {
+      if (_client != null && !_client!.isClosed) {
+        await _client!.sendRequest('core.unsubscribe', [
+          _realtimeSubscriptionId!,
+        ]);
+
+        if (kDebugMode) {
+          print(
+            'TrueNAS API: Unsubscribed from realtime stats with ID: $_realtimeSubscriptionId',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Error unsubscribing from system stats: $e');
+      }
+    } finally {
+      _isSubscribedToRealtime = false;
+      _realtimeSubscriptionId = null;
+      await _systemStatsController?.close();
+      _systemStatsController = null;
+
+      if (kDebugMode) {
+        print('TrueNAS API: System stats subscription cleaned up');
+      }
+    }
+  }
+
+  // System information methods (additional)
+  Future<Map<String, dynamic>> getSystemGeneralConfig() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.general.config');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.advanced.config');
+      return result as Map<String, dynamic>;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<String> getSystemProductType() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('system.product_type');
+      return result as String;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<bool> isIxHardware() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('truenas.is_ix_hardware');
+      return result as bool;
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
