@@ -119,7 +119,10 @@ class _AddServerScreenState extends State<AddServerScreen> {
 
     await context.read<ServerProvider>().addServer(server);
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(
+        context,
+        true,
+      ); // Return true to indicate a server was added
     }
   }
 

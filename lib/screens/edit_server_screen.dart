@@ -139,7 +139,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
 
     await context.read<ServerProvider>().updateServer(updatedServer);
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Return true to indicate changes were made
     }
   }
 

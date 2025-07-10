@@ -62,15 +62,23 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 actions: [
                   CupertinoActionSheetAction(
                     child: const Text('Edit Server'),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      Navigator.push(
+                      final result = await Navigator.push(
                         context,
                         CupertinoPageRoute(
                           builder: (context) =>
                               EditServerScreen(server: widget.server),
                         ),
                       );
+
+                      // Refresh server data if changes were made
+                      if (result == true && mounted) {
+                        if (context.mounted) {
+                          final serverProvider = context.read<ServerProvider>();
+                          await serverProvider.refreshSelectedServer();
+                        }
+                      }
                     },
                   ),
                 ],

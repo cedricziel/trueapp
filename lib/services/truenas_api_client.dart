@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -6,6 +7,7 @@ import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/server_health.dart';
 import 'package:truenas_manager/models/file_item.dart';
 import 'package:truenas_manager/models/user_info.dart';
+import 'package:truenas_manager/models/connection_error.dart';
 import 'package:truenas_manager/services/network_service.dart';
 
 class TrueNasApiClient {
@@ -22,55 +24,93 @@ class TrueNasApiClient {
       return;
     }
 
-    // Determine the appropriate URL based on network context
-    final isOnTrustedNetwork = await _networkService.isOnTrustedNetwork(
-      _server.trustedWifiSsids,
-    );
-    final baseUrl = _server.getUrlForNetwork(
-      isOnTrustedNetwork: isOnTrustedNetwork,
-    );
-
-    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
-    if (kDebugMode) {
-      print('TrueNAS API: Connecting to WebSocket: $wsUrl');
-      print(
-        'TrueNAS API: Using ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
+    try {
+      // Determine the appropriate URL based on network context
+      final isOnTrustedNetwork = await _networkService.isOnTrustedNetwork(
+        _server.trustedWifiSsids,
       );
-    }
-    _wsChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
-    _client = Client(_wsChannel!.cast<String>());
+      final baseUrl = _server.getUrlForNetwork(
+        isOnTrustedNetwork: isOnTrustedNetwork,
+      );
 
-    // Start listening for responses - this is critical!
-    _client!.listen();
+      final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
+      if (kDebugMode) {
+        print('TrueNAS API: Connecting to WebSocket: $wsUrl');
+        print(
+          'TrueNAS API: Using ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
+        );
+      }
 
-    _isAuthenticated = false;
-    if (kDebugMode) {
-      print('TrueNAS API: WebSocket connection established and listening');
+      // Connect with timeout to detect network issues early
+      _wsChannel = WebSocketChannel.connect(
+        Uri.parse(wsUrl),
+        protocols: ['json-rpc'],
+      );
+
+      _client = Client(_wsChannel!.cast<String>());
+
+      // Start listening for responses with error handling
+      _client!.listen().catchError((error) {
+        if (kDebugMode) {
+          print('TrueNAS API: WebSocket error: $error');
+        }
+        throw _handleConnectionError(error);
+      });
+
+      _isAuthenticated = false;
+      if (kDebugMode) {
+        print('TrueNAS API: WebSocket connection established and listening');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Connection failed: $e');
+      }
+      throw _handleConnectionError(e);
     }
   }
 
   Future<void> _ensureAuthenticated() async {
     if (_isAuthenticated) return;
 
-    await _ensureConnected();
-    if (kDebugMode) {
-      print(
-        'TrueNAS API: Attempting authentication for user: ${_server.username}',
+    try {
+      await _ensureConnected();
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: Attempting authentication for user: ${_server.username}',
+        );
+      }
+
+      final result = await _client!
+          .sendRequest('auth.login', [_server.username, _server.password])
+          .timeout(const Duration(seconds: 15));
+
+      if (kDebugMode) {
+        print('TrueNAS API: Authentication result: $result');
+      }
+
+      if (result != true) {
+        throw ConnectionException(
+          ConnectionError.invalidCredentials(
+            details: 'Server returned: $result',
+          ),
+        );
+      }
+
+      _isAuthenticated = true;
+      if (kDebugMode) {
+        print('TrueNAS API: Successfully authenticated');
+      }
+    } on TimeoutException {
+      throw ConnectionException(
+        ConnectionError.connectionTimeout(
+          details: 'Authentication request timed out after 15 seconds',
+        ),
       );
-    }
-    final result = await _client!.sendRequest('auth.login', [
-      _server.username,
-      _server.password,
-    ]);
-    if (kDebugMode) {
-      print('TrueNAS API: Authentication result: $result');
-    }
-    if (result != true) {
-      throw Exception('Authentication failed');
-    }
-    _isAuthenticated = true;
-    if (kDebugMode) {
-      print('TrueNAS API: Successfully authenticated');
+    } catch (e) {
+      if (e is ConnectionException) {
+        rethrow;
+      }
+      throw _handleConnectionError(e);
     }
   }
 
@@ -380,10 +420,77 @@ class TrueNasApiClient {
     );
   }
 
-  Exception _handleError(dynamic error) {
-    if (error is RpcException) {
-      return Exception('TrueNAS RPC Error: ${error.message}');
+  ConnectionException _handleConnectionError(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    // Network connectivity issues
+    if (error is SocketException ||
+        errorString.contains('network is unreachable') ||
+        errorString.contains('no route to host') ||
+        errorString.contains('connection refused')) {
+      return ConnectionException(
+        ConnectionError.networkUnreachable(details: error.toString()),
+      );
     }
-    return Exception('API Error: $error');
+
+    // Timeout issues
+    if (error is TimeoutException ||
+        errorString.contains('timeout') ||
+        errorString.contains('timed out') ||
+        errorString.contains('client closed with pending request')) {
+      return ConnectionException(
+        ConnectionError.connectionTimeout(details: error.toString()),
+      );
+    }
+
+    // Authentication issues
+    if (error is RpcException) {
+      if (error.code == 401 ||
+          errorString.contains('unauthorized') ||
+          errorString.contains('authentication failed') ||
+          errorString.contains('invalid credentials')) {
+        return ConnectionException(
+          ConnectionError.invalidCredentials(details: error.message),
+        );
+      }
+
+      if (error.code == 403 || errorString.contains('forbidden')) {
+        return ConnectionException(
+          ConnectionError.permissionDenied(details: error.message),
+        );
+      }
+
+      if (error.code >= 500) {
+        return ConnectionException(
+          ConnectionError.serverError(details: error.message),
+        );
+      }
+    }
+
+    // WebSocket specific errors
+    if (errorString.contains('websocket') ||
+        errorString.contains('handshake') ||
+        errorString.contains('upgrade failed')) {
+      return ConnectionException(
+        ConnectionError.networkUnreachable(
+          details: 'WebSocket connection failed: ${error.toString()}',
+        ),
+      );
+    }
+
+    // Default to unknown error
+    return ConnectionException(
+      ConnectionError.unknown(details: error.toString()),
+    );
+  }
+
+  Exception _handleError(dynamic error) {
+    // For backward compatibility, convert ConnectionException to regular Exception
+    if (error is ConnectionException) {
+      return Exception(error.error.message);
+    }
+
+    final connectionError = _handleConnectionError(error);
+    return Exception(connectionError.error.message);
   }
 }
