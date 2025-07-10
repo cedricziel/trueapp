@@ -25,6 +25,12 @@ class TrueNasApiClient implements ApiClientInterface {
   String? _realtimeSubscriptionId;
   bool _isSubscribedToRealtime = false;
 
+  // Keepalive mechanism
+  Timer? _keepaliveTimer;
+  bool _keepaliveEnabled = true;
+  Duration _keepaliveInterval = const Duration(seconds: 45);
+  bool _awaitingPong = false;
+
   TrueNasApiClient(this._server);
 
   Future<void> _ensureConnected() async {
@@ -79,6 +85,133 @@ class TrueNasApiClient implements ApiClientInterface {
       throw _handleConnectionError(e);
     }
   }
+
+  void _startKeepalive() {
+    if (!_keepaliveEnabled || _keepaliveTimer != null) {
+      return;
+    }
+
+    if (kDebugMode) {
+      print(
+        'TrueNAS API: Starting keepalive with ${_keepaliveInterval.inSeconds}s interval',
+      );
+    }
+
+    _keepaliveTimer = Timer.periodic(_keepaliveInterval, (_) {
+      _sendKeepalivePing();
+    });
+  }
+
+  void _stopKeepalive() {
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = null;
+    _awaitingPong = false;
+
+    if (kDebugMode) {
+      print('TrueNAS API: Stopped keepalive');
+    }
+  }
+
+  Future<void> _sendKeepalivePing() async {
+    if (_client == null || _client!.isClosed || !_isAuthenticated) {
+      return;
+    }
+
+    if (_awaitingPong) {
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: Keepalive timeout - no pong received, reconnecting...',
+        );
+      }
+      await _handleKeepaliveTimeout();
+      return;
+    }
+
+    try {
+      _awaitingPong = true;
+
+      if (kDebugMode) {
+        print('TrueNAS API: Sending keepalive ping');
+      }
+
+      final result = await _client!
+          .sendRequest('core.ping', [])
+          .timeout(const Duration(seconds: 10));
+
+      if (result == 'pong') {
+        _awaitingPong = false;
+
+        if (kDebugMode) {
+          print('TrueNAS API: Received keepalive pong');
+        }
+      } else {
+        if (kDebugMode) {
+          print('TrueNAS API: Unexpected keepalive response: $result');
+        }
+        _awaitingPong = false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Keepalive ping failed: $e');
+      }
+      await _handleKeepaliveTimeout();
+    }
+  }
+
+  Future<void> _handleKeepaliveTimeout() async {
+    _awaitingPong = false;
+
+    if (kDebugMode) {
+      print('TrueNAS API: Keepalive failed, attempting reconnection');
+    }
+
+    // Reset connection state
+    _isAuthenticated = false;
+
+    try {
+      // Close existing connection
+      await _client?.close();
+      await _wsChannel?.sink.close();
+
+      // Re-establish connection
+      await _ensureConnected();
+      await _ensureAuthenticated();
+
+      if (kDebugMode) {
+        print('TrueNAS API: Successfully reconnected after keepalive timeout');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to reconnect after keepalive timeout: $e');
+      }
+      // Stop keepalive on repeated failures to avoid continuous retry loops
+      _stopKeepalive();
+    }
+  }
+
+  @override
+  void setKeepaliveInterval(Duration interval) {
+    _keepaliveInterval = interval;
+
+    if (_keepaliveTimer != null) {
+      _stopKeepalive();
+      _startKeepalive();
+    }
+  }
+
+  @override
+  void enableKeepalive(bool enabled) {
+    _keepaliveEnabled = enabled;
+
+    if (enabled && _isAuthenticated) {
+      _startKeepalive();
+    } else {
+      _stopKeepalive();
+    }
+  }
+
+  @override
+  bool get isKeepaliveActive => _keepaliveTimer?.isActive ?? false;
 
   void _setupCollectionUpdateHandler() {
     if (_client == null) return;
@@ -137,6 +270,9 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Successfully authenticated');
       }
+
+      // Start keepalive after successful authentication
+      _startKeepalive();
     } on TimeoutException {
       throw ConnectionException(
         ConnectionError.connectionTimeout(
@@ -153,6 +289,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> close() async {
+    _stopKeepalive();
     await unsubscribeFromSystemStats();
     await _client?.close();
     await _wsChannel?.sink.close();

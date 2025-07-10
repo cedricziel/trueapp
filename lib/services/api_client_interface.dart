@@ -12,6 +12,11 @@ abstract class ApiClientInterface {
   Future<void> close();
   Future<bool> testConnection();
 
+  // Keepalive management
+  void setKeepaliveInterval(Duration interval);
+  void enableKeepalive(bool enabled);
+  bool get isKeepaliveActive;
+
   // Authentication methods
   Future<bool> validateLogin(
     String username,
