@@ -56,3 +56,6 @@ According to README.md:
 - 📋 Planned: Snapshot management, user management, system monitoring
 
 When implementing new features, follow the existing patterns and ensure compatibility with both iOS and macOS platforms.
+
+## Tooling Notes
+- `gtimeout` is used for adding timeouts to bash commands
