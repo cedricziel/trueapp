@@ -50,9 +50,9 @@ void main() {
     test('should update local URL from "s" to empty string', () async {
       serverProvider.selectServer(testServer);
 
-      // Update to clear the invalid local URL
+      // Update to clear the invalid local URL using the special flag
       final updatedServer = testServer.copyWith(
-        localUrl: null, // Clear the local URL
+        clearLocalUrl: true, // Use the special flag to clear the local URL
       );
 
       await serverProvider.updateServer(updatedServer);

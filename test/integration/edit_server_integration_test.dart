@@ -44,13 +44,13 @@ void main() {
       bool? editResult;
 
       Widget createTestApp() {
-        return CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-            ],
-            child: CupertinoPageScaffold(
+        return MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+          ],
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
               navigationBar: const CupertinoNavigationBar(
                 middle: Text('Server Details'),
               ),
@@ -125,56 +125,38 @@ void main() {
 
       // Make changes to the server
 
-      // Update server name
+      // Scroll to top to access the name field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
+      // Update server name - find the field that contains the original name
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Integration Test Server',
       );
       await tester.enterText(nameField, 'Updated Integration Server');
       await tester.pumpAndSettle();
 
-      // Toggle allow untrusted certificates
-      final untrustedCertToggle = find.byWidgetPredicate(
-        (widget) =>
-            widget is CupertinoSwitch &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoFormRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text(
-                                'Allow Untrusted Certificates',
-                              ),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+      // Scroll down to access the certificate settings
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+
+      // Toggle allow untrusted certificates - find by locating "Allow Untrusted Certificates" text first
+      final allowUntrustedRow = find.text('Allow Untrusted Certificates');
+      expect(allowUntrustedRow, findsOneWidget);
+      final untrustedCertToggle = find.descendant(
+        of: find.ancestor(
+          of: allowUntrustedRow,
+          matching: find.byType(CupertinoFormRow),
+        ),
+        matching: find.byType(CupertinoSwitch),
       );
       await tester.tap(untrustedCertToggle);
+      await tester.pumpAndSettle();
+
+      // Scroll back up a bit to access WiFi section
+      await tester.drag(find.byType(ListView), const Offset(0, 200));
       await tester.pumpAndSettle();
 
       // Add a new WiFi SSID
@@ -188,27 +170,15 @@ void main() {
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle();
 
-      // Update host
+      // Scroll to top to access the host field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
+      // Update host - find the field that contains the original host
       final hostField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Host'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == '192.168.1.100',
       );
       await tester.enterText(hostField, '192.168.1.150');
       await tester.pumpAndSettle();
@@ -247,13 +217,13 @@ void main() {
       int refreshCount = 0;
 
       Widget createTestApp() {
-        return CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-            ],
-            child: CupertinoPageScaffold(
+        return MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+          ],
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
               navigationBar: const CupertinoNavigationBar(
                 middle: Text('Server Details'),
               ),
@@ -311,27 +281,15 @@ void main() {
       await tester.tap(find.text('Edit Server'));
       await tester.pumpAndSettle();
 
-      // Make changes but don't save
+      // Scroll to top to find the name field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
+      // Make changes but don't save - find the name field
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Integration Test Server',
       );
       await tester.enterText(nameField, 'This Change Should Not Be Saved');
       await tester.pumpAndSettle();
@@ -359,13 +317,13 @@ void main() {
       WidgetTester tester,
     ) async {
       Widget createTestApp() {
-        return CupertinoApp(
-          home: MultiProvider(
-            providers: [
-              Provider<AppDatabase>.value(value: database),
-              ChangeNotifierProvider.value(value: serverProvider),
-            ],
-            child: CupertinoPageScaffold(
+        return MultiProvider(
+          providers: [
+            Provider<AppDatabase>.value(value: database),
+            ChangeNotifierProvider.value(value: serverProvider),
+          ],
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
               navigationBar: const CupertinoNavigationBar(
                 middle: Text('Server Details'),
               ),
@@ -423,26 +381,14 @@ void main() {
       await tester.tap(find.text('Edit Server'));
       await tester.pumpAndSettle();
 
+      // Scroll to top to find the name field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
       final nameField = find.byWidgetPredicate(
         (widget) =>
             widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Name'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget.controller?.text == 'Integration Test Server',
       );
       await tester.enterText(nameField, 'First Edit');
       await tester.pumpAndSettle();
@@ -456,26 +402,13 @@ void main() {
       await tester.tap(find.text('Edit Server'));
       await tester.pumpAndSettle();
 
+      // Scroll to top to find the port field
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+
       final portField = find.byWidgetPredicate(
         (widget) =>
-            widget is CupertinoTextField &&
-            find
-                .ancestor(
-                  of: find.byWidget(widget),
-                  matching: find.byWidgetPredicate(
-                    (parent) =>
-                        parent is CupertinoTextFormFieldRow &&
-                        find
-                            .descendant(
-                              of: find.byWidget(parent),
-                              matching: find.text('Port'),
-                            )
-                            .evaluate()
-                            .isNotEmpty,
-                  ),
-                )
-                .evaluate()
-                .isNotEmpty,
+            widget is CupertinoTextField && widget.controller?.text == '443',
       );
       await tester.enterText(portField, '8080');
       await tester.pumpAndSettle();
