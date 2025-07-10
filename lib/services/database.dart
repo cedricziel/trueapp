@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 
 part 'database.g.dart';
@@ -24,6 +23,9 @@ class NasServers extends Table {
 @DriftDatabase(tables: [NasServers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'truenas_manager'));
+
+  // Constructor for testing that accepts a custom QueryExecutor
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;

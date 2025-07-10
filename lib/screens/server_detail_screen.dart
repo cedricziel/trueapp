@@ -264,7 +264,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-
   Widget _buildConnectionStatus() {
     final isConnected =
         widget.server.lastConnected != null &&
