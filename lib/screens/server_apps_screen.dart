@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
+import 'package:truenas_manager/widgets/app_icon.dart';
+import 'package:truenas_manager/screens/app_detail_screen.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -235,7 +236,10 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
   Widget _buildAppCard(App app) {
     return GestureDetector(
       onTap: () {
-        _showAppDetails(app);
+        Navigator.push(
+          context,
+          CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -248,32 +252,8 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
           children: [
             Row(
               children: [
-                // App icon placeholder or status indicator
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: app.installed
-                        ? (app.healthy
-                              ? CupertinoColors.systemGreen.withOpacity(0.1)
-                              : CupertinoColors.systemRed.withOpacity(0.1))
-                        : CupertinoColors.systemBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    app.installed
-                        ? (app.healthy
-                              ? CupertinoIcons.checkmark_circle
-                              : CupertinoIcons.exclamationmark_circle)
-                        : CupertinoIcons.app,
-                    color: app.installed
-                        ? (app.healthy
-                              ? CupertinoColors.systemGreen
-                              : CupertinoColors.systemRed)
-                        : CupertinoColors.systemBlue,
-                    size: 24,
-                  ),
-                ),
+                // App icon with network image support
+                AppIcon(app: app, size: 50),
                 const SizedBox(width: 16),
                 // App info
                 Expanded(
@@ -391,46 +371,6 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showAppDetails(App app) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text(app.title),
-        message: Text(app.description),
-        actions: [
-          if (app.home != null)
-            CupertinoActionSheetAction(
-              child: const Text('View Homepage'),
-              onPressed: () {
-                Navigator.pop(context);
-                if (kDebugMode) {
-                  print('Open homepage: ${app.home}');
-                }
-                // TODO: Open URL in browser
-              },
-            ),
-          CupertinoActionSheetAction(
-            child: Text(app.installed ? 'Manage App' : 'Install App'),
-            onPressed: () {
-              Navigator.pop(context);
-              if (kDebugMode) {
-                print(
-                  '${app.installed ? 'Manage' : 'Install'} app: ${app.name}',
-                );
-              }
-              // TODO: Navigate to app management or installation
-            },
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          child: const Text('Cancel'),
-          onPressed: () => Navigator.pop(context),
         ),
       ),
     );

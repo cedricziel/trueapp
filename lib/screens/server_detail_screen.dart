@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/models/app.dart';
+import 'package:truenas_manager/widgets/app_icon.dart';
+import 'package:truenas_manager/screens/app_detail_screen.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
 import 'package:truenas_manager/screens/server_pools_screen.dart';
@@ -847,10 +848,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   Widget _buildAppCard(App app) {
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to app details or manage app
-        if (kDebugMode) {
-          print('Tapped on app: ${app.name}');
-        }
+        Navigator.push(
+          context,
+          CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -861,31 +862,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: app.installed
-                    ? (app.healthy
-                          ? CupertinoColors.systemGreen.withOpacity(0.1)
-                          : CupertinoColors.systemRed.withOpacity(0.1))
-                    : CupertinoColors.systemBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                app.installed
-                    ? (app.healthy
-                          ? CupertinoIcons.checkmark_circle
-                          : CupertinoIcons.exclamationmark_circle)
-                    : CupertinoIcons.app,
-                color: app.installed
-                    ? (app.healthy
-                          ? CupertinoColors.systemGreen
-                          : CupertinoColors.systemRed)
-                    : CupertinoColors.systemBlue,
-                size: 22,
-              ),
-            ),
+            AppIcon(app: app, size: 44),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
