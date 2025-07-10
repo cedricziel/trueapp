@@ -39,7 +39,7 @@ dependencies:
   dio: ^5.4.0
 
   # JSON-RPC client
-  json_rpc_2: ^3.0.2
+  json_rpc_2: ^4.0.0
 
   # Local storage
   drift: ^2.26.0
