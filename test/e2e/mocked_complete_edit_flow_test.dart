@@ -79,7 +79,6 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
     notifyListeners();
   }
 
-
   // Additional required methods
   @override
   Future<void> loadServers() async {
@@ -149,7 +148,6 @@ class MockPoolProvider extends ChangeNotifier implements PoolProvider {
 
   @override
   String? get error => null;
-
 
   @override
   ConnectionError? get connectionError => null;
