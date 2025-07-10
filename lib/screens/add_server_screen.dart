@@ -56,12 +56,15 @@ class _AddServerScreenState extends State<AddServerScreen> {
     );
 
     try {
+      print('AddServerScreen: Starting connection test to ${server.baseUrl}');
       final isValid = await context.read<ServerProvider>().validateServerCredentials(server);
+      print('AddServerScreen: Connection test result: $isValid');
       setState(() {
         _connectionTestResult = isValid ? 'Connection successful!' : 'Invalid credentials or connection failed';
         _isTestingConnection = false;
       });
     } catch (e) {
+      print('AddServerScreen: Connection test error: $e');
       setState(() {
         _connectionTestResult = 'Connection failed: ${e.toString()}';
         _isTestingConnection = false;

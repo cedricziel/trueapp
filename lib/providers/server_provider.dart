@@ -125,11 +125,16 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> validateServerCredentials(models.NasServer server) async {
     try {
+      print('ServerProvider: Creating API client for ${server.baseUrl}');
       final apiClient = TrueNasApiClient(server);
-      final result = await apiClient.validateLogin(server.username, server.password);
+      print('ServerProvider: Validating credentials for user ${server.username}');
+      final result = await apiClient.validateLogin(server.username, server.password)
+          .timeout(const Duration(seconds: 15));
+      print('ServerProvider: Validation result: $result');
       await apiClient.close();
       return result;
     } catch (e) {
+      print('ServerProvider: Validation failed with error: $e');
       return false;
     }
   }

@@ -29,12 +29,15 @@ class TrueNasApiClient {
   // Authentication methods
   Future<bool> validateLogin(String username, String password, [String? otpToken]) async {
     try {
+      print('TrueNasApiClient: Attempting login for user: $username to ${_server.baseUrl}');
       final result = await _client.sendRequest(
         'auth.login',
         [username, password, if (otpToken != null) otpToken],
-      );
+      ).timeout(const Duration(seconds: 10));
+      print('TrueNasApiClient: Login result: $result');
       return result as bool;
     } catch (e) {
+      print('TrueNasApiClient: Login failed with error: $e');
       return false;
     }
   }
@@ -233,9 +236,12 @@ class TrueNasApiClient {
 
   Future<bool> testConnection() async {
     try {
-      await getSystemInfo();
+      print('TrueNasApiClient: Testing connection to ${_server.baseUrl}');
+      await getSystemInfo().timeout(const Duration(seconds: 10));
+      print('TrueNasApiClient: Connection test successful');
       return true;
     } catch (e) {
+      print('TrueNasApiClient: Connection test failed with error: $e');
       return false;
     }
   }
@@ -313,28 +319,40 @@ class _TrueNasHttpChannel extends StreamChannelMixin<String> {
     _dio.options.baseUrl = '${_server.baseUrl}/api/v2.0';
     _dio.options.headers['Content-Type'] = 'application/json';
     _dio.options.headers['Authorization'] = 'Basic ${_getAuthHeader()}';
-    _dio.options.connectTimeout = const Duration(seconds: 30);
-    _dio.options.receiveTimeout = const Duration(seconds: 30);
+    _dio.options.connectTimeout = const Duration(seconds: 10);
+    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    
+    print('TrueNasHttpChannel: Configured baseUrl: ${_dio.options.baseUrl}');
+    print('TrueNasHttpChannel: Authorization header set');
   }
 
   void _setupRequestHandler() {
     _requestController.stream.listen((request) async {
       try {
+        print('TrueNasHttpChannel: Sending request to ${_dio.options.baseUrl}/call');
+        print('TrueNasHttpChannel: Request data: $request');
+        
         final response = await _dio.post(
           '/call',
           data: request,
         );
         
+        print('TrueNasHttpChannel: Response status: ${response.statusCode}');
+        print('TrueNasHttpChannel: Response data type: ${response.data.runtimeType}');
+        
         if (response.statusCode == 200) {
-          _responseController.add(response.data is String 
+          final responseData = response.data is String 
               ? response.data 
-              : jsonEncode(response.data));
+              : jsonEncode(response.data);
+          print('TrueNasHttpChannel: Sending response: $responseData');
+          _responseController.add(responseData);
         } else {
-          _responseController.addError(
-            'HTTP ${response.statusCode}: ${response.statusMessage}'
-          );
+          final errorMsg = 'HTTP ${response.statusCode}: ${response.statusMessage}';
+          print('TrueNasHttpChannel: HTTP error: $errorMsg');
+          _responseController.addError(errorMsg);
         }
       } catch (e) {
+        print('TrueNasHttpChannel: Request failed with error: $e');
         _responseController.addError(e);
       }
     });
