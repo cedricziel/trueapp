@@ -4,8 +4,10 @@ import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
+import 'package:truenas_manager/providers/system_stats_provider.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/widgets/app_icon.dart';
+import 'package:truenas_manager/widgets/system_stats_widget.dart';
 import 'package:truenas_manager/screens/app_detail_screen.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
@@ -32,6 +34,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       final serverProvider = context.read<ServerProvider>();
       final poolProvider = context.read<PoolProvider>();
       final appProvider = context.read<AppProvider>();
+      final systemStatsProvider = context.read<SystemStatsProvider>();
 
       serverProvider.selectServer(widget.server);
       serverProvider.loadCurrentUser();
@@ -41,7 +44,21 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
 
       appProvider.setApiClient(widget.server);
       appProvider.loadApps();
+
+      systemStatsProvider.setApiClient(widget.server);
+      systemStatsProvider.subscribeToStats();
     });
+  }
+
+  @override
+  void dispose() {
+    // Unsubscribe from system stats when screen is disposed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SystemStatsProvider>().unsubscribeFromStats();
+      }
+    });
+    super.dispose();
   }
 
   @override
@@ -113,6 +130,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               children: [
                 const SizedBox(height: 20),
                 _buildServerInfo(currentServer),
+                const SizedBox(height: 20),
+                _buildSystemStatsSection(currentServer),
                 const SizedBox(height: 20),
                 _buildPoolsSection(currentServer),
                 const SizedBox(height: 20),
@@ -689,6 +708,47 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     } else {
       return '${diff.inDays} days ago';
     }
+  }
+
+  Widget _buildSystemStatsSection(NasServer server) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'System Stats',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              Consumer<SystemStatsProvider>(
+                builder: (context, statsProvider, child) {
+                  return CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: Icon(
+                      statsProvider.isSubscribed
+                          ? CupertinoIcons.pause_circle
+                          : CupertinoIcons.play_circle,
+                    ),
+                    onPressed: () {
+                      if (statsProvider.isSubscribed) {
+                        statsProvider.unsubscribeFromStats();
+                      } else {
+                        statsProvider.subscribeToStats();
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const SystemStatsWidget(),
+        ],
+      ),
+    );
   }
 
   Widget _buildAppsSection(NasServer server) {
