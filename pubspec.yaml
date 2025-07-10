@@ -66,6 +66,7 @@ dependencies:
   # Network connectivity detection
   connectivity_plus: ^6.1.4
   network_info_plus: ^6.1.4
+  permission_handler: ^12.0.0
 
 dev_dependencies:
   flutter_test:

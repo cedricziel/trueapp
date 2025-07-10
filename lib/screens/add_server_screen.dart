@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
+import 'package:truenas_manager/services/network_service.dart';
 
 class AddServerScreen extends StatefulWidget {
   const AddServerScreen({super.key});
@@ -22,6 +23,9 @@ class _AddServerScreenState extends State<AddServerScreen> {
   bool _isTestingConnection = false;
   String? _connectionTestResult;
   final List<String> _trustedWifiSsids = [];
+  String? _currentWifiSsid;
+  bool _isLoadingCurrentSsid = false;
+  final NetworkService _networkService = NetworkService();
 
   @override
   void dispose() {
@@ -56,6 +60,34 @@ class _AddServerScreenState extends State<AddServerScreen> {
     setState(() {
       _trustedWifiSsids.remove(ssid);
     });
+  }
+
+  Future<void> _loadCurrentWifiSsid() async {
+    setState(() {
+      _isLoadingCurrentSsid = true;
+    });
+
+    try {
+      final ssid = await _networkService.getCurrentWifiSsidWithPermission();
+      setState(() {
+        _currentWifiSsid = ssid;
+      });
+    } catch (e) {
+      // Ignore errors - this is just a convenience feature
+    } finally {
+      setState(() {
+        _isLoadingCurrentSsid = false;
+      });
+    }
+  }
+
+  void _addCurrentWifiSsid() {
+    if (_currentWifiSsid != null &&
+        !_trustedWifiSsids.contains(_currentWifiSsid!)) {
+      setState(() {
+        _trustedWifiSsids.add(_currentWifiSsid!);
+      });
+    }
   }
 
   Future<void> _testConnection() async {
@@ -188,6 +220,43 @@ class _AddServerScreenState extends State<AddServerScreen> {
             CupertinoFormSection(
               header: const Text('TRUSTED WI-FI NETWORKS'),
               children: [
+                // Current Wi-Fi suggestion
+                if (_currentWifiSsid != null &&
+                    !_trustedWifiSsids.contains(_currentWifiSsid!))
+                  CupertinoFormRow(
+                    prefix: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Current Network'),
+                        Text(
+                          _currentWifiSsid!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _addCurrentWifiSsid,
+                      child: const Text('Add Current'),
+                    ),
+                  ),
+                if (_currentWifiSsid == null && !_isLoadingCurrentSsid)
+                  CupertinoFormRow(
+                    prefix: const Text('Current Network'),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _loadCurrentWifiSsid,
+                      child: const Text('Detect'),
+                    ),
+                  ),
+                if (_isLoadingCurrentSsid)
+                  const CupertinoFormRow(
+                    prefix: Text('Current Network'),
+                    child: CupertinoActivityIndicator(),
+                  ),
                 CupertinoFormRow(
                   prefix: const Text('Add SSID'),
                   child: Row(
