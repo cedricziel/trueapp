@@ -81,9 +81,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         decoration: BoxDecoration(
           color: CupertinoColors.systemRed.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: CupertinoColors.systemRed.withOpacity(0.3),
-          ),
+          border: Border.all(color: CupertinoColors.systemRed.withOpacity(0.3)),
         ),
         child: Column(
           children: [
@@ -178,10 +176,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           const SizedBox(height: 16),
           Text(
             user.fullName.isNotEmpty ? user.fullName : user.username,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           if (user.fullName.isNotEmpty && user.fullName != user.username) ...[
@@ -277,8 +272,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       icon: CupertinoIcons.person_circle,
       children: [
         _buildInfoRow('Username', user.username),
-        if (user.fullName.isNotEmpty)
-          _buildInfoRow('Full Name', user.fullName),
+        if (user.fullName.isNotEmpty) _buildInfoRow('Full Name', user.fullName),
         _buildInfoRow('User ID', user.uid.toString()),
         _buildInfoRow('Group ID', user.gid.toString()),
         _buildInfoRow('Home Directory', user.homeDirectory),
@@ -315,10 +309,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           const SizedBox(height: 8),
           const Text(
             'Groups',
-            style: TextStyle(
-              color: CupertinoColors.systemGrey,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: CupertinoColors.systemGrey, fontSize: 14),
           ),
           const SizedBox(height: 4),
           Wrap(
@@ -326,10 +317,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             runSpacing: 6,
             children: user.groupList.map((group) {
               return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: CupertinoColors.systemBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -383,11 +371,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                color: CupertinoColors.activeBlue,
-                size: 20,
-              ),
+              Icon(icon, color: CupertinoColors.activeBlue, size: 20),
               const SizedBox(width: 8),
               Text(
                 title,
