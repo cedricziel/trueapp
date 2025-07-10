@@ -59,3 +59,6 @@ When implementing new features, follow the existing patterns and ensure compatib
 
 ## Tooling Notes
 - `gtimeout` is used for adding timeouts to bash commands
+
+## Development Philosophy
+- We want to use best-practices like coding against interfaces, dependency injection etc whenever we can and it's our responsibility to gradually modernize the parts of the app we touch

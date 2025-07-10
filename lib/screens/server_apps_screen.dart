@@ -23,10 +23,10 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final appProvider = context.read<AppProvider>();
-      appProvider.setApiClient(widget.server);
-      appProvider.loadApps();
+      await appProvider.setApiClient(widget.server);
+      await appProvider.loadApps();
     });
   }
 

@@ -35,7 +35,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   }
 
   @override
-  void selectServer(NasServer? server) {
+  Future<void> selectServer(NasServer? server) async {
     _selectedServer = server;
     notifyListeners();
   }
@@ -88,7 +88,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   }
 
   @override
-  void clearSelectedServer() {
+  Future<void> clearSelectedServer() async {
     _selectedServer = null;
     notifyListeners();
   }
@@ -156,7 +156,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
 
 class MockPoolProvider extends ChangeNotifier implements PoolProvider {
   @override
-  void setApiClient(NasServer server) {
+  Future<void> setApiClient(NasServer server) async {
     // Don't create WebSocket connection
   }
 
@@ -184,7 +184,7 @@ class MockPoolProvider extends ChangeNotifier implements PoolProvider {
   }
 
   @override
-  void setServer(NasServer? server) {
+  Future<void> setServer(NasServer? server) async {
     // Mock - don't set server
   }
 }

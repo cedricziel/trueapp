@@ -23,7 +23,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
 
   Future<void> _loadDatasets() async {
     final datasetProvider = context.read<DatasetProvider>();
-    datasetProvider.setApiClient(widget.server);
+    await datasetProvider.setApiClient(widget.server);
     await datasetProvider.loadDatasets();
   }
 

@@ -23,7 +23,7 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
 
   Future<void> _loadPools() async {
     final poolProvider = context.read<PoolProvider>();
-    poolProvider.setApiClient(widget.server);
+    await poolProvider.setApiClient(widget.server);
     await poolProvider.loadPools();
   }
 
