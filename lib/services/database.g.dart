@@ -147,6 +147,21 @@ class $NasServersTable extends NasServers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -161,6 +176,7 @@ class $NasServersTable extends NasServers
     allowUntrustedCertificates,
     lastConnected,
     isActive,
+    isDefault,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -262,6 +278,12 @@ class $NasServersTable extends NasServers
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
     return context;
   }
 
@@ -319,6 +341,10 @@ class $NasServersTable extends NasServers
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
     );
   }
 
@@ -341,6 +367,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final bool allowUntrustedCertificates;
   final DateTime? lastConnected;
   final bool isActive;
+  final bool isDefault;
   const NasServerData({
     required this.id,
     required this.name,
@@ -354,6 +381,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     required this.allowUntrustedCertificates,
     this.lastConnected,
     required this.isActive,
+    required this.isDefault,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -378,6 +406,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       map['last_connected'] = Variable<DateTime>(lastConnected);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['is_default'] = Variable<bool>(isDefault);
     return map;
   }
 
@@ -399,6 +428,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ? const Value.absent()
           : Value(lastConnected),
       isActive: Value(isActive),
+      isDefault: Value(isDefault),
     );
   }
 
@@ -422,6 +452,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       ),
       lastConnected: serializer.fromJson<DateTime?>(json['lastConnected']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
     );
   }
   @override
@@ -442,6 +473,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       ),
       'lastConnected': serializer.toJson<DateTime?>(lastConnected),
       'isActive': serializer.toJson<bool>(isActive),
+      'isDefault': serializer.toJson<bool>(isDefault),
     };
   }
 
@@ -458,6 +490,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     bool? allowUntrustedCertificates,
     Value<DateTime?> lastConnected = const Value.absent(),
     bool? isActive,
+    bool? isDefault,
   }) => NasServerData(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -474,6 +507,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
         ? lastConnected.value
         : this.lastConnected,
     isActive: isActive ?? this.isActive,
+    isDefault: isDefault ?? this.isDefault,
   );
   NasServerData copyWithCompanion(NasServersCompanion data) {
     return NasServerData(
@@ -495,6 +529,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ? data.lastConnected.value
           : this.lastConnected,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
     );
   }
 
@@ -512,7 +547,8 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ..write('useHttps: $useHttps, ')
           ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('isDefault: $isDefault')
           ..write(')'))
         .toString();
   }
@@ -531,6 +567,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     allowUntrustedCertificates,
     lastConnected,
     isActive,
+    isDefault,
   );
   @override
   bool operator ==(Object other) =>
@@ -547,7 +584,8 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           other.useHttps == this.useHttps &&
           other.allowUntrustedCertificates == this.allowUntrustedCertificates &&
           other.lastConnected == this.lastConnected &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.isDefault == this.isDefault);
 }
 
 class NasServersCompanion extends UpdateCompanion<NasServerData> {
@@ -563,6 +601,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
   final Value<bool> allowUntrustedCertificates;
   final Value<DateTime?> lastConnected;
   final Value<bool> isActive;
+  final Value<bool> isDefault;
   final Value<int> rowid;
   const NasServersCompanion({
     this.id = const Value.absent(),
@@ -577,6 +616,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isDefault = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   NasServersCompanion.insert({
@@ -592,6 +632,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isDefault = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -611,6 +652,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Expression<bool>? allowUntrustedCertificates,
     Expression<DateTime>? lastConnected,
     Expression<bool>? isActive,
+    Expression<bool>? isDefault,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -627,6 +669,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
         'allow_untrusted_certificates': allowUntrustedCertificates,
       if (lastConnected != null) 'last_connected': lastConnected,
       if (isActive != null) 'is_active': isActive,
+      if (isDefault != null) 'is_default': isDefault,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -644,6 +687,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Value<bool>? allowUntrustedCertificates,
     Value<DateTime?>? lastConnected,
     Value<bool>? isActive,
+    Value<bool>? isDefault,
     Value<int>? rowid,
   }) {
     return NasServersCompanion(
@@ -660,6 +704,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           allowUntrustedCertificates ?? this.allowUntrustedCertificates,
       lastConnected: lastConnected ?? this.lastConnected,
       isActive: isActive ?? this.isActive,
+      isDefault: isDefault ?? this.isDefault,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -705,6 +750,9 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -726,6 +774,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
           ..write('isActive: $isActive, ')
+          ..write('isDefault: $isDefault, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -757,6 +806,7 @@ typedef $$NasServersTableCreateCompanionBuilder =
       Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
+      Value<bool> isDefault,
       Value<int> rowid,
     });
 typedef $$NasServersTableUpdateCompanionBuilder =
@@ -773,6 +823,7 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
+      Value<bool> isDefault,
       Value<int> rowid,
     });
 
@@ -842,6 +893,11 @@ class $$NasServersTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -914,6 +970,11 @@ class $$NasServersTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$NasServersTableAnnotationComposer
@@ -966,6 +1027,9 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
 }
 
 class $$NasServersTableTableManager
@@ -1011,6 +1075,7 @@ class $$NasServersTableTableManager
                 Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NasServersCompanion(
                 id: id,
@@ -1025,6 +1090,7 @@ class $$NasServersTableTableManager
                 allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
+                isDefault: isDefault,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1041,6 +1107,7 @@ class $$NasServersTableTableManager
                 Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NasServersCompanion.insert(
                 id: id,
@@ -1055,6 +1122,7 @@ class $$NasServersTableTableManager
                 allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
+                isDefault: isDefault,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

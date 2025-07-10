@@ -15,6 +15,7 @@ class NasServer extends Equatable {
   final bool allowUntrustedCertificates;
   final DateTime? lastConnected;
   final bool isActive;
+  final bool isDefault;
 
   const NasServer({
     required this.id,
@@ -29,6 +30,7 @@ class NasServer extends Equatable {
     this.allowUntrustedCertificates = false,
     this.lastConnected,
     this.isActive = true,
+    this.isDefault = false,
   });
 
   factory NasServer.create({
@@ -41,6 +43,7 @@ class NasServer extends Equatable {
     required String password,
     bool useHttps = true,
     bool allowUntrustedCertificates = false,
+    bool isDefault = false,
   }) {
     return NasServer(
       id: const Uuid().v4(),
@@ -53,6 +56,7 @@ class NasServer extends Equatable {
       password: password,
       useHttps: useHttps,
       allowUntrustedCertificates: allowUntrustedCertificates,
+      isDefault: isDefault,
     );
   }
 
@@ -69,6 +73,7 @@ class NasServer extends Equatable {
     bool? allowUntrustedCertificates,
     DateTime? lastConnected,
     bool? isActive,
+    bool? isDefault,
     // Special flag to explicitly clear localUrl
     bool clearLocalUrl = false,
     // Special flag to explicitly clear port
@@ -88,6 +93,7 @@ class NasServer extends Equatable {
           allowUntrustedCertificates ?? this.allowUntrustedCertificates,
       lastConnected: lastConnected ?? this.lastConnected,
       isActive: isActive ?? this.isActive,
+      isDefault: isDefault ?? this.isDefault,
     );
   }
 
@@ -131,5 +137,6 @@ class NasServer extends Equatable {
     allowUntrustedCertificates,
     lastConnected,
     isActive,
+    isDefault,
   ];
 }
