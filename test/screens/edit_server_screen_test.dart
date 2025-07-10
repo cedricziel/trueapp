@@ -44,9 +44,7 @@ void main() {
           Provider<AppDatabase>.value(value: database),
           ChangeNotifierProvider.value(value: serverProvider),
         ],
-        child: CupertinoApp(
-          home: EditServerScreen(server: testServer),
-        ),
+        child: CupertinoApp(home: EditServerScreen(server: testServer)),
       );
     }
 
