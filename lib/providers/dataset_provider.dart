@@ -20,6 +20,14 @@ class DatasetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setApiClient(NasServer server) {
+    _apiClient?.close();
+    _apiClient = TrueNasApiClient(server);
+    _datasets = [];
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> loadDatasets() async {
     if (_apiClient == null) return;
 
