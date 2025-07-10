@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 
 part 'database.g.dart';
@@ -56,8 +57,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateServer(models.NasServer server) async {
-    await (update(nasServers)..where((tbl) => tbl.id.equals(server.id)))
-        .write(
+    await (update(nasServers)..where((tbl) => tbl.id.equals(server.id))).write(
       NasServersCompanion(
         name: Value(server.name),
         host: Value(server.host),
@@ -76,8 +76,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateLastConnected(String id) async {
-    await (update(nasServers)..where((tbl) => tbl.id.equals(id)))
-        .write(NasServersCompanion(lastConnected: Value(DateTime.now())));
+    await (update(nasServers)..where((tbl) => tbl.id.equals(id))).write(
+      NasServersCompanion(lastConnected: Value(DateTime.now())),
+    );
   }
 
   models.NasServer _mapRowToNasServer(NasServerData row) {
@@ -94,4 +95,3 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 }
-

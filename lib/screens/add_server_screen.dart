@@ -17,6 +17,8 @@ class _AddServerScreenState extends State<AddServerScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _useHttps = true;
+  bool _isTestingConnection = false;
+  String? _connectionTestResult;
 
   @override
   void dispose() {
@@ -34,6 +36,41 @@ class _AddServerScreenState extends State<AddServerScreen> {
         _portController.text.isNotEmpty &&
         _usernameController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty;
+  }
+
+  Future<void> _testConnection() async {
+    if (!_isValid) return;
+
+    setState(() {
+      _isTestingConnection = true;
+      _connectionTestResult = null;
+    });
+
+    final server = NasServer.create(
+      name: _nameController.text,
+      host: _hostController.text,
+      port: int.tryParse(_portController.text) ?? 443,
+      username: _usernameController.text,
+      password: _passwordController.text,
+      useHttps: _useHttps,
+    );
+
+    try {
+      final isValid = await context
+          .read<ServerProvider>()
+          .validateServerCredentials(server);
+      setState(() {
+        _connectionTestResult = isValid
+            ? 'Connection successful!'
+            : 'Invalid credentials or connection failed';
+        _isTestingConnection = false;
+      });
+    } catch (e) {
+      setState(() {
+        _connectionTestResult = 'Connection failed: ${e.toString()}';
+        _isTestingConnection = false;
+      });
+    }
   }
 
   Future<void> _saveServer() async {
@@ -133,6 +170,39 @@ class _AddServerScreenState extends State<AddServerScreen> {
                     },
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CupertinoFormSection(
+              header: const Text('CONNECTION TEST'),
+              children: [
+                CupertinoFormRow(
+                  prefix: const Text('Test Connection'),
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: _isValid && !_isTestingConnection
+                        ? _testConnection
+                        : null,
+                    child: _isTestingConnection
+                        ? const CupertinoActivityIndicator()
+                        : const Text('Test'),
+                  ),
+                ),
+                if (_connectionTestResult != null)
+                  CupertinoFormRow(
+                    prefix: const Text('Result'),
+                    child: Text(
+                      _connectionTestResult!,
+                      style: TextStyle(
+                        color:
+                            _connectionTestResult!.startsWith(
+                              'Connection successful',
+                            )
+                            ? CupertinoColors.systemGreen
+                            : CupertinoColors.systemRed,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],

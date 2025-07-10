@@ -1,22 +1,57 @@
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
+import 'package:truenas_manager/providers/server_provider.dart';
+import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
+import 'package:truenas_manager/screens/server_pools_screen.dart';
+import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
+import 'package:truenas_manager/screens/user_profile_screen.dart';
 
-class ServerDetailScreen extends StatelessWidget {
+class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
 
-  const ServerDetailScreen({
-    super.key,
-    required this.server,
-  });
+  const ServerDetailScreen({super.key, required this.server});
+
+  @override
+  State<ServerDetailScreen> createState() => _ServerDetailScreenState();
+}
+
+class _ServerDetailScreenState extends State<ServerDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final serverProvider = context.read<ServerProvider>();
+      final poolProvider = context.read<PoolProvider>();
+
+      serverProvider.selectServer(widget.server);
+      serverProvider.loadCurrentUser();
+
+      poolProvider.setApiClient(widget.server);
+      poolProvider.loadPools();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text(server.name),
+        middle: Text(widget.server.name),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.person_circle),
+          onPressed: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => UserProfileScreen(server: widget.server),
+              ),
+            );
+          },
+        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.ellipsis),
@@ -32,9 +67,8 @@ class ServerDetailScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         CupertinoPageRoute(
-                          builder: (context) => EditServerScreen(
-                            server: server,
-                          ),
+                          builder: (context) =>
+                              EditServerScreen(server: widget.server),
                         ),
                       );
                     },
@@ -51,15 +85,21 @@ class ServerDetailScreen extends StatelessWidget {
         ),
       ),
       child: SafeArea(
-        child: ListView(
-          children: [
-            const SizedBox(height: 20),
-            _buildServerInfo(),
-            const SizedBox(height: 30),
-            _buildActionButtons(context),
-            const SizedBox(height: 30),
-            _buildConnectionStatus(),
-          ],
+        child: Consumer<ServerProvider>(
+          builder: (context, provider, child) {
+            return ListView(
+              children: [
+                const SizedBox(height: 20),
+                _buildServerInfo(),
+                const SizedBox(height: 20),
+                _buildPoolsSection(),
+                const SizedBox(height: 30),
+                _buildActionButtons(context),
+                const SizedBox(height: 30),
+                _buildConnectionStatus(),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -75,13 +115,13 @@ class ServerDetailScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Host', server.host),
+          _buildInfoRow('Host', widget.server.host),
           const SizedBox(height: 8),
-          _buildInfoRow('Port', server.port.toString()),
+          _buildInfoRow('Port', widget.server.port.toString()),
           const SizedBox(height: 8),
-          _buildInfoRow('Protocol', server.useHttps ? 'HTTPS' : 'HTTP'),
+          _buildInfoRow('Protocol', widget.server.useHttps ? 'HTTPS' : 'HTTP'),
           const SizedBox(height: 8),
-          _buildInfoRow('Username', server.username),
+          _buildInfoRow('Username', widget.server.username),
         ],
       ),
     );
@@ -100,10 +140,7 @@ class ServerDetailScreen extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -116,6 +153,22 @@ class ServerDetailScreen extends StatelessWidget {
         children: [
           _buildActionButton(
             context,
+            icon: CupertinoIcons.square_stack_3d_down_right,
+            title: 'Pools',
+            subtitle: 'View storage pools and datasets',
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) =>
+                      ServerPoolsScreen(server: widget.server),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildActionButton(
+            context,
             icon: CupertinoIcons.folder,
             title: 'Files',
             subtitle: 'Browse and manage files',
@@ -123,7 +176,8 @@ class ServerDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerFilesScreen(server: server),
+                  builder: (context) =>
+                      ServerFilesScreen(server: widget.server),
                 ),
               );
             },
@@ -138,7 +192,8 @@ class ServerDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 CupertinoPageRoute(
-                  builder: (context) => ServerHealthScreen(server: server),
+                  builder: (context) =>
+                      ServerHealthScreen(server: widget.server),
                 ),
               );
             },
@@ -160,12 +215,9 @@ class ServerDetailScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemBackground,
+          color: CupertinoColors.systemGrey6,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: CupertinoColors.separator,
-            width: 0.5,
-          ),
+          border: Border.all(color: CupertinoColors.separator, width: 1.0),
         ),
         child: Row(
           children: [
@@ -176,11 +228,7 @@ class ServerDetailScreen extends StatelessWidget {
                 color: CupertinoColors.activeBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: CupertinoColors.activeBlue,
-                size: 24,
-              ),
+              child: Icon(icon, color: CupertinoColors.activeBlue, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -216,9 +264,11 @@ class ServerDetailScreen extends StatelessWidget {
     );
   }
 
+
   Widget _buildConnectionStatus() {
-    final isConnected = server.lastConnected != null &&
-        DateTime.now().difference(server.lastConnected!).inMinutes < 5;
+    final isConnected =
+        widget.server.lastConnected != null &&
+        DateTime.now().difference(widget.server.lastConnected!).inMinutes < 5;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -252,9 +302,9 @@ class ServerDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (server.lastConnected != null)
+                if (widget.server.lastConnected != null)
                   Text(
-                    'Last connected: ${_formatLastConnected(server.lastConnected!)}',
+                    'Last connected: ${_formatLastConnected(widget.server.lastConnected!)}',
                     style: const TextStyle(
                       fontSize: 14,
                       color: CupertinoColors.systemGrey,
@@ -266,6 +316,347 @@ class ServerDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildPoolsSection() {
+    return Consumer<PoolProvider>(
+      builder: (context, poolProvider, child) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Storage Pools',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Text('View All'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) =>
+                              ServerPoolsScreen(server: widget.server),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (poolProvider.isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CupertinoActivityIndicator(),
+                  ),
+                )
+              else if (poolProvider.error != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: CupertinoColors.systemRed.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        CupertinoIcons.exclamationmark_triangle,
+                        color: CupertinoColors.systemRed,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Failed to load pools: ${poolProvider.error}',
+                          style: const TextStyle(
+                            color: CupertinoColors.systemRed,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (poolProvider.pools.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          CupertinoIcons.square_stack_3d_down_right,
+                          size: 32,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'No storage pools found',
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: poolProvider.pools.map((pool) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildPoolCard(pool),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPoolCard(Map<String, dynamic> pool) {
+    final name = pool['name'] as String? ?? 'Unknown';
+    final status = pool['status'] as String? ?? 'Unknown';
+    final healthy = pool['healthy'] as bool? ?? false;
+
+    // Extract pool topology information
+    final topology = pool['topology'] as Map<String, dynamic>?;
+    final poolTypeDescription = _getPoolTypeDescription(topology);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (context) =>
+                PoolDetailScreen(server: widget.server, pool: pool),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        ),
+        child: Column(
+          children: [
+            // Header Row
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: healthy
+                        ? CupertinoColors.systemGreen.withOpacity(0.1)
+                        : CupertinoColors.systemRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.square_stack_3d_down_right,
+                    color: healthy
+                        ? CupertinoColors.systemGreen
+                        : CupertinoColors.systemRed,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        poolTypeDescription,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: healthy
+                            ? CupertinoColors.systemGreen.withOpacity(0.1)
+                            : CupertinoColors.systemRed.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: healthy
+                              ? CupertinoColors.systemGreen
+                              : CupertinoColors.systemRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Storage Info Row
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStorageMetric(
+                    'Used',
+                    _getPoolUsedSpace(pool),
+                    CupertinoColors.systemBlue,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStorageMetric(
+                    'Available',
+                    _getPoolAvailableSpace(pool),
+                    CupertinoColors.systemGreen,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStorageMetric(
+                    'Total',
+                    _getPoolTotalSpace(pool),
+                    CupertinoColors.systemGrey,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStorageMetric(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: CupertinoColors.systemGrey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getPoolTypeDescription(Map<String, dynamic>? topology) {
+    if (topology == null) return 'Unknown configuration';
+
+    final data = topology['data'] as List<dynamic>?;
+    if (data == null || data.isEmpty) return 'Unknown configuration';
+
+    final firstVdev = data.first as Map<String, dynamic>?;
+    final type = firstVdev?['type'] as String?;
+    final children = firstVdev?['children'] as List<dynamic>?;
+
+    if (type == 'mirror' && children != null) {
+      return 'Mirror (${children.length} drives)';
+    } else if (type == 'raidz1') {
+      return 'RAID-Z1 (${children?.length ?? 0} drives)';
+    } else if (type == 'raidz2') {
+      return 'RAID-Z2 (${children?.length ?? 0} drives)';
+    } else if (type == 'raidz3') {
+      return 'RAID-Z3 (${children?.length ?? 0} drives)';
+    } else if (children != null && children.length == 1) {
+      return 'Single drive';
+    }
+
+    return 'Custom configuration';
+  }
+
+  String _getPoolUsedSpace(Map<String, dynamic> pool) {
+    // Try to get allocated space from pool properties
+    final allocated = pool['allocated'] as int?;
+    if (allocated != null) {
+      return _formatBytes(allocated);
+    }
+    return 'Unknown';
+  }
+
+  String _getPoolAvailableSpace(Map<String, dynamic> pool) {
+    // Try to get free space from pool properties
+    final free = pool['free'] as int?;
+    if (free != null) {
+      return _formatBytes(free);
+    }
+    return 'Unknown';
+  }
+
+  String _getPoolTotalSpace(Map<String, dynamic> pool) {
+    // Calculate total from allocated + free
+    final allocated = pool['allocated'] as int?;
+    final free = pool['free'] as int?;
+
+    if (allocated != null && free != null) {
+      return _formatBytes(allocated + free);
+    }
+
+    // Fallback to size if available
+    final size = pool['size'] as int?;
+    if (size != null) {
+      return _formatBytes(size);
+    }
+
+    return 'Unknown';
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    }
+    if (bytes < 1024 * 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1)}TB';
   }
 
   String _formatLastConnected(DateTime dateTime) {

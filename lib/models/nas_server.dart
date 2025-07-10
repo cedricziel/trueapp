@@ -71,14 +71,14 @@ class NasServer extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        host,
-        port,
-        username,
-        password,
-        useHttps,
-        lastConnected,
-        isActive,
-      ];
+    id,
+    name,
+    host,
+    port,
+    username,
+    password,
+    useHttps,
+    lastConnected,
+    isActive,
+  ];
 }

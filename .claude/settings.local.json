@@ -3,7 +3,19 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(flutter pub:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh issue list:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pub.dev)",
+      "WebFetch(domain:www.gnu.org)",
+      "Bash(flutter analyze:*)",
+      "Bash(dart run build_runner:*)",
+      "Bash(flutter test:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:api.truenas.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep:*)",
+      "Bash(dart format:*)"
     ],
     "deny": []
   }

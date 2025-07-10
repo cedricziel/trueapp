@@ -4,10 +4,7 @@ import 'package:truenas_manager/models/nas_server.dart';
 class ServerHealthScreen extends StatelessWidget {
   final NasServer server;
 
-  const ServerHealthScreen({
-    super.key,
-    required this.server,
-  });
+  const ServerHealthScreen({super.key, required this.server});
 
   @override
   Widget build(BuildContext context) {

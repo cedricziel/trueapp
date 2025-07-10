@@ -862,3 +862,32 @@ class $AppDatabaseManager {
   $$NasServersTableTableManager get nasServers =>
       $$NasServersTableTableManager(_db, _db.nasServers);
 }
+
+// **************************************************************************
+// JsonRpcGenerator
+// **************************************************************************
+
+// ignore_for_file: type=lint, unused_element
+
+@pragma('vm:prefer-inline')
+TConverted _$map<TConverted extends Object, TJson extends Object>(
+  TJson $value,
+  TConverted Function(TJson) $convert,
+) => $convert($value);
+@pragma('vm:prefer-inline')
+TConverted? _$maybeMap<TConverted extends Object, TJson extends Object>(
+  TJson? $value,
+  TConverted Function(TJson) $convert,
+) => $value == null ? null : $convert($value);
+
+extension _$JsonRpc2ParameterExtensions on Parameter {
+  @pragma('vm:prefer-inline')
+  T $maybeOr<T>(T Function(Parameter) getter, T defaultValue) =>
+      exists ? getter(this) : defaultValue;
+  @pragma('vm:prefer-inline')
+  T? $nullOr<T>(T Function(Parameter) getter) =>
+      value != null ? getter(this) : null;
+  @pragma('vm:prefer-inline')
+  T? $maybeNullOr<T>(T Function(Parameter) getter) =>
+      exists && value != null ? getter(this) : null;
+}
