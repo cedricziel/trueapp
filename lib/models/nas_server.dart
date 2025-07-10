@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 class NasServer extends Equatable {
@@ -11,6 +12,7 @@ class NasServer extends Equatable {
   final String username;
   final String password;
   final bool useHttps;
+  final bool allowUntrustedCertificates;
   final DateTime? lastConnected;
   final bool isActive;
 
@@ -24,6 +26,7 @@ class NasServer extends Equatable {
     required this.username,
     required this.password,
     this.useHttps = true,
+    this.allowUntrustedCertificates = false,
     this.lastConnected,
     this.isActive = true,
   });
@@ -37,6 +40,7 @@ class NasServer extends Equatable {
     required String username,
     required String password,
     bool useHttps = true,
+    bool allowUntrustedCertificates = false,
   }) {
     return NasServer(
       id: const Uuid().v4(),
@@ -48,6 +52,7 @@ class NasServer extends Equatable {
       username: username,
       password: password,
       useHttps: useHttps,
+      allowUntrustedCertificates: allowUntrustedCertificates,
     );
   }
 
@@ -61,19 +66,26 @@ class NasServer extends Equatable {
     String? username,
     String? password,
     bool? useHttps,
+    bool? allowUntrustedCertificates,
     DateTime? lastConnected,
     bool? isActive,
+    // Special flag to explicitly clear localUrl
+    bool clearLocalUrl = false,
+    // Special flag to explicitly clear port
+    bool clearPort = false,
   }) {
     return NasServer(
       id: id ?? this.id,
       name: name ?? this.name,
       host: host ?? this.host,
-      localUrl: localUrl ?? this.localUrl,
+      localUrl: clearLocalUrl ? null : (localUrl ?? this.localUrl),
       trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
-      port: port ?? this.port,
+      port: clearPort ? null : (port ?? this.port),
       username: username ?? this.username,
       password: password ?? this.password,
       useHttps: useHttps ?? this.useHttps,
+      allowUntrustedCertificates:
+          allowUntrustedCertificates ?? this.allowUntrustedCertificates,
       lastConnected: lastConnected ?? this.lastConnected,
       isActive: isActive ?? this.isActive,
     );
@@ -82,8 +94,19 @@ class NasServer extends Equatable {
   String get baseUrl {
     final defaultPort = useHttps ? 443 : 80;
     final actualPort = port ?? defaultPort;
+
+    // Debug logging to help troubleshoot URL composition issues
+    if (kDebugMode) {
+      print(
+        'BaseURL Debug: host=$host, useHttps=$useHttps, port=$port, defaultPort=$defaultPort, actualPort=$actualPort',
+      );
+    }
+
     return '${useHttps ? 'https' : 'http'}://$host:$actualPort';
   }
+
+  /// Get the effective port, handling null as default
+  int get effectivePort => port ?? (useHttps ? 443 : 80);
 
   /// Get the appropriate URL to use based on network context
   /// Returns localUrl if available and on trusted network, otherwise returns baseUrl
@@ -105,6 +128,7 @@ class NasServer extends Equatable {
     username,
     password,
     useHttps,
+    allowUntrustedCertificates,
     lastConnected,
     isActive,
   ];

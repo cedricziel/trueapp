@@ -20,6 +20,7 @@ class _AddServerScreenState extends State<AddServerScreen> {
   final _passwordController = TextEditingController();
   final _wifiSsidController = TextEditingController();
   bool _useHttps = true;
+  bool _allowUntrustedCertificates = false;
   bool _isTestingConnection = false;
   String? _connectionTestResult;
   final List<String> _trustedWifiSsids = [];
@@ -65,6 +66,7 @@ class _AddServerScreenState extends State<AddServerScreen> {
   Future<void> _loadCurrentWifiSsid() async {
     setState(() {
       _isLoadingCurrentSsid = true;
+      _currentWifiSsid = null; // Reset previous result
     });
 
     try {
@@ -72,8 +74,50 @@ class _AddServerScreenState extends State<AddServerScreen> {
       setState(() {
         _currentWifiSsid = ssid;
       });
+
+      // Show feedback if no Wi-Fi was detected
+      if (mounted && ssid == null) {
+        if (context.mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('No Wi-Fi Detected'),
+              content: const Text(
+                'Unable to detect current Wi-Fi network. This could be due to:\n\n'
+                '• Not connected to Wi-Fi\n'
+                '• Location permission not granted\n'
+                '• Platform restrictions (macOS/iOS)\n\n'
+                'You can still manually enter network names.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+        }
+      }
     } catch (e) {
-      // Ignore errors - this is just a convenience feature
+      if (mounted && context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Wi-Fi Detection Error'),
+            content: Text(
+              'Failed to detect Wi-Fi network: ${e.toString()}\n\n'
+              'You can still manually enter network names.',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoadingCurrentSsid = false;
@@ -111,6 +155,7 @@ class _AddServerScreenState extends State<AddServerScreen> {
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
     try {
@@ -147,6 +192,7 @@ class _AddServerScreenState extends State<AddServerScreen> {
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
     await context.read<ServerProvider>().addServer(server);
@@ -320,6 +366,17 @@ class _AddServerScreenState extends State<AddServerScreen> {
                         _useHttps = value;
                         // Clear port to use default
                         _portController.clear();
+                      });
+                    },
+                  ),
+                ),
+                CupertinoFormRow(
+                  prefix: const Text('Allow Untrusted Certificates'),
+                  child: CupertinoSwitch(
+                    value: _allowUntrustedCertificates,
+                    onChanged: (value) {
+                      setState(() {
+                        _allowUntrustedCertificates = value;
                       });
                     },
                   ),

@@ -22,6 +22,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
   late TextEditingController _passwordController;
   late TextEditingController _wifiSsidController;
   late bool _useHttps;
+  late bool _allowUntrustedCertificates;
   bool _isTestingConnection = false;
   String? _connectionTestResult;
   late List<String> _trustedWifiSsids;
@@ -32,6 +33,14 @@ class _EditServerScreenState extends State<EditServerScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Debug logging for initialization
+    print(
+      'EditServerScreen.initState: Initializing with server ${widget.server.id}',
+    );
+    print('  Server name: ${widget.server.name}');
+    print('  Server localUrl: ${widget.server.localUrl}');
+
     _nameController = TextEditingController(text: widget.server.name);
     _hostController = TextEditingController(text: widget.server.host);
     _localUrlController = TextEditingController(
@@ -44,7 +53,12 @@ class _EditServerScreenState extends State<EditServerScreen> {
     _passwordController = TextEditingController(text: widget.server.password);
     _wifiSsidController = TextEditingController();
     _useHttps = widget.server.useHttps;
+    _allowUntrustedCertificates = widget.server.allowUntrustedCertificates;
     _trustedWifiSsids = List.from(widget.server.trustedWifiSsids);
+
+    print(
+      '  LocalUrl controller initialized with: "${_localUrlController.text}"',
+    );
   }
 
   @override
@@ -85,6 +99,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
   Future<void> _loadCurrentWifiSsid() async {
     setState(() {
       _isLoadingCurrentSsid = true;
+      _currentWifiSsid = null; // Reset previous result
     });
 
     try {
@@ -92,8 +107,50 @@ class _EditServerScreenState extends State<EditServerScreen> {
       setState(() {
         _currentWifiSsid = ssid;
       });
+
+      // Show feedback if no Wi-Fi was detected
+      if (mounted && ssid == null) {
+        if (context.mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('No Wi-Fi Detected'),
+              content: const Text(
+                'Unable to detect current Wi-Fi network. This could be due to:\n\n'
+                '• Not connected to Wi-Fi\n'
+                '• Location permission not granted\n'
+                '• Platform restrictions (macOS/iOS)\n\n'
+                'You can still manually enter network names.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+        }
+      }
     } catch (e) {
-      // Ignore errors - this is just a convenience feature
+      if (mounted && context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Wi-Fi Detection Error'),
+            content: Text(
+              'Failed to detect Wi-Fi network: ${e.toString()}\n\n'
+              'You can still manually enter network names.',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoadingCurrentSsid = false;
@@ -124,13 +181,16 @@ class _EditServerScreenState extends State<EditServerScreen> {
       localUrl: _localUrlController.text.isNotEmpty
           ? _localUrlController.text
           : null,
+      clearLocalUrl: _localUrlController.text.isEmpty,
       trustedWifiSsids: _trustedWifiSsids,
       port: _portController.text.isNotEmpty
           ? int.tryParse(_portController.text)
           : null,
+      clearPort: _portController.text.isEmpty,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
     try {
@@ -154,22 +214,43 @@ class _EditServerScreenState extends State<EditServerScreen> {
   Future<void> _saveChanges() async {
     if (!_isValid) return;
 
+    // Debug logging for save operation
+    print('EditServerScreen._saveChanges: Starting save');
+    print('  Original server ID: ${widget.server.id}');
+    print('  Original localUrl: ${widget.server.localUrl}');
+    print('  New localUrl from controller: "${_localUrlController.text}"');
+    print('  New localUrl isEmpty: ${_localUrlController.text.isEmpty}');
+
     final updatedServer = widget.server.copyWith(
       name: _nameController.text,
       host: _hostController.text,
       localUrl: _localUrlController.text.isNotEmpty
           ? _localUrlController.text
           : null,
+      clearLocalUrl: _localUrlController.text.isEmpty,
       trustedWifiSsids: _trustedWifiSsids,
       port: _portController.text.isNotEmpty
           ? int.tryParse(_portController.text)
           : null,
+      clearPort: _portController.text.isEmpty,
       username: _usernameController.text,
       password: _passwordController.text,
       useHttps: _useHttps,
+      allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
+    print('  Updated server localUrl: ${updatedServer.localUrl}');
+    if (_localUrlController.text.isEmpty && widget.server.localUrl != null) {
+      print(
+        '  ✅ Local URL is being cleared (was: "${widget.server.localUrl}")',
+      );
+    }
+    print('  Calling serverProvider.updateServer...');
+
     await context.read<ServerProvider>().updateServer(updatedServer);
+
+    print('  Server update completed');
+
     if (mounted) {
       Navigator.pop(context, true); // Return true to indicate changes were made
     }
@@ -229,7 +310,12 @@ class _EditServerScreenState extends State<EditServerScreen> {
                   placeholder: 'http://192.168.1.100:80',
                   prefix: const Text('Local URL'),
                   keyboardType: TextInputType.url,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (value) {
+                    print(
+                      'EditServerScreen: Local URL field changed to: "$value"',
+                    );
+                    setState(() {});
+                  },
                 ),
               ],
             ),
@@ -337,6 +423,17 @@ class _EditServerScreenState extends State<EditServerScreen> {
                         _useHttps = value;
                         // Clear port to use default
                         _portController.clear();
+                      });
+                    },
+                  ),
+                ),
+                CupertinoFormRow(
+                  prefix: const Text('Allow Untrusted Certificates'),
+                  child: CupertinoSwitch(
+                    value: _allowUntrustedCertificates,
+                    onChanged: (value) {
+                      setState(() {
+                        _allowUntrustedCertificates = value;
                       });
                     },
                   ),

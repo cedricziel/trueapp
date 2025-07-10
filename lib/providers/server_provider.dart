@@ -41,8 +41,21 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<void> updateServer(models.NasServer server) async {
+    print(
+      'ServerProvider.updateServer: Starting update for server ${server.id}',
+    );
+    print('  Current selected server: ${_selectedServer?.id}');
+
     await _database.updateServer(server);
     await loadServers();
+
+    // If this is the currently selected server, refresh it
+    if (_selectedServer?.id == server.id) {
+      print('  Server is currently selected, refreshing...');
+      await refreshSelectedServer();
+    }
+
+    print('  Update complete');
   }
 
   Future<void> deleteServer(String id) async {
@@ -68,12 +81,30 @@ class ServerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelectedServer() {
+    _selectedServer = null;
+    _apiClient?.close();
+    _apiClient = null;
+    _serverHealth = null;
+    _healthError = null;
+    _currentUser = null;
+    _userError = null;
+    notifyListeners();
+  }
+
   Future<void> refreshSelectedServer() async {
     if (_selectedServer != null) {
+      print(
+        'ServerProvider.refreshSelectedServer: Refreshing server ${_selectedServer!.id}',
+      );
       final updated = await _database.getServer(_selectedServer!.id);
       if (updated != null) {
+        print('  Updated server loaded from database');
+        print('  localUrl: ${updated.localUrl}');
         _selectedServer = updated;
         notifyListeners();
+      } else {
+        print('  Server not found in database!');
       }
     }
   }

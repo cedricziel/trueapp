@@ -105,6 +105,21 @@ class $NasServersTable extends NasServers
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _allowUntrustedCertificatesMeta =
+      const VerificationMeta('allowUntrustedCertificates');
+  @override
+  late final GeneratedColumn<bool> allowUntrustedCertificates =
+      GeneratedColumn<bool>(
+        'allow_untrusted_certificates',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("allow_untrusted_certificates" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _lastConnectedMeta = const VerificationMeta(
     'lastConnected',
   );
@@ -143,6 +158,7 @@ class $NasServersTable extends NasServers
     username,
     password,
     useHttps,
+    allowUntrustedCertificates,
     lastConnected,
     isActive,
   ];
@@ -222,6 +238,15 @@ class $NasServersTable extends NasServers
         useHttps.isAcceptableOrUnknown(data['use_https']!, _useHttpsMeta),
       );
     }
+    if (data.containsKey('allow_untrusted_certificates')) {
+      context.handle(
+        _allowUntrustedCertificatesMeta,
+        allowUntrustedCertificates.isAcceptableOrUnknown(
+          data['allow_untrusted_certificates']!,
+          _allowUntrustedCertificatesMeta,
+        ),
+      );
+    }
     if (data.containsKey('last_connected')) {
       context.handle(
         _lastConnectedMeta,
@@ -282,6 +307,10 @@ class $NasServersTable extends NasServers
         DriftSqlType.bool,
         data['${effectivePrefix}use_https'],
       )!,
+      allowUntrustedCertificates: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}allow_untrusted_certificates'],
+      )!,
       lastConnected: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_connected'],
@@ -309,6 +338,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final String username;
   final String password;
   final bool useHttps;
+  final bool allowUntrustedCertificates;
   final DateTime? lastConnected;
   final bool isActive;
   const NasServerData({
@@ -321,6 +351,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     required this.username,
     required this.password,
     required this.useHttps,
+    required this.allowUntrustedCertificates,
     this.lastConnected,
     required this.isActive,
   });
@@ -340,6 +371,9 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     map['username'] = Variable<String>(username);
     map['password'] = Variable<String>(password);
     map['use_https'] = Variable<bool>(useHttps);
+    map['allow_untrusted_certificates'] = Variable<bool>(
+      allowUntrustedCertificates,
+    );
     if (!nullToAbsent || lastConnected != null) {
       map['last_connected'] = Variable<DateTime>(lastConnected);
     }
@@ -360,6 +394,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       username: Value(username),
       password: Value(password),
       useHttps: Value(useHttps),
+      allowUntrustedCertificates: Value(allowUntrustedCertificates),
       lastConnected: lastConnected == null && nullToAbsent
           ? const Value.absent()
           : Value(lastConnected),
@@ -382,6 +417,9 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       username: serializer.fromJson<String>(json['username']),
       password: serializer.fromJson<String>(json['password']),
       useHttps: serializer.fromJson<bool>(json['useHttps']),
+      allowUntrustedCertificates: serializer.fromJson<bool>(
+        json['allowUntrustedCertificates'],
+      ),
       lastConnected: serializer.fromJson<DateTime?>(json['lastConnected']),
       isActive: serializer.fromJson<bool>(json['isActive']),
     );
@@ -399,6 +437,9 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       'username': serializer.toJson<String>(username),
       'password': serializer.toJson<String>(password),
       'useHttps': serializer.toJson<bool>(useHttps),
+      'allowUntrustedCertificates': serializer.toJson<bool>(
+        allowUntrustedCertificates,
+      ),
       'lastConnected': serializer.toJson<DateTime?>(lastConnected),
       'isActive': serializer.toJson<bool>(isActive),
     };
@@ -414,6 +455,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     String? username,
     String? password,
     bool? useHttps,
+    bool? allowUntrustedCertificates,
     Value<DateTime?> lastConnected = const Value.absent(),
     bool? isActive,
   }) => NasServerData(
@@ -426,6 +468,8 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     username: username ?? this.username,
     password: password ?? this.password,
     useHttps: useHttps ?? this.useHttps,
+    allowUntrustedCertificates:
+        allowUntrustedCertificates ?? this.allowUntrustedCertificates,
     lastConnected: lastConnected.present
         ? lastConnected.value
         : this.lastConnected,
@@ -444,6 +488,9 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       username: data.username.present ? data.username.value : this.username,
       password: data.password.present ? data.password.value : this.password,
       useHttps: data.useHttps.present ? data.useHttps.value : this.useHttps,
+      allowUntrustedCertificates: data.allowUntrustedCertificates.present
+          ? data.allowUntrustedCertificates.value
+          : this.allowUntrustedCertificates,
       lastConnected: data.lastConnected.present
           ? data.lastConnected.value
           : this.lastConnected,
@@ -463,6 +510,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ..write('username: $username, ')
           ..write('password: $password, ')
           ..write('useHttps: $useHttps, ')
+          ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
           ..write('isActive: $isActive')
           ..write(')'))
@@ -480,6 +528,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     username,
     password,
     useHttps,
+    allowUntrustedCertificates,
     lastConnected,
     isActive,
   );
@@ -496,6 +545,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           other.username == this.username &&
           other.password == this.password &&
           other.useHttps == this.useHttps &&
+          other.allowUntrustedCertificates == this.allowUntrustedCertificates &&
           other.lastConnected == this.lastConnected &&
           other.isActive == this.isActive);
 }
@@ -510,6 +560,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
   final Value<String> username;
   final Value<String> password;
   final Value<bool> useHttps;
+  final Value<bool> allowUntrustedCertificates;
   final Value<DateTime?> lastConnected;
   final Value<bool> isActive;
   final Value<int> rowid;
@@ -523,6 +574,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.username = const Value.absent(),
     this.password = const Value.absent(),
     this.useHttps = const Value.absent(),
+    this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -537,6 +589,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     required String username,
     required String password,
     this.useHttps = const Value.absent(),
+    this.allowUntrustedCertificates = const Value.absent(),
     this.lastConnected = const Value.absent(),
     this.isActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -555,6 +608,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Expression<String>? username,
     Expression<String>? password,
     Expression<bool>? useHttps,
+    Expression<bool>? allowUntrustedCertificates,
     Expression<DateTime>? lastConnected,
     Expression<bool>? isActive,
     Expression<int>? rowid,
@@ -569,6 +623,8 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       if (username != null) 'username': username,
       if (password != null) 'password': password,
       if (useHttps != null) 'use_https': useHttps,
+      if (allowUntrustedCertificates != null)
+        'allow_untrusted_certificates': allowUntrustedCertificates,
       if (lastConnected != null) 'last_connected': lastConnected,
       if (isActive != null) 'is_active': isActive,
       if (rowid != null) 'rowid': rowid,
@@ -585,6 +641,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Value<String>? username,
     Value<String>? password,
     Value<bool>? useHttps,
+    Value<bool>? allowUntrustedCertificates,
     Value<DateTime?>? lastConnected,
     Value<bool>? isActive,
     Value<int>? rowid,
@@ -599,6 +656,8 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       username: username ?? this.username,
       password: password ?? this.password,
       useHttps: useHttps ?? this.useHttps,
+      allowUntrustedCertificates:
+          allowUntrustedCertificates ?? this.allowUntrustedCertificates,
       lastConnected: lastConnected ?? this.lastConnected,
       isActive: isActive ?? this.isActive,
       rowid: rowid ?? this.rowid,
@@ -635,6 +694,11 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     if (useHttps.present) {
       map['use_https'] = Variable<bool>(useHttps.value);
     }
+    if (allowUntrustedCertificates.present) {
+      map['allow_untrusted_certificates'] = Variable<bool>(
+        allowUntrustedCertificates.value,
+      );
+    }
     if (lastConnected.present) {
       map['last_connected'] = Variable<DateTime>(lastConnected.value);
     }
@@ -659,6 +723,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           ..write('username: $username, ')
           ..write('password: $password, ')
           ..write('useHttps: $useHttps, ')
+          ..write('allowUntrustedCertificates: $allowUntrustedCertificates, ')
           ..write('lastConnected: $lastConnected, ')
           ..write('isActive: $isActive, ')
           ..write('rowid: $rowid')
@@ -689,6 +754,7 @@ typedef $$NasServersTableCreateCompanionBuilder =
       required String username,
       required String password,
       Value<bool> useHttps,
+      Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
       Value<int> rowid,
@@ -704,6 +770,7 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<String> username,
       Value<String> password,
       Value<bool> useHttps,
+      Value<bool> allowUntrustedCertificates,
       Value<DateTime?> lastConnected,
       Value<bool> isActive,
       Value<int> rowid,
@@ -760,6 +827,11 @@ class $$NasServersTableFilterComposer
 
   ColumnFilters<bool> get useHttps => $composableBuilder(
     column: $table.useHttps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -828,6 +900,11 @@ class $$NasServersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastConnected => $composableBuilder(
     column: $table.lastConnected,
     builder: (column) => ColumnOrderings(column),
@@ -876,6 +953,11 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<bool> get useHttps =>
       $composableBuilder(column: $table.useHttps, builder: (column) => column);
+
+  GeneratedColumn<bool> get allowUntrustedCertificates => $composableBuilder(
+    column: $table.allowUntrustedCertificates,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get lastConnected => $composableBuilder(
     column: $table.lastConnected,
@@ -926,6 +1008,7 @@ class $$NasServersTableTableManager
                 Value<String> username = const Value.absent(),
                 Value<String> password = const Value.absent(),
                 Value<bool> useHttps = const Value.absent(),
+                Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -939,6 +1022,7 @@ class $$NasServersTableTableManager
                 username: username,
                 password: password,
                 useHttps: useHttps,
+                allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
                 rowid: rowid,
@@ -954,6 +1038,7 @@ class $$NasServersTableTableManager
                 required String username,
                 required String password,
                 Value<bool> useHttps = const Value.absent(),
+                Value<bool> allowUntrustedCertificates = const Value.absent(),
                 Value<DateTime?> lastConnected = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -967,6 +1052,7 @@ class $$NasServersTableTableManager
                 username: username,
                 password: password,
                 useHttps: useHttps,
+                allowUntrustedCertificates: allowUntrustedCertificates,
                 lastConnected: lastConnected,
                 isActive: isActive,
                 rowid: rowid,
