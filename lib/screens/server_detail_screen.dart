@@ -16,6 +16,7 @@ import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
 import 'package:truenas_manager/screens/user_profile_screen.dart';
 import 'package:truenas_manager/screens/server_apps_screen.dart';
+import 'package:truenas_manager/widgets/connection_status_widget.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -72,7 +73,16 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
 
         return CupertinoPageScaffold(
           navigationBar: CupertinoNavigationBar(
-            middle: Text(currentServer.name),
+            middle: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConnectionStatusTitleWidget(serverId: currentServer.id),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(currentServer.name, textAlign: TextAlign.center),
+                ),
+              ],
+            ),
             leading: CupertinoButton(
               padding: EdgeInsets.zero,
               child: const Icon(CupertinoIcons.person_circle),
@@ -131,8 +141,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             child: ListView(
               children: [
                 const SizedBox(height: 20),
-                _buildServerInfo(currentServer),
-                const SizedBox(height: 20),
                 _buildSystemStatsSection(currentServer),
                 const SizedBox(height: 20),
                 _buildPoolsSection(currentServer),
@@ -140,54 +148,11 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 _buildAppsSection(currentServer),
                 const SizedBox(height: 30),
                 _buildActionButtons(context, currentServer),
-                const SizedBox(height: 30),
-                _buildConnectionStatus(currentServer),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildServerInfo(NasServer server) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow('Host', server.host),
-          const SizedBox(height: 8),
-          _buildInfoRow('Port', server.port.toString()),
-          const SizedBox(height: 8),
-          _buildInfoRow('Protocol', server.useHttps ? 'HTTPS' : 'HTTP'),
-          const SizedBox(height: 8),
-          _buildInfoRow('Username', server.username),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: CupertinoColors.systemGrey,
-            fontSize: 14,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-      ],
     );
   }
 
@@ -302,59 +267,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildConnectionStatus(NasServer server) {
-    final isConnected =
-        server.lastConnected != null &&
-        DateTime.now().difference(server.lastConnected!).inMinutes < 5;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isConnected
-            ? CupertinoColors.activeGreen.withOpacity(0.1)
-            : CupertinoColors.systemOrange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isConnected
-                ? CupertinoIcons.checkmark_circle_fill
-                : CupertinoIcons.exclamationmark_circle_fill,
-            color: isConnected
-                ? CupertinoColors.activeGreen
-                : CupertinoColors.systemOrange,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isConnected ? 'Connected' : 'Not Connected',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (server.lastConnected != null)
-                  Text(
-                    'Last connected: ${_formatLastConnected(server.lastConnected!)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -697,19 +609,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
     }
     return '${(bytes / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1)}TB';
-  }
-
-  String _formatLastConnected(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} minutes ago';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours} hours ago';
-    } else {
-      return '${diff.inDays} days ago';
-    }
   }
 
   Widget _buildSystemStatsSection(NasServer server) {
