@@ -62,8 +62,8 @@ class AppConfigProvider extends ChangeNotifier {
           displayName: row['display_name'] as String?,
           iconUrl: row['icon_url'] as String?,
           isEnabled: (row['is_enabled'] as int?) == 1,
-          createdAt: row['created_at'] as DateTime?,
-          updatedAt: row['updated_at'] as DateTime?,
+          createdAt: _parseDateTime(row['created_at']),
+          updatedAt: _parseDateTime(row['updated_at']),
         );
         portMap[configId] = [];
       }
@@ -214,5 +214,13 @@ class AppConfigProvider extends ChangeNotifier {
     if (config == null) return [];
 
     return config.enabledPorts.map((port) => port.effectiveUrl).toList();
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
   }
 }
