@@ -26,7 +26,35 @@ class NasServers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [NasServers])
+@DataClassName('AppConfigData')
+class AppConfigs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get serverId =>
+      text().references(NasServers, #id, onDelete: KeyAction.cascade)();
+  TextColumn get appName => text()();
+  TextColumn get displayName => text().nullable()();
+  TextColumn get iconUrl => text().nullable()();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DataClassName('AppPortConfigData')
+class AppPortConfigs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get appConfigId =>
+      integer().references(AppConfigs, #id, onDelete: KeyAction.cascade)();
+  IntColumn get portNumber => integer()();
+  TextColumn get protocol => text().withDefault(const Constant('http'))();
+  TextColumn get serviceName => text().nullable()();
+  TextColumn get customUrl => text().nullable()();
+  BoolColumn get isPrimary => boolean().withDefault(const Constant(false))();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [NasServers, AppConfigs, AppPortConfigs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'truenas_manager'));
 
@@ -34,7 +62,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -47,6 +75,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await _migrateCredentialsToSecureStorage(m, from);
+      }
+      if (from < 4) {
+        await m.createTable(appConfigs);
+        await m.createTable(appPortConfigs);
       }
     },
   );
@@ -253,5 +285,95 @@ class AppDatabase extends _$AppDatabase {
       username: credentials.username,
       password: credentials.password,
     );
+  }
+
+  // App Configuration Methods
+  Future<List<AppConfigData>> getAppConfigs(String serverId) async {
+    final query = select(appConfigs)
+      ..where((tbl) => tbl.serverId.equals(serverId));
+    return await query.get();
+  }
+
+  Future<AppConfigData?> getAppConfig(String serverId, String appName) async {
+    final query = select(appConfigs)
+      ..where(
+        (tbl) => tbl.serverId.equals(serverId) & tbl.appName.equals(appName),
+      );
+    return await query.getSingleOrNull();
+  }
+
+  Future<int> insertAppConfig(AppConfigsCompanion config) async {
+    return await into(appConfigs).insert(config);
+  }
+
+  Future<void> updateAppConfig(int id, AppConfigsCompanion config) async {
+    await (update(appConfigs)..where((tbl) => tbl.id.equals(id))).write(config);
+  }
+
+  Future<void> deleteAppConfig(int id) async {
+    await (delete(appConfigs)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  // App Port Configuration Methods
+  Future<List<AppPortConfigData>> getAppPortConfigs(int appConfigId) async {
+    final query = select(appPortConfigs)
+      ..where((tbl) => tbl.appConfigId.equals(appConfigId));
+    return await query.get();
+  }
+
+  Future<int> insertAppPortConfig(AppPortConfigsCompanion config) async {
+    return await into(appPortConfigs).insert(config);
+  }
+
+  Future<void> updateAppPortConfig(
+    int id,
+    AppPortConfigsCompanion config,
+  ) async {
+    await (update(
+      appPortConfigs,
+    )..where((tbl) => tbl.id.equals(id))).write(config);
+  }
+
+  Future<void> deleteAppPortConfig(int id) async {
+    await (delete(appPortConfigs)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<void> setPrimaryPort(int appConfigId, int portConfigId) async {
+    await transaction(() async {
+      // Clear any existing primary port for this app
+      await (update(appPortConfigs)
+            ..where((tbl) => tbl.appConfigId.equals(appConfigId)))
+          .write(AppPortConfigsCompanion(isPrimary: const Value(false)));
+      // Set the new primary port
+      await (update(appPortConfigs)
+            ..where((tbl) => tbl.id.equals(portConfigId)))
+          .write(AppPortConfigsCompanion(isPrimary: const Value(true)));
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getAppConfigsWithPorts(
+    String serverId,
+  ) async {
+    final query = '''
+      SELECT 
+        ac.*,
+        apc.id as port_id,
+        apc.port_number,
+        apc.protocol,
+        apc.service_name,
+        apc.custom_url,
+        apc.is_primary,
+        apc.is_enabled as port_enabled
+      FROM app_configs ac
+      LEFT JOIN app_port_configs apc ON ac.id = apc.app_config_id
+      WHERE ac.server_id = ?
+      ORDER BY ac.app_name, apc.is_primary DESC, apc.port_number
+    ''';
+
+    final result = await customSelect(
+      query,
+      variables: [Variable.withString(serverId)],
+    ).get();
+    return result.map((row) => row.data).toList();
   }
 }

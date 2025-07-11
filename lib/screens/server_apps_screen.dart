@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
+import 'package:truenas_manager/providers/app_config_provider.dart';
 import 'package:truenas_manager/widgets/app_icon.dart';
 import 'package:truenas_manager/screens/app_detail_screen.dart';
+import 'package:truenas_manager/screens/app_management_screen.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -16,7 +18,7 @@ class ServerAppsScreen extends StatefulWidget {
 }
 
 class _ServerAppsScreenState extends State<ServerAppsScreen> {
-  int _selectedSegment = 0; // 0 = Installed, 1 = Available
+  int _selectedSegment = 0; // 0 = Installed, 1 = Available, 2 = Manage
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -25,8 +27,10 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final appProvider = context.read<AppProvider>();
+      final appConfigProvider = context.read<AppConfigProvider>();
       await appProvider.setApiClient(widget.server);
       await appProvider.loadApps();
+      await appConfigProvider.setServer(widget.server.id);
     });
   }
 
@@ -46,12 +50,29 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
           child: const Icon(CupertinoIcons.back),
           onPressed: () => Navigator.pop(context),
         ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.refresh),
-          onPressed: () {
-            context.read<AppProvider>().refreshApps();
-          },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.settings),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => AppManagementScreen(server: widget.server),
+                  ),
+                );
+              },
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.refresh),
+              onPressed: () {
+                context.read<AppProvider>().refreshApps();
+              },
+            ),
+          ],
         ),
       ),
       child: SafeArea(

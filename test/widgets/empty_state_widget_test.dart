@@ -11,6 +11,7 @@ void main() {
         const CupertinoApp(
           home: EmptyStateWidget(
             icon: CupertinoIcons.app,
+            title: 'No Apps',
             message: 'No apps found',
           ),
         ),
@@ -27,6 +28,7 @@ void main() {
         const CupertinoApp(
           home: EmptyStateWidget(
             icon: CupertinoIcons.square_stack_3d_down_right,
+            title: 'No Pools',
             message: 'No storage pools found',
           ),
         ),
