@@ -5,6 +5,7 @@ import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
 import 'package:truenas_manager/services/api_client_manager.dart';
+import 'package:truenas_manager/services/secure_storage_service.dart';
 
 class ServerProvider extends ChangeNotifier {
   final AppDatabase _database;
@@ -97,8 +98,27 @@ class ServerProvider extends ChangeNotifier {
 
     if (server != null) {
       try {
-        _apiClient = await ApiClientManager.getClient(server);
-        _database.updateLastConnected(server.id);
+        // Get credentials from secure storage
+        final credentials = await SecureStorageService.getCredentials(
+          serverId: server.id,
+        );
+
+        if (credentials != null) {
+          // Create server with credentials for API client
+          final serverWithCredentials = server.copyWith(
+            username: credentials.username,
+            password: credentials.password,
+          );
+
+          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+          _database.updateLastConnected(server.id);
+        } else {
+          if (kDebugMode) {
+            print(
+              'ServerProvider: Failed to retrieve credentials for server ${server.id}',
+            );
+          }
+        }
       } catch (e) {
         if (kDebugMode) {
           print('ServerProvider: Failed to get API client: $e');
@@ -168,7 +188,25 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> testServerConnection(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server, null);
+      // Get credentials from secure storage
+      final credentials = await SecureStorageService.getCredentials(
+        serverId: server.id,
+        requireAuthentication: false, // Don't require auth for testing
+      );
+
+      if (credentials == null) {
+        if (kDebugMode) {
+          print('ServerProvider: No credentials found for server ${server.id}');
+        }
+        return false;
+      }
+
+      final serverWithCredentials = server.copyWith(
+        username: credentials.username,
+        password: credentials.password,
+      );
+
+      final apiClient = TrueNasApiClient(serverWithCredentials, null);
       final result = await apiClient.testConnection();
       await apiClient.close();
       return result;
@@ -179,9 +217,27 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> validateServerCredentials(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server, null);
+      // Get credentials from secure storage
+      final credentials = await SecureStorageService.getCredentials(
+        serverId: server.id,
+        requireAuthentication: false, // Don't require auth for validation
+      );
+
+      if (credentials == null) {
+        if (kDebugMode) {
+          print('ServerProvider: No credentials found for server ${server.id}');
+        }
+        return false;
+      }
+
+      final serverWithCredentials = server.copyWith(
+        username: credentials.username,
+        password: credentials.password,
+      );
+
+      final apiClient = TrueNasApiClient(serverWithCredentials, null);
       final result = await apiClient
-          .validateLogin(server.username, server.password)
+          .validateLogin(credentials.username, credentials.password)
           .timeout(const Duration(seconds: 15));
       await apiClient.close();
       return result;
