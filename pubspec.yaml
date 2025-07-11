@@ -71,6 +71,10 @@ dependencies:
   # System tray/menu bar support
   tray_manager: ^0.5.0
 
+  # Secure credential storage
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

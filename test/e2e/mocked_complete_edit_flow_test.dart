@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,10 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   final AppDatabase _database;
   final List<NasServer> _servers = [];
   NasServer? _selectedServer;
+
+  // Mock authentication state
+  final StreamController<AuthenticationStatus> _authController =
+      StreamController<AuthenticationStatus>.broadcast();
 
   MockServerProvider(this._database);
 
@@ -151,6 +156,41 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
     } catch (e) {
       return null;
     }
+  }
+
+  // Authentication-related methods and getters
+  @override
+  Stream<AuthenticationStatus> get authenticationStream =>
+      _authController.stream;
+
+  @override
+  AuthenticationStatus get currentAuthStatus =>
+      const AuthenticationStatus(state: AuthenticationState.authenticated);
+
+  @override
+  AuthenticationState get authState => AuthenticationState.authenticated;
+
+  @override
+  String? get authError => null;
+
+  @override
+  bool get isAuthenticated => true;
+
+  @override
+  bool get requiresAuthentication => false;
+
+  @override
+  bool get isAuthenticating => false;
+
+  @override
+  Future<void> retryAuthentication() async {
+    // Mock - do nothing
+  }
+
+  @override
+  void dispose() {
+    _authController.close();
+    super.dispose();
   }
 }
 

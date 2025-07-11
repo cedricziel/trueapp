@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 import 'package:truenas_manager/models/server_health.dart';
@@ -5,12 +6,42 @@ import 'package:truenas_manager/models/user_info.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
 import 'package:truenas_manager/services/api_client_manager.dart';
+import 'package:truenas_manager/services/secure_storage_service.dart';
+import 'package:truenas_manager/services/credential_migration_service.dart';
+
+enum AuthenticationState {
+  none,
+  required,
+  authenticating,
+  authenticated,
+  failed,
+}
+
+class AuthenticationStatus {
+  final AuthenticationState state;
+  final String? error;
+  final models.NasServer? server;
+
+  const AuthenticationStatus({required this.state, this.error, this.server});
+
+  bool get isAuthenticated => state == AuthenticationState.authenticated;
+  bool get requiresAuthentication => state == AuthenticationState.required;
+  bool get isAuthenticating => state == AuthenticationState.authenticating;
+  bool get hasFailed => state == AuthenticationState.failed;
+}
 
 class ServerProvider extends ChangeNotifier {
   final AppDatabase _database;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
   TrueNasApiClient? _apiClient;
+
+  // Authentication state stream
+  final StreamController<AuthenticationStatus> _authController =
+      StreamController<AuthenticationStatus>.broadcast();
+  AuthenticationState _authState = AuthenticationState.none;
+  String? _authError;
+
   ServerHealth? _serverHealth;
   bool _isLoadingHealth = false;
   String? _healthError;
@@ -24,6 +55,26 @@ class ServerProvider extends ChangeNotifier {
 
   List<models.NasServer> get servers => _servers;
   models.NasServer? get selectedServer => _selectedServer;
+
+  // Stream for authentication state
+  Stream<AuthenticationStatus> get authenticationStream =>
+      _authController.stream;
+
+  // Current authentication status
+  AuthenticationStatus get currentAuthStatus => AuthenticationStatus(
+    state: _authState,
+    error: _authError,
+    server: _selectedServer,
+  );
+
+  // Legacy getters for backward compatibility
+  AuthenticationState get authState => _authState;
+  String? get authError => _authError;
+  bool get isAuthenticated =>
+      _authState == AuthenticationState.authenticated && _apiClient != null;
+  bool get requiresAuthentication => _authState == AuthenticationState.required;
+  bool get isAuthenticating => _authState == AuthenticationState.authenticating;
+
   ServerHealth? get serverHealth => _serverHealth;
   bool get isLoadingHealth => _isLoadingHealth;
   String? get healthError => _healthError;
@@ -33,6 +84,13 @@ class ServerProvider extends ChangeNotifier {
 
   Future<void> loadServers() async {
     _servers = await _database.getAllServers();
+
+    // Debug credential migration status
+    if (kDebugMode) {
+      await CredentialMigrationService.debugStoredCredentials(_database);
+      await SecureStorageService.debugListStoredKeys();
+    }
+
     notifyListeners();
   }
 
@@ -88,24 +146,87 @@ class ServerProvider extends ChangeNotifier {
       await ApiClientManager.releaseClient(_selectedServer!.id);
     }
 
+    // Reset state
     _selectedServer = server;
     _apiClient = null;
+    _authState = AuthenticationState.none;
+    _authError = null;
     _serverHealth = null;
     _healthError = null;
     _currentUser = null;
     _userError = null;
 
     if (server != null) {
-      try {
-        _apiClient = await ApiClientManager.getClient(server);
-        _database.updateLastConnected(server.id);
-      } catch (e) {
-        if (kDebugMode) {
-          print('ServerProvider: Failed to get API client: $e');
-        }
-      }
+      await _authenticateAndConnect(server);
     }
     notifyListeners();
+  }
+
+  void _emitAuthStatus() {
+    final status = AuthenticationStatus(
+      state: _authState,
+      error: _authError,
+      server: _selectedServer,
+    );
+    _authController.add(status);
+  }
+
+  Future<void> _authenticateAndConnect(models.NasServer server) async {
+    try {
+      _authState = AuthenticationState.authenticating;
+      _authError = null;
+      _emitAuthStatus();
+      notifyListeners();
+
+      // Get credentials from secure storage
+      final credentials = await SecureStorageService.getCredentials(
+        serverId: server.id,
+      );
+
+      if (credentials != null) {
+        // Create server with credentials for API client
+        final serverWithCredentials = server.copyWith(
+          username: credentials.username,
+          password: credentials.password,
+        );
+
+        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        _authState = AuthenticationState.authenticated;
+        _authError = null;
+        _database.updateLastConnected(server.id);
+
+        if (kDebugMode) {
+          print(
+            'ServerProvider: Successfully authenticated and connected to server ${server.id}',
+          );
+        }
+      } else {
+        _authState = AuthenticationState.required;
+        _authError = 'Authentication required to access server credentials';
+        if (kDebugMode) {
+          print(
+            'ServerProvider: Authentication required for server ${server.id}',
+          );
+        }
+      }
+    } catch (e) {
+      _authState = AuthenticationState.failed;
+      _authError = 'Authentication failed: ${e.toString()}';
+      if (kDebugMode) {
+        print(
+          'ServerProvider: Authentication failed for server ${server.id}: $e',
+        );
+      }
+    }
+    _emitAuthStatus();
+  }
+
+  /// Retry authentication for the currently selected server
+  Future<void> retryAuthentication() async {
+    if (_selectedServer != null) {
+      await _authenticateAndConnect(_selectedServer!);
+      notifyListeners();
+    }
   }
 
   Future<void> clearSelectedServer() async {
@@ -115,10 +236,13 @@ class ServerProvider extends ChangeNotifier {
 
     _selectedServer = null;
     _apiClient = null;
+    _authState = AuthenticationState.none;
+    _authError = null;
     _serverHealth = null;
     _healthError = null;
     _currentUser = null;
     _userError = null;
+    _emitAuthStatus();
     notifyListeners();
   }
 
@@ -168,7 +292,25 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> testServerConnection(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server, null);
+      // Get credentials from secure storage
+      final credentials = await SecureStorageService.getCredentials(
+        serverId: server.id,
+        requireAuthentication: false, // Don't require auth for testing
+      );
+
+      if (credentials == null) {
+        if (kDebugMode) {
+          print('ServerProvider: No credentials found for server ${server.id}');
+        }
+        return false;
+      }
+
+      final serverWithCredentials = server.copyWith(
+        username: credentials.username,
+        password: credentials.password,
+      );
+
+      final apiClient = TrueNasApiClient(serverWithCredentials, null);
       final result = await apiClient.testConnection();
       await apiClient.close();
       return result;
@@ -179,9 +321,27 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> validateServerCredentials(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server, null);
+      // Get credentials from secure storage
+      final credentials = await SecureStorageService.getCredentials(
+        serverId: server.id,
+        requireAuthentication: false, // Don't require auth for validation
+      );
+
+      if (credentials == null) {
+        if (kDebugMode) {
+          print('ServerProvider: No credentials found for server ${server.id}');
+        }
+        return false;
+      }
+
+      final serverWithCredentials = server.copyWith(
+        username: credentials.username,
+        password: credentials.password,
+      );
+
+      final apiClient = TrueNasApiClient(serverWithCredentials, null);
       final result = await apiClient
-          .validateLogin(server.username, server.password)
+          .validateLogin(credentials.username, credentials.password)
           .timeout(const Duration(seconds: 15));
       await apiClient.close();
       return result;
@@ -214,6 +374,7 @@ class ServerProvider extends ChangeNotifier {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
       ApiClientManager.releaseClient(_selectedServer!.id);
     }
+    _authController.close();
     super.dispose();
   }
 }

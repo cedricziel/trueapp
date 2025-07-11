@@ -20,7 +20,8 @@
       "Bash(gh repo view:*)",
       "Bash(gh label:*)",
       "Bash(gh issue view:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh issue create:*)",
+      "Bash(dart analyze:*)"
     ],
     "deny": []
   }
