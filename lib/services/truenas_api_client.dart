@@ -42,7 +42,10 @@ class TrueNasApiClient implements ApiClientInterface {
       return;
     }
 
-    _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.connecting);
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.connecting,
+    );
 
     try {
       // Determine the appropriate URL based on network context
@@ -56,7 +59,7 @@ class TrueNasApiClient implements ApiClientInterface {
       final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
       _currentConnectionUrl = baseUrl;
       _isLocalConnection = isOnTrustedNetwork;
-      
+
       if (kDebugMode) {
         print('TrueNAS API: Connecting to WebSocket: $wsUrl');
         print(
@@ -91,7 +94,11 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Connection failed: $e');
       }
-      _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.error, error: e.toString());
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.error,
+        error: e.toString(),
+      );
       throw _handleConnectionError(e);
     }
   }
@@ -145,7 +152,10 @@ class TrueNasApiClient implements ApiClientInterface {
         print('TrueNAS API: Sending keepalive ping');
       }
 
-      _connectionStatusProvider?.updatePingStatus(_server.id, pingSent: pingTime);
+      _connectionStatusProvider?.updatePingStatus(
+        _server.id,
+        pingSent: pingTime,
+      );
 
       final result = await _client!
           .sendRequest('core.ping', [])
@@ -156,10 +166,16 @@ class TrueNasApiClient implements ApiClientInterface {
         final latency = pongTime.difference(pingTime);
         _awaitingPong = false;
 
-        _connectionStatusProvider?.updatePingStatus(_server.id, pongReceived: pongTime, latency: latency);
+        _connectionStatusProvider?.updatePingStatus(
+          _server.id,
+          pongReceived: pongTime,
+          latency: latency,
+        );
 
         if (kDebugMode) {
-          print('TrueNAS API: Received keepalive pong (${latency.inMilliseconds}ms)');
+          print(
+            'TrueNAS API: Received keepalive pong (${latency.inMilliseconds}ms)',
+          );
         }
       } else {
         if (kDebugMode) {
@@ -182,7 +198,10 @@ class TrueNasApiClient implements ApiClientInterface {
       print('TrueNAS API: Keepalive failed, attempting reconnection');
     }
 
-    _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.reconnecting);
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.reconnecting,
+    );
 
     // Reset connection state
     _isAuthenticated = false;
@@ -203,7 +222,11 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Failed to reconnect after keepalive timeout: $e');
       }
-      _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.error, error: e.toString());
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.error,
+        error: e.toString(),
+      );
       // Stop keepalive on repeated failures to avoid continuous retry loops
       _stopKeepalive();
     }
@@ -293,7 +316,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
       // Update connection status to connected
       _connectionStatusProvider?.updateConnectionState(
-        _server.id, 
+        _server.id,
         TrueNASConnectionState.connected,
         connectionUrl: _currentConnectionUrl,
         isLocalConnection: _isLocalConnection,
@@ -301,7 +324,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
       // Start keepalive after successful authentication
       _startKeepalive();
-      
+
       // Send immediate ping to get initial connection status
       _sendKeepalivePing();
     } on TimeoutException {
@@ -321,7 +344,10 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<void> close() async {
     _stopKeepalive();
-    _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.disconnected);
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.disconnected,
+    );
     await unsubscribeFromSystemStats();
     await _client?.close();
     await _wsChannel?.sink.close();

@@ -27,9 +27,10 @@ class ConnectionStatus {
     this.isLocalConnection,
   });
 
-  bool get isHealthy => state == TrueNASConnectionState.connected && 
-                      lastPong != null && 
-                      DateTime.now().difference(lastPong!).inSeconds < 120;
+  bool get isHealthy =>
+      state == TrueNASConnectionState.connected &&
+      lastPong != null &&
+      DateTime.now().difference(lastPong!).inSeconds < 120;
 
   ConnectionStatus copyWith({
     TrueNASConnectionState? state,
@@ -59,16 +60,22 @@ class ConnectionStatusProvider extends ChangeNotifier {
     return _connectionStatuses[serverId];
   }
 
-  void updateConnectionState(String serverId, TrueNASConnectionState state, {String? error, String? connectionUrl, bool? isLocalConnection}) {
+  void updateConnectionState(
+    String serverId,
+    TrueNASConnectionState state, {
+    String? error,
+    String? connectionUrl,
+    bool? isLocalConnection,
+  }) {
     final current = _connectionStatuses[serverId];
     final now = DateTime.now();
-    
+
     // When transitioning to connected state, set both ping and pong to now
     // to show healthy status immediately
-    final lastPong = state == TrueNASConnectionState.connected 
-        ? now 
+    final lastPong = state == TrueNASConnectionState.connected
+        ? now
         : current?.lastPong;
-    
+
     _connectionStatuses[serverId] = ConnectionStatus(
       state: state,
       lastPing: current?.lastPing ?? now,
@@ -78,18 +85,23 @@ class ConnectionStatusProvider extends ChangeNotifier {
       connectionUrl: connectionUrl ?? current?.connectionUrl,
       isLocalConnection: isLocalConnection ?? current?.isLocalConnection,
     );
-    
+
     if (kDebugMode) {
       debugPrint('ConnectionStatus: Server $serverId state changed to $state');
     }
-    
+
     notifyListeners();
   }
 
-  void updatePingStatus(String serverId, {DateTime? pingSent, DateTime? pongReceived, Duration? latency}) {
+  void updatePingStatus(
+    String serverId, {
+    DateTime? pingSent,
+    DateTime? pongReceived,
+    Duration? latency,
+  }) {
     final current = _connectionStatuses[serverId];
     final now = DateTime.now();
-    
+
     _connectionStatuses[serverId] = ConnectionStatus(
       state: current?.state ?? TrueNASConnectionState.disconnected,
       lastPing: pingSent ?? current?.lastPing ?? now,
@@ -97,11 +109,13 @@ class ConnectionStatusProvider extends ChangeNotifier {
       error: current?.error,
       latency: latency ?? current?.latency,
     );
-    
+
     if (kDebugMode && pongReceived != null) {
-      debugPrint('ConnectionStatus: Server $serverId pong received, latency: ${latency?.inMilliseconds}ms');
+      debugPrint(
+        'ConnectionStatus: Server $serverId pong received, latency: ${latency?.inMilliseconds}ms',
+      );
     }
-    
+
     notifyListeners();
   }
 

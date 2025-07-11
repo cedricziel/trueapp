@@ -17,10 +17,10 @@ class ConnectionStatusWidget extends StatelessWidget {
     return Consumer<ConnectionStatusProvider>(
       builder: (context, provider, child) {
         final status = provider.getStatus(serverId);
-        
+
         if (status == null) {
           return _buildIndicator(
-            TrueNASConnectionState.disconnected, 
+            TrueNASConnectionState.disconnected,
             'Not Connected',
             null,
             compact,
@@ -51,8 +51,8 @@ class ConnectionStatusWidget extends StatelessWidget {
         }
 
         return _buildIndicator(
-          status.state, 
-          statusText, 
+          status.state,
+          statusText,
           status.latency,
           compact,
         );
@@ -61,14 +61,14 @@ class ConnectionStatusWidget extends StatelessWidget {
   }
 
   Widget _buildIndicator(
-    TrueNASConnectionState state, 
-    String text, 
+    TrueNASConnectionState state,
+    String text,
     Duration? latency,
     bool isCompact,
   ) {
     Color color;
     IconData icon;
-    
+
     switch (state) {
       case TrueNASConnectionState.connected:
         color = CupertinoColors.systemGreen;
@@ -93,21 +93,14 @@ class ConnectionStatusWidget extends StatelessWidget {
       return Container(
         width: 8,
         height: 8,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       );
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: color,
-          size: 16,
-        ),
+        Icon(icon, color: color, size: 16),
         if (text.isNotEmpty) ...[
           const SizedBox(width: 6),
           Text(
@@ -137,17 +130,14 @@ class ConnectionStatusWidget extends StatelessWidget {
 class ConnectionStatusTitleWidget extends StatelessWidget {
   final String serverId;
 
-  const ConnectionStatusTitleWidget({
-    super.key,
-    required this.serverId,
-  });
+  const ConnectionStatusTitleWidget({super.key, required this.serverId});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ConnectionStatusProvider>(
       builder: (context, provider, child) {
         final status = provider.getStatus(serverId);
-        
+
         if (status == null) {
           return const SizedBox.shrink();
         }
@@ -155,7 +145,7 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
         Color color;
         IconData icon;
         String tooltip;
-        
+
         switch (status.state) {
           case TrueNASConnectionState.connected:
             if (status.isHealthy) {
@@ -210,21 +200,14 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  color: color,
-                  size: 16,
-                ),
-                if (status.state == TrueNASConnectionState.connecting || 
+                Icon(icon, color: color, size: 16),
+                if (status.state == TrueNASConnectionState.connecting ||
                     status.state == TrueNASConnectionState.reconnecting) ...[
                   const SizedBox(width: 4),
                   SizedBox(
                     width: 12,
                     height: 12,
-                    child: CupertinoActivityIndicator(
-                      color: color,
-                      radius: 6,
-                    ),
+                    child: CupertinoActivityIndicator(color: color, radius: 6),
                   ),
                 ],
               ],
@@ -235,7 +218,11 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
     );
   }
 
-  void _showConnectionDetails(BuildContext context, ConnectionStatus status, String tooltip) {
+  void _showConnectionDetails(
+    BuildContext context,
+    ConnectionStatus status,
+    String tooltip,
+  ) {
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -266,20 +253,22 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      status.isLocalConnection! 
-                          ? CupertinoIcons.house_fill 
+                      status.isLocalConnection!
+                          ? CupertinoIcons.house_fill
                           : CupertinoIcons.globe,
                       size: 14,
-                      color: status.isLocalConnection! 
+                      color: status.isLocalConnection!
                           ? CupertinoColors.systemGreen
                           : CupertinoColors.systemBlue,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      status.isLocalConnection! ? 'Local Network' : 'Remote Connection',
+                      status.isLocalConnection!
+                          ? 'Local Network'
+                          : 'Remote Connection',
                       style: TextStyle(
                         fontSize: 12,
-                        color: status.isLocalConnection! 
+                        color: status.isLocalConnection!
                             ? CupertinoColors.systemGreen
                             : CupertinoColors.systemBlue,
                       ),
@@ -313,7 +302,7 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
-    
+
     if (diff.inSeconds < 60) {
       return '${diff.inSeconds}s ago';
     } else if (diff.inMinutes < 60) {

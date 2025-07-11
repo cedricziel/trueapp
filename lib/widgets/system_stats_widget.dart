@@ -40,7 +40,9 @@ class SystemStatsWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: CupertinoColors.systemRed.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.systemRed.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: CupertinoColors.systemRed.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -170,10 +172,7 @@ class _CpuStatsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          UsageBar(
-            usage: cpuUsage,
-            color: _getCpuUsageColor(cpuUsage),
-          ),
+          UsageBar(usage: cpuUsage, color: _getCpuUsageColor(cpuUsage)),
           if (cores.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildCoresList(),

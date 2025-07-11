@@ -15,7 +15,7 @@ void main() async {
 
   final database = AppDatabase();
   final connectionStatusProvider = ConnectionStatusProvider();
-  
+
   // Set up the connection status provider for API client manager
   ApiClientManager.setConnectionStatusProvider(connectionStatusProvider);
 

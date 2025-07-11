@@ -79,10 +79,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 ConnectionStatusTitleWidget(serverId: currentServer.id),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    currentServer.name,
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text(currentServer.name, textAlign: TextAlign.center),
                 ),
               ],
             ),
@@ -158,7 +155,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       },
     );
   }
-
 
   Widget _buildActionButtons(BuildContext context, NasServer server) {
     return Padding(
@@ -274,7 +270,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       ),
     );
   }
-
 
   Widget _buildPoolsSection(NasServer server) {
     return Consumer<PoolProvider>(
@@ -615,7 +610,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     }
     return '${(bytes / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1)}TB';
   }
-
 
   Widget _buildSystemStatsSection(NasServer server) {
     return Container(
