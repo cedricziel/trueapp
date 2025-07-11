@@ -266,11 +266,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 )
               else if (poolProvider.error != null)
                 ErrorStateWidget(
+                  title: 'Pool Error',
                   message: 'Failed to load pools: ${poolProvider.error}',
                 )
               else if (poolProvider.pools.isEmpty)
                 const EmptyStateWidget(
                   icon: CupertinoIcons.square_stack_3d_down_right,
+                  title: 'No Pools',
                   message: 'No storage pools found',
                 )
               else
@@ -370,11 +372,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 )
               else if (appProvider.error != null)
                 ErrorStateWidget(
+                  title: 'App Error',
                   message: 'Failed to load apps: ${appProvider.error}',
                 )
               else if (appProvider.apps.isEmpty)
                 const EmptyStateWidget(
                   icon: CupertinoIcons.app,
+                  title: 'No Apps',
                   message: 'No apps found',
                 )
               else
