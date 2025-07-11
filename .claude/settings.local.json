@@ -21,7 +21,9 @@
       "Bash(gh label:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue create:*)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Bash(find:*)",
+      "Bash(gh label:*)"
     ],
     "deny": []
   }
