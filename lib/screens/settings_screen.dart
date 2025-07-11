@@ -3,12 +3,20 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/tray_provider.dart';
 import 'package:truenas_manager/services/database.dart';
+import 'package:truenas_manager/services/authentication_session_service.dart';
+import 'package:truenas_manager/services/secure_storage_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +82,91 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
             ],
+            CupertinoFormSection(
+              header: const Text('SECURITY'),
+              children: [
+                CupertinoFormRow(
+                  prefix: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Authentication Session'),
+                      Text(
+                        'Manage biometric authentication session',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      ),
+                    ],
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      final session = AuthenticationSessionService.instance;
+                      final isValid = session.isSessionValid;
+                      
+                      return CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          if (isValid) {
+                            // Lock the session
+                            session.invalidateSession();
+                            setState(() {});
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => CupertinoAlertDialog(
+                                title: const Text('Session Locked'),
+                                content: const Text(
+                                  'Your authentication session has been locked. You will need to authenticate again to access server credentials.',
+                                ),
+                                actions: [
+                                  CupertinoDialogAction(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            // Test authentication
+                            SecureStorageService.authenticate(
+                              reason: 'Authenticate to unlock session',
+                            ).then((success) {
+                              setState(() {});
+                              if (success) {
+                                showCupertinoDialog(
+                                  context: context,
+                                  builder: (context) => CupertinoAlertDialog(
+                                    title: const Text('Session Unlocked'),
+                                    content: const Text(
+                                      'Authentication successful. Your session will remain active for 30 minutes.',
+                                    ),
+                                    actions: [
+                                      CupertinoDialogAction(
+                                        onPressed: () => Navigator.of(context).pop(),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                            });
+                          }
+                        },
+                        child: Text(
+                          isValid ? 'Lock Session' : 'Unlock Session',
+                          style: TextStyle(
+                            color: isValid 
+                                ? CupertinoColors.destructiveRed 
+                                : CupertinoColors.activeBlue,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             CupertinoFormSection(
               header: const Text('DATABASE'),
               children: [

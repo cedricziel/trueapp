@@ -6,6 +6,7 @@ import 'package:truenas_manager/screens/add_server_screen.dart';
 import 'package:truenas_manager/screens/server_detail_screen.dart';
 import 'package:truenas_manager/screens/settings_screen.dart';
 import 'package:truenas_manager/widgets/server_list_tile.dart';
+import 'package:truenas_manager/widgets/session_indicator_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,7 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('TrueNAS Manager'),
+        middle: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('TrueNAS Manager'),
+            const SizedBox(width: 8),
+            const SessionIndicatorWidget(),
+          ],
+        ),
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.settings),

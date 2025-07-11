@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:truenas_manager/services/authentication_session_service.dart';
 
 class ServerCredentials {
   final String username;
@@ -57,8 +58,19 @@ class SecureStorageService {
   static Future<bool> authenticate({
     required String reason,
     bool biometricOnly = false,
+    bool useSession = true,
   }) async {
     try {
+      // Check if we have a valid session
+      if (useSession && AuthenticationSessionService.instance.isSessionValid) {
+        if (kDebugMode) {
+          print('SecureStorageService: Using existing authentication session');
+        }
+        // Extend the session on each use
+        AuthenticationSessionService.instance.extendSession();
+        return true;
+      }
+
       final isAvailable = await isBiometricAvailable();
       if (!isAvailable && biometricOnly) {
         if (kDebugMode) {
@@ -72,16 +84,30 @@ class SecureStorageService {
         if (kDebugMode) {
           print('SecureStorageService: Biometric authentication not available, skipping authentication');
         }
+        // Mark session as authenticated even without biometrics
+        if (useSession) {
+          AuthenticationSessionService.instance.markAuthenticated();
+        }
         return true; // Allow access without biometrics during testing/development
       }
 
-      return await _localAuth.authenticate(
+      final authenticated = await _localAuth.authenticate(
         localizedReason: reason,
         options: AuthenticationOptions(
           biometricOnly: biometricOnly,
           stickyAuth: true,
         ),
       );
+
+      if (authenticated && useSession) {
+        // Mark the session as authenticated
+        AuthenticationSessionService.instance.markAuthenticated();
+        if (kDebugMode) {
+          print('SecureStorageService: Authentication successful, session created');
+        }
+      }
+
+      return authenticated;
     } catch (e) {
       if (kDebugMode) {
         print('SecureStorageService: Authentication error: $e');
@@ -142,9 +168,9 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
-      if (kDebugMode) {
-        print('SecureStorageService: Attempting to retrieve credentials for server $serverId');
-      }
+      // if (kDebugMode) {
+      //   print('SecureStorageService: Attempting to retrieve credentials for server $serverId');
+      // }
 
       if (requireAuthentication) {
         final authenticated = await authenticate(
@@ -161,16 +187,16 @@ class SecureStorageService {
       final usernameKey = _getUsernameKey(serverId);
       final passwordKey = _getPasswordKey(serverId);
       
-      if (kDebugMode) {
-        print('SecureStorageService: Reading credentials with keys: $usernameKey, $passwordKey');
-      }
+      // if (kDebugMode) {
+      //   print('SecureStorageService: Reading credentials with keys: $usernameKey, $passwordKey');
+      // }
 
       final username = await _storage.read(key: usernameKey);
       final password = await _storage.read(key: passwordKey);
 
-      if (kDebugMode) {
-        print('SecureStorageService: Retrieved credentials - username: ${username != null ? 'found' : 'not found'}, password: ${password != null ? 'found' : 'not found'}');
-      }
+      // if (kDebugMode) {
+      //   print('SecureStorageService: Retrieved credentials - username: ${username != null ? 'found' : 'not found'}, password: ${password != null ? 'found' : 'not found'}');
+      // }
 
       if (username != null && password != null) {
         return ServerCredentials(username: username, password: password);
