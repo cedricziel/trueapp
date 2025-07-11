@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
+import 'package:truenas_manager/providers/tray_provider.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -17,6 +18,62 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           children: [
             const SizedBox(height: 20),
+            if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+              Consumer<TrayProvider>(
+                builder: (context, trayProvider, child) {
+                  return CupertinoFormSection(
+                    header: Text(Platform.isMacOS ? 'MENU BAR' : 'SYSTEM TRAY'),
+                    children: [
+                      CupertinoFormRow(
+                        prefix: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              Platform.isMacOS
+                                  ? 'Minimize to Menu Bar'
+                                  : 'Minimize to System Tray',
+                            ),
+                            Text(
+                              Platform.isMacOS
+                                  ? 'Close window minimizes to menu bar instead of quitting'
+                                  : 'Close window minimizes to system tray instead of quitting',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: CupertinoColors.systemGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoSwitch(
+                          value: trayProvider.minimizeToTray,
+                          onChanged: trayProvider.setMinimizeToTray,
+                        ),
+                      ),
+                      CupertinoFormRow(
+                        prefix: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Show in Dock'),
+                            Text(
+                              'Display app icon in dock while running',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: CupertinoColors.systemGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoSwitch(
+                          value: trayProvider.showInDock,
+                          onChanged: trayProvider.setShowInDock,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
             CupertinoFormSection(
               header: const Text('DATABASE'),
               children: [
