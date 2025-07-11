@@ -2,12 +2,18 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truenas_manager/providers/connection_status_provider.dart';
 
 class ApiClientManager {
   static final Map<String, TrueNasApiClient> _clients = {};
   static final Map<String, int> _refCounts = {};
   static final Map<String, Completer<TrueNasApiClient>?> _connectionCompleters =
       {};
+  static ConnectionStatusProvider? _connectionStatusProvider;
+
+  static void setConnectionStatusProvider(ConnectionStatusProvider? provider) {
+    _connectionStatusProvider = provider;
+  }
 
   static Future<TrueNasApiClient?> getClient(NasServer server) async {
     final serverId = server.id;
@@ -43,7 +49,7 @@ class ApiClientManager {
         );
       }
 
-      final client = TrueNasApiClient(server);
+      final client = TrueNasApiClient(server, _connectionStatusProvider);
       _clients[serverId] = client;
       _refCounts[serverId] = 1;
 

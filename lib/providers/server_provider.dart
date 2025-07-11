@@ -168,7 +168,7 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> testServerConnection(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server);
+      final apiClient = TrueNasApiClient(server, null);
       final result = await apiClient.testConnection();
       await apiClient.close();
       return result;
@@ -179,7 +179,7 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> validateServerCredentials(models.NasServer server) async {
     try {
-      final apiClient = TrueNasApiClient(server);
+      final apiClient = TrueNasApiClient(server, null);
       final result = await apiClient
           .validateLogin(server.username, server.password)
           .timeout(const Duration(seconds: 15));

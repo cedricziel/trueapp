@@ -12,25 +12,40 @@ import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/services/network_service.dart';
 import 'package:truenas_manager/services/api_client_interface.dart';
+import 'package:truenas_manager/providers/connection_status_provider.dart';
 
 class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
+  final ConnectionStatusProvider? _connectionStatusProvider;
   Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
+  String? _currentConnectionUrl;
+  bool? _isLocalConnection;
 
   // System stats subscription management
   StreamController<SystemStats>? _systemStatsController;
   String? _realtimeSubscriptionId;
   bool _isSubscribedToRealtime = false;
 
-  TrueNasApiClient(this._server);
+  // Keepalive mechanism
+  Timer? _keepaliveTimer;
+  bool _keepaliveEnabled = true;
+  Duration _keepaliveInterval = const Duration(seconds: 30);
+  bool _awaitingPong = false;
+
+  TrueNasApiClient(this._server, [this._connectionStatusProvider]);
 
   Future<void> _ensureConnected() async {
     if (_client != null && !_client!.isClosed) {
       return;
     }
+
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.connecting,
+    );
 
     try {
       // Determine the appropriate URL based on network context
@@ -42,6 +57,9 @@ class TrueNasApiClient implements ApiClientInterface {
       );
 
       final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
+      _currentConnectionUrl = baseUrl;
+      _isLocalConnection = isOnTrustedNetwork;
+
       if (kDebugMode) {
         print('TrueNAS API: Connecting to WebSocket: $wsUrl');
         print(
@@ -76,9 +94,167 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Connection failed: $e');
       }
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.error,
+        error: e.toString(),
+      );
       throw _handleConnectionError(e);
     }
   }
+
+  void _startKeepalive() {
+    if (!_keepaliveEnabled || _keepaliveTimer != null) {
+      return;
+    }
+
+    if (kDebugMode) {
+      print(
+        'TrueNAS API: Starting keepalive with ${_keepaliveInterval.inSeconds}s interval',
+      );
+    }
+
+    _keepaliveTimer = Timer.periodic(_keepaliveInterval, (_) {
+      _sendKeepalivePing();
+    });
+  }
+
+  void _stopKeepalive() {
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = null;
+    _awaitingPong = false;
+
+    if (kDebugMode) {
+      print('TrueNAS API: Stopped keepalive');
+    }
+  }
+
+  Future<void> _sendKeepalivePing() async {
+    if (_client == null || _client!.isClosed || !_isAuthenticated) {
+      return;
+    }
+
+    if (_awaitingPong) {
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: Keepalive timeout - no pong received, reconnecting...',
+        );
+      }
+      await _handleKeepaliveTimeout();
+      return;
+    }
+
+    try {
+      _awaitingPong = true;
+      final pingTime = DateTime.now();
+
+      if (kDebugMode) {
+        print('TrueNAS API: Sending keepalive ping');
+      }
+
+      _connectionStatusProvider?.updatePingStatus(
+        _server.id,
+        pingSent: pingTime,
+      );
+
+      final result = await _client!
+          .sendRequest('core.ping', [])
+          .timeout(const Duration(seconds: 10));
+
+      if (result == 'pong') {
+        final pongTime = DateTime.now();
+        final latency = pongTime.difference(pingTime);
+        _awaitingPong = false;
+
+        _connectionStatusProvider?.updatePingStatus(
+          _server.id,
+          pongReceived: pongTime,
+          latency: latency,
+        );
+
+        if (kDebugMode) {
+          print(
+            'TrueNAS API: Received keepalive pong (${latency.inMilliseconds}ms)',
+          );
+        }
+      } else {
+        if (kDebugMode) {
+          print('TrueNAS API: Unexpected keepalive response: $result');
+        }
+        _awaitingPong = false;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Keepalive ping failed: $e');
+      }
+      await _handleKeepaliveTimeout();
+    }
+  }
+
+  Future<void> _handleKeepaliveTimeout() async {
+    _awaitingPong = false;
+
+    if (kDebugMode) {
+      print('TrueNAS API: Keepalive failed, attempting reconnection');
+    }
+
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.reconnecting,
+    );
+
+    // Reset connection state
+    _isAuthenticated = false;
+
+    try {
+      // Close existing connection
+      await _client?.close();
+      await _wsChannel?.sink.close();
+
+      // Re-establish connection
+      await _ensureConnected();
+      await _ensureAuthenticated();
+
+      if (kDebugMode) {
+        print('TrueNAS API: Successfully reconnected after keepalive timeout');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to reconnect after keepalive timeout: $e');
+      }
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.error,
+        error: e.toString(),
+      );
+      // Stop keepalive on repeated failures to avoid continuous retry loops
+      _stopKeepalive();
+    }
+  }
+
+  @override
+  void setKeepaliveInterval(Duration interval) {
+    _keepaliveInterval = interval;
+
+    if (_keepaliveTimer != null) {
+      _stopKeepalive();
+      _startKeepalive();
+    }
+  }
+
+  @override
+  void enableKeepalive(bool enabled) {
+    _keepaliveEnabled = enabled;
+
+    if (enabled && _isAuthenticated) {
+      _startKeepalive();
+    } else {
+      _stopKeepalive();
+    }
+  }
+
+  @override
+  bool get isKeepaliveActive => _keepaliveTimer?.isActive ?? false;
 
   void _setupCollectionUpdateHandler() {
     if (_client == null) return;
@@ -137,6 +313,20 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Successfully authenticated');
       }
+
+      // Update connection status to connected
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.connected,
+        connectionUrl: _currentConnectionUrl,
+        isLocalConnection: _isLocalConnection,
+      );
+
+      // Start keepalive after successful authentication
+      _startKeepalive();
+
+      // Send immediate ping to get initial connection status
+      _sendKeepalivePing();
     } on TimeoutException {
       throw ConnectionException(
         ConnectionError.connectionTimeout(
@@ -153,6 +343,11 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> close() async {
+    _stopKeepalive();
+    _connectionStatusProvider?.updateConnectionState(
+      _server.id,
+      TrueNASConnectionState.disconnected,
+    );
     await unsubscribeFromSystemStats();
     await _client?.close();
     await _wsChannel?.sink.close();

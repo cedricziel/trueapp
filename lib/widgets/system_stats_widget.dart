@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/system_stats.dart';
 import 'package:truenas_manager/providers/system_stats_provider.dart';
+import 'package:truenas_manager/widgets/responsive_row.dart';
+import 'package:truenas_manager/widgets/usage_bar.dart';
 
 class SystemStatsWidget extends StatelessWidget {
   const SystemStatsWidget({super.key});
@@ -36,9 +38,11 @@ class SystemStatsWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemRed.withOpacity(0.1),
+        color: CupertinoColors.systemRed.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.systemRed.withOpacity(0.3)),
+        border: Border.all(
+          color: CupertinoColors.systemRed.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -91,25 +95,20 @@ class SystemStatsWidget extends StatelessWidget {
   Widget _buildStatsContent(SystemStatsProvider statsProvider) {
     return Column(
       children: [
-        // CPU and Memory row
-        Row(
+        // CPU and Memory - responsive layout
+        ResponsiveRow(
           children: [
-            Expanded(
-              child: _CpuStatsCard(
-                cpuUsage: statsProvider.cpuUsage,
-                cores: statsProvider.cpuCores,
-              ),
+            _CpuStatsCard(
+              cpuUsage: statsProvider.cpuUsage,
+              cores: statsProvider.cpuCores,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _MemoryStatsCard(
-                memoryUsage: statsProvider.memoryUsage,
-                arcUsage: statsProvider.arcUsage,
-                totalMemory: statsProvider.physicalMemoryTotal,
-                availableMemory: statsProvider.physicalMemoryAvailable,
-                arcSize: statsProvider.arcSize,
-                formatBytes: statsProvider.formatBytes,
-              ),
+            _MemoryStatsCard(
+              memoryUsage: statsProvider.memoryUsage,
+              arcUsage: statsProvider.arcUsage,
+              totalMemory: statsProvider.physicalMemoryTotal,
+              availableMemory: statsProvider.physicalMemoryAvailable,
+              arcSize: statsProvider.arcSize,
+              formatBytes: statsProvider.formatBytes,
             ),
           ],
         ),
@@ -173,7 +172,7 @@ class _CpuStatsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildUsageBar(cpuUsage, _getCpuUsageColor(cpuUsage)),
+          UsageBar(usage: cpuUsage, color: _getCpuUsageColor(cpuUsage)),
           if (cores.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildCoresList(),
@@ -220,26 +219,6 @@ class _CpuStatsCard extends StatelessWidget {
           }).toList(),
         ),
       ],
-    );
-  }
-
-  Widget _buildUsageBar(double usage, Color color) {
-    return Container(
-      height: 8,
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey5,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: usage / 100,
-        child: Container(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-      ),
     );
   }
 
@@ -303,7 +282,10 @@ class _MemoryStatsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildUsageBar(memoryUsage, _getMemoryUsageColor(memoryUsage)),
+          UsageBar(
+            usage: memoryUsage,
+            color: _getMemoryUsageColor(memoryUsage),
+          ),
           const SizedBox(height: 12),
           _buildMemoryDetails(),
         ],
@@ -353,26 +335,6 @@ class _MemoryStatsCard extends StatelessWidget {
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         ),
       ],
-    );
-  }
-
-  Widget _buildUsageBar(double usage, Color color) {
-    return Container(
-      height: 8,
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey5,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: usage / 100,
-        child: Container(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-      ),
     );
   }
 
@@ -599,7 +561,7 @@ class _NetworkStatsCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemGreen.withOpacity(0.1),
+            color: CupertinoColors.systemGreen.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4),
           ),
           child: const Text(
