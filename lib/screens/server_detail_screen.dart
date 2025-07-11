@@ -5,15 +5,16 @@ import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/providers/system_stats_provider.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/widgets/app_icon.dart';
 import 'package:truenas_manager/widgets/system_stats_widget.dart';
 import 'package:truenas_manager/widgets/authentication_state_widget.dart';
-import 'package:truenas_manager/screens/app_detail_screen.dart';
+import 'package:truenas_manager/widgets/action_button_widget.dart';
+import 'package:truenas_manager/widgets/pool_card_widget.dart';
+import 'package:truenas_manager/widgets/app_card_widget.dart';
+import 'package:truenas_manager/widgets/error_state_widget.dart';
+import 'package:truenas_manager/widgets/empty_state_widget.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
 import 'package:truenas_manager/screens/server_pools_screen.dart';
-import 'package:truenas_manager/screens/pool_detail_screen.dart';
 import 'package:truenas_manager/screens/edit_server_screen.dart';
 import 'package:truenas_manager/screens/user_profile_screen.dart';
 import 'package:truenas_manager/screens/server_apps_screen.dart';
@@ -179,8 +180,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          _buildActionButton(
-            context,
+          ActionButtonWidget(
             icon: CupertinoIcons.square_stack_3d_down_right,
             title: 'Pools',
             subtitle: 'View storage pools and datasets',
@@ -194,8 +194,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             },
           ),
           const SizedBox(height: 12),
-          _buildActionButton(
-            context,
+          ActionButtonWidget(
             icon: CupertinoIcons.folder,
             title: 'Files',
             subtitle: 'Browse and manage files',
@@ -209,8 +208,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             },
           ),
           const SizedBox(height: 12),
-          _buildActionButton(
-            context,
+          ActionButtonWidget(
             icon: CupertinoIcons.heart,
             title: 'Health',
             subtitle: 'View system health and status',
@@ -224,67 +222,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 1.0),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: CupertinoColors.activeBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: CupertinoColors.activeBlue, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              color: CupertinoColors.tertiaryLabel,
-              size: 20,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -328,68 +265,20 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                   ),
                 )
               else if (poolProvider.error != null)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: CupertinoColors.systemRed.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        CupertinoIcons.exclamationmark_triangle,
-                        color: CupertinoColors.systemRed,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Failed to load pools: ${poolProvider.error}',
-                          style: const TextStyle(
-                            color: CupertinoColors.systemRed,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                ErrorStateWidget(
+                  message: 'Failed to load pools: ${poolProvider.error}',
                 )
               else if (poolProvider.pools.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey6,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          CupertinoIcons.square_stack_3d_down_right,
-                          size: 32,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'No storage pools found',
-                          style: TextStyle(
-                            color: CupertinoColors.systemGrey,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                const EmptyStateWidget(
+                  icon: CupertinoIcons.square_stack_3d_down_right,
+                  message: 'No storage pools found',
                 )
               else
                 Column(
                   children: poolProvider.pools.map((pool) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildPoolCard(pool, server),
+                      child: PoolCardWidget(pool: pool, server: server),
                     );
                   }).toList(),
                 ),
@@ -398,235 +287,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         );
       },
     );
-  }
-
-  Widget _buildPoolCard(Map<String, dynamic> pool, NasServer server) {
-    final name = pool['name'] as String? ?? 'Unknown';
-    final status = pool['status'] as String? ?? 'Unknown';
-    final healthy = pool['healthy'] as bool? ?? false;
-
-    // Extract pool topology information
-    final topology = pool['topology'] as Map<String, dynamic>?;
-    final poolTypeDescription = _getPoolTypeDescription(topology);
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (context) => PoolDetailScreen(server: server, pool: pool),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            // Header Row
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: healthy
-                        ? CupertinoColors.systemGreen.withOpacity(0.1)
-                        : CupertinoColors.systemRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    CupertinoIcons.square_stack_3d_down_right,
-                    color: healthy
-                        ? CupertinoColors.systemGreen
-                        : CupertinoColors.systemRed,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        poolTypeDescription,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: healthy
-                            ? CupertinoColors.systemGreen.withOpacity(0.1)
-                            : CupertinoColors.systemRed.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: healthy
-                              ? CupertinoColors.systemGreen
-                              : CupertinoColors.systemRed,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // Storage Info Row
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStorageMetric(
-                    'Used',
-                    _getPoolUsedSpace(pool),
-                    CupertinoColors.systemBlue,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStorageMetric(
-                    'Available',
-                    _getPoolAvailableSpace(pool),
-                    CupertinoColors.systemGreen,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStorageMetric(
-                    'Total',
-                    _getPoolTotalSpace(pool),
-                    CupertinoColors.systemGrey,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStorageMetric(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.systemGrey,
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _getPoolTypeDescription(Map<String, dynamic>? topology) {
-    if (topology == null) return 'Unknown configuration';
-
-    final data = topology['data'] as List<dynamic>?;
-    if (data == null || data.isEmpty) return 'Unknown configuration';
-
-    final firstVdev = data.first as Map<String, dynamic>?;
-    final type = firstVdev?['type'] as String?;
-    final children = firstVdev?['children'] as List<dynamic>?;
-
-    if (type == 'mirror' && children != null) {
-      return 'Mirror (${children.length} drives)';
-    } else if (type == 'raidz1') {
-      return 'RAID-Z1 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz2') {
-      return 'RAID-Z2 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz3') {
-      return 'RAID-Z3 (${children?.length ?? 0} drives)';
-    } else if (children != null && children.length == 1) {
-      return 'Single drive';
-    }
-
-    return 'Custom configuration';
-  }
-
-  String _getPoolUsedSpace(Map<String, dynamic> pool) {
-    // Try to get allocated space from pool properties
-    final allocated = pool['allocated'] as int?;
-    if (allocated != null) {
-      return _formatBytes(allocated);
-    }
-    return 'Unknown';
-  }
-
-  String _getPoolAvailableSpace(Map<String, dynamic> pool) {
-    // Try to get free space from pool properties
-    final free = pool['free'] as int?;
-    if (free != null) {
-      return _formatBytes(free);
-    }
-    return 'Unknown';
-  }
-
-  String _getPoolTotalSpace(Map<String, dynamic> pool) {
-    // Calculate total from allocated + free
-    final allocated = pool['allocated'] as int?;
-    final free = pool['free'] as int?;
-
-    if (allocated != null && free != null) {
-      return _formatBytes(allocated + free);
-    }
-
-    // Fallback to size if available
-    final size = pool['size'] as int?;
-    if (size != null) {
-      return _formatBytes(size);
-    }
-
-    return 'Unknown';
-  }
-
-  String _formatBytes(int bytes) {
-    if (bytes < 1024) return '${bytes}B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-    }
-    if (bytes < 1024 * 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1)}TB';
   }
 
   Widget _buildSystemStatsSection(NasServer server) {
@@ -709,61 +369,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                   ),
                 )
               else if (appProvider.error != null)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: CupertinoColors.systemRed.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        CupertinoIcons.exclamationmark_triangle,
-                        color: CupertinoColors.systemRed,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Failed to load apps: ${appProvider.error}',
-                          style: const TextStyle(
-                            color: CupertinoColors.systemRed,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                ErrorStateWidget(
+                  message: 'Failed to load apps: ${appProvider.error}',
                 )
               else if (appProvider.apps.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey6,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          CupertinoIcons.app,
-                          size: 32,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'No apps found',
-                          style: TextStyle(
-                            color: CupertinoColors.systemGrey,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                const EmptyStateWidget(
+                  icon: CupertinoIcons.app,
+                  message: 'No apps found',
                 )
               else
                 Column(
@@ -787,7 +399,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                       ...appProvider.installedApps.take(3).map((app) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildAppCard(app),
+                          child: AppCardWidget(app: app),
                         );
                       }),
                       const SizedBox(height: 16),
@@ -811,7 +423,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                       ...appProvider.availableApps.take(4).map((app) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildAppCard(app),
+                          child: AppCardWidget(app: app),
                         );
                       }),
                     ],
@@ -821,93 +433,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildAppCard(App app) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
-        ),
-        child: Row(
-          children: [
-            AppIcon(app: app, size: 44),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    app.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    app.description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: app.installed
-                        ? CupertinoColors.systemGreen.withOpacity(0.1)
-                        : CupertinoColors.systemBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    app.installed ? 'Installed' : 'Available',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: app.installed
-                          ? CupertinoColors.systemGreen
-                          : CupertinoColors.systemBlue,
-                    ),
-                  ),
-                ),
-                if (app.categories.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      app.categories.first,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: CupertinoColors.tertiaryLabel,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
