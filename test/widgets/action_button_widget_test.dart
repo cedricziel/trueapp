@@ -4,9 +4,12 @@ import 'package:truenas_manager/widgets/action_button_widget.dart';
 
 void main() {
   group('ActionButtonWidget', () {
-    testWidgets('displays title and subtitle correctly', (WidgetTester tester) async {
+    testWidgets('displays title and subtitle correctly', (
+      WidgetTester tester,
+    ) async {
+      // ignore: unused_local_variable
       bool tapped = false;
-      
+
       await tester.pumpWidget(
         CupertinoApp(
           home: ActionButtonWidget(
@@ -24,9 +27,11 @@ void main() {
       expect(find.byIcon(CupertinoIcons.chevron_right), findsOneWidget);
     });
 
-    testWidgets('executes onTap callback when tapped', (WidgetTester tester) async {
+    testWidgets('executes onTap callback when tapped', (
+      WidgetTester tester,
+    ) async {
       bool tapped = false;
-      
+
       await tester.pumpWidget(
         CupertinoApp(
           home: ActionButtonWidget(

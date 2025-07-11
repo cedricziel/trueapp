@@ -4,20 +4,25 @@ import 'package:truenas_manager/widgets/error_state_widget.dart';
 
 void main() {
   group('ErrorStateWidget', () {
-    testWidgets('displays error message correctly', (WidgetTester tester) async {
+    testWidgets('displays error message correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const CupertinoApp(
-          home: ErrorStateWidget(
-            message: 'Failed to load data',
-          ),
+          home: ErrorStateWidget(message: 'Failed to load data'),
         ),
       );
 
       expect(find.text('Failed to load data'), findsOneWidget);
-      expect(find.byIcon(CupertinoIcons.exclamationmark_triangle), findsOneWidget);
+      expect(
+        find.byIcon(CupertinoIcons.exclamationmark_triangle),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('displays custom icon when provided', (WidgetTester tester) async {
+    testWidgets('displays custom icon when provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const CupertinoApp(
           home: ErrorStateWidget(
@@ -29,7 +34,10 @@ void main() {
 
       expect(find.text('Network error'), findsOneWidget);
       expect(find.byIcon(CupertinoIcons.wifi_slash), findsOneWidget);
-      expect(find.byIcon(CupertinoIcons.exclamationmark_triangle), findsNothing);
+      expect(
+        find.byIcon(CupertinoIcons.exclamationmark_triangle),
+        findsNothing,
+      );
     });
   });
 }

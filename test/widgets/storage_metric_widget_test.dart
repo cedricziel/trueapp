@@ -4,7 +4,9 @@ import 'package:truenas_manager/widgets/storage_metric_widget.dart';
 
 void main() {
   group('StorageMetricWidget', () {
-    testWidgets('displays label and value correctly', (WidgetTester tester) async {
+    testWidgets('displays label and value correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const CupertinoApp(
           home: StorageMetricWidget(
@@ -19,7 +21,9 @@ void main() {
       expect(find.text('10.5 GB'), findsOneWidget);
     });
 
-    testWidgets('applies correct color to value text', (WidgetTester tester) async {
+    testWidgets('applies correct color to value text', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const CupertinoApp(
           home: StorageMetricWidget(
