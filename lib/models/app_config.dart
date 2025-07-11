@@ -62,6 +62,7 @@ class AppConfig extends Equatable {
   final String? displayName;
   final String? iconUrl;
   final bool isEnabled;
+  final bool isFavorite;
   final List<AppPortConfig> ports;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -73,6 +74,7 @@ class AppConfig extends Equatable {
     this.displayName,
     this.iconUrl,
     this.isEnabled = true,
+    this.isFavorite = false,
     this.ports = const [],
     this.createdAt,
     this.updatedAt,
@@ -97,6 +99,7 @@ class AppConfig extends Equatable {
     String? displayName,
     String? iconUrl,
     bool? isEnabled,
+    bool? isFavorite,
     List<AppPortConfig>? ports,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -108,6 +111,7 @@ class AppConfig extends Equatable {
       displayName: displayName ?? this.displayName,
       iconUrl: iconUrl ?? this.iconUrl,
       isEnabled: isEnabled ?? this.isEnabled,
+      isFavorite: isFavorite ?? this.isFavorite,
       ports: ports ?? this.ports,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -122,6 +126,7 @@ class AppConfig extends Equatable {
     displayName,
     iconUrl,
     isEnabled,
+    isFavorite,
     ports,
     createdAt,
     updatedAt,

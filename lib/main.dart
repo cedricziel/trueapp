@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
@@ -13,6 +14,7 @@ import 'package:truenas_manager/screens/home_screen.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/api_client_manager.dart';
 import 'package:truenas_manager/services/window_manager.dart';
+import 'package:truenas_manager/models/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,7 +69,12 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     // Only set up listener on desktop platforms
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
+      final appProvider = context.read<AppProvider>();
+      final appConfigProvider = context.read<AppConfigProvider>();
+
       serverProvider.addListener(_updateTrayStatus);
+      appProvider.addListener(_updateTrayStatus);
+      appConfigProvider.addListener(_updateTrayStatus);
     }
   }
 
@@ -94,12 +101,13 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     serverProvider.refreshSelectedServer();
   }
 
-  void _updateTrayStatus() {
+  void _updateTrayStatus() async {
     // Only update tray on desktop platforms
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
 
     final trayProvider = context.read<TrayProvider>();
     final serverProvider = context.read<ServerProvider>();
+    final appConfigProvider = context.read<AppConfigProvider>();
 
     int totalServers = serverProvider.servers.length;
     int connectedServers = serverProvider.servers
@@ -116,10 +124,27 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       alerts.add(serverProvider.healthError!);
     }
 
+    // Get apps with portals for the current server
+    List<AppConfig> appsWithPortals = [];
+    try {
+      appsWithPortals = await appConfigProvider.getAppsWithPortals();
+      if (kDebugMode) {
+        print('Tray: Found ${appsWithPortals.length} apps with portals');
+        for (final app in appsWithPortals) {
+          print('  - ${app.appName}: ${app.ports.length} ports');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Tray: Error getting apps with portals: $e');
+      }
+    }
+
     trayProvider.updateServerStatus(
       connectedServers: connectedServers,
       totalServers: totalServers,
       alerts: alerts,
+      appsWithPortals: appsWithPortals,
     );
   }
 
@@ -128,7 +153,12 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     // Only remove listener on desktop platforms
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
+      final appProvider = context.read<AppProvider>();
+      final appConfigProvider = context.read<AppConfigProvider>();
+
       serverProvider.removeListener(_updateTrayStatus);
+      appProvider.removeListener(_updateTrayStatus);
+      appConfigProvider.removeListener(_updateTrayStatus);
     }
     super.dispose();
   }

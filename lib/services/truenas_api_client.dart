@@ -29,6 +29,11 @@ class TrueNasApiClient implements ApiClientInterface {
   String? _realtimeSubscriptionId;
   bool _isSubscribedToRealtime = false;
 
+  // App stats subscription management
+  StreamController<Map<String, AppResourceUsage>>? _appStatsController;
+  String? _appStatsSubscriptionId;
+  bool _isSubscribedToAppStats = false;
+
   // Keepalive mechanism
   Timer? _keepaliveTimer;
   bool _keepaliveEnabled = true;
@@ -263,6 +268,7 @@ class TrueNasApiClient implements ApiClientInterface {
     _client!.registerMethod('collection_update', (parameters) {
       try {
         final collection = parameters['collection'].value as String?;
+
         if (collection == 'reporting.realtime') {
           final fields = parameters['fields'].value as Map<String, dynamic>;
           final systemStats = SystemStats.fromJson(fields);
@@ -271,6 +277,46 @@ class TrueNasApiClient implements ApiClientInterface {
           if (kDebugMode) {
             print(
               'TrueNAS API: Received realtime stats - CPU: ${systemStats.cpu.overall.usage.toStringAsFixed(1)}%',
+            );
+          }
+        } else if (collection == 'app.stats') {
+          final fields = parameters['fields'].value as List<dynamic>;
+          final appStatsMap = <String, AppResourceUsage>{};
+
+          for (final appData in fields) {
+            final appStats = appData as Map<String, dynamic>;
+            final appName = appStats['app_name'] as String;
+
+            // Extract network statistics
+            final networks = appStats['networks'] as List<dynamic>? ?? [];
+            var totalRxBytes = 0.0;
+            var totalTxBytes = 0.0;
+
+            for (final network in networks) {
+              final networkData = network as Map<String, dynamic>;
+              totalRxBytes +=
+                  (networkData['rx_bytes'] as num?)?.toDouble() ?? 0.0;
+              totalTxBytes +=
+                  (networkData['tx_bytes'] as num?)?.toDouble() ?? 0.0;
+            }
+
+            final resourceUsage = AppResourceUsage(
+              cpuUsage: (appStats['cpu_usage'] as num?)?.toDouble() ?? 0.0,
+              memoryUsage: (appStats['memory'] as num?)?.toInt() ?? 0,
+              memoryLimit: 0, // Not available in real-time stats
+              networkRxBytes: totalRxBytes,
+              networkTxBytes: totalTxBytes,
+              lastUpdated: DateTime.now(),
+            );
+
+            appStatsMap[appName] = resourceUsage;
+          }
+
+          _appStatsController?.add(appStatsMap);
+
+          if (kDebugMode) {
+            print(
+              'TrueNAS API: Received app stats for ${appStatsMap.length} apps',
             );
           }
         }
@@ -349,6 +395,7 @@ class TrueNasApiClient implements ApiClientInterface {
       TrueNASConnectionState.disconnected,
     );
     await unsubscribeFromSystemStats();
+    await unsubscribeFromAppStats();
     await _client?.close();
     await _wsChannel?.sink.close();
   }
@@ -641,6 +688,128 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   @override
+  Future<List<App>> getInstalledApps() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.query');
+      return (result as List<dynamic>)
+          .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Convert TrueNAS app query response to our App model
+  App _convertTrueNasAppToApp(Map<String, dynamic> trueNasApp) {
+    // Extract upgrade info from the response
+    final upgradeInfo = AppUpgradeInfo(
+      upgradeAvailable: trueNasApp['upgrade_available'] as bool? ?? false,
+      availableVersion: trueNasApp['latest_version'] as String?,
+      currentVersion: trueNasApp['version'] as String?,
+      upgradeNotes: null, // Not available in TrueNAS response
+      canUpgrade:
+          (trueNasApp['upgrade_available'] as bool? ?? false) &&
+          (trueNasApp['state'] as String?) == 'RUNNING',
+    );
+
+    // Extract resource usage from limits (not real-time usage)
+    AppResourceUsage? resourceUsage;
+    final resources = trueNasApp['resources'] as Map<String, dynamic>?;
+    if (resources != null) {
+      final limits = resources['limits'] as Map<String, dynamic>?;
+      if (limits != null) {
+        resourceUsage = AppResourceUsage(
+          cpuUsage: 0.0, // Not available in real-time
+          memoryUsage: 0, // Not available in real-time
+          memoryLimit: (limits['memory'] as num?)?.toInt() ?? 0,
+          networkRxBytes: 0.0, // Not available
+          networkTxBytes: 0.0, // Not available
+          lastUpdated: DateTime.now(),
+        );
+      }
+    }
+
+    // Extract port information from active_workloads
+    final activeWorkloads =
+        trueNasApp['active_workloads'] as Map<String, dynamic>?;
+    final usedPorts = <AppPortInfo>[];
+    if (activeWorkloads != null) {
+      final usedPortsData =
+          activeWorkloads['used_ports'] as List<dynamic>? ?? [];
+      for (final portData in usedPortsData) {
+        usedPorts.add(AppPortInfo.fromJson(portData as Map<String, dynamic>));
+      }
+    }
+
+    // Extract portal information
+    final portals =
+        (trueNasApp['portals'] as Map<String, dynamic>?)?.map(
+          (key, value) => MapEntry(key, value.toString()),
+        ) ??
+        <String, String>{};
+
+    // Extract metadata for app information
+    final metadata = trueNasApp['metadata'] as Map<String, dynamic>?;
+
+    // Extract commonly used values
+    final appName = trueNasApp['name'] as String? ?? '';
+    final appState = trueNasApp['state'] as String?;
+    final isHealthy = appState == 'RUNNING';
+    final healthError = !isHealthy
+        ? 'App is ${appState?.toLowerCase() ?? 'stopped'}'
+        : null;
+
+    return App(
+      name: appName,
+      title: metadata?['title'] as String? ?? appName,
+      description: metadata?['description'] as String? ?? '',
+      installed: true, // These are installed apps
+      healthy: isHealthy,
+      healthyError: healthError,
+      latestVersion: trueNasApp['latest_version'] as String? ?? '',
+      latestAppVersion: metadata?['app_version'] as String? ?? '',
+      latestHumanVersion: trueNasApp['human_version'] as String? ?? '',
+      iconUrl: metadata?['icon'] as String?,
+      categories:
+          (metadata?['categories'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      home: metadata?['home'] as String?,
+      tags:
+          (metadata?['keywords'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      screenshots:
+          (metadata?['screenshots'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      sources:
+          (metadata?['sources'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      appReadme: null, // Not available in this response
+      maintainers:
+          (metadata?['maintainers'] as List<dynamic>?)
+              ?.map((e) => AppMaintainer.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      lastUpdate: null, // Not available in this response format
+      recommended: false, // Not available in this response
+      catalog: 'community', // Default, not available in this response
+      train: metadata?['train'] as String? ?? 'community',
+      resourceUsage: resourceUsage,
+      upgradeInfo: upgradeInfo,
+      usedPorts: usedPorts,
+      portals: portals,
+    );
+  }
+
+  @override
   Future<List<String>> getAppCategories() async {
     try {
       await _ensureAuthenticated();
@@ -659,6 +828,91 @@ class TrueNasApiClient implements ApiClientInterface {
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAppResourceUsage(String appName) async {
+    // This method is not available in TrueNAS API
+    // Resource usage is extracted from app.query response instead
+    return {
+      'cpu_usage': 0.0,
+      'memory_usage': 0,
+      'memory_limit': 0,
+      'network_rx_bytes': 0.0,
+      'network_tx_bytes': 0.0,
+      'last_updated': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAppUpgradeInfo(String appName) async {
+    // This method is not available in TrueNAS API
+    // Upgrade info is extracted from app.query response instead
+    return {
+      'upgrade_available': false,
+      'available_version': null,
+      'current_version': null,
+      'upgrade_notes': null,
+      'can_upgrade': false,
+    };
+  }
+
+  @override
+  Future<bool> upgradeApp(String appName, {String? version}) async {
+    try {
+      await _ensureAuthenticated();
+      // The TrueNAS API takes just the app name as a string parameter
+      final result = await _client!.sendRequest('app.upgrade', [appName]);
+      // The upgrade method returns the app object on success, so we check if it's not null
+      return result != null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to upgrade app $appName: $e');
+      }
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> startApp(String appName) async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.start', [appName]);
+      return result != null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to start app $appName: $e');
+      }
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> stopApp(String appName) async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.stop', [appName]);
+      return result != null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to stop app $appName: $e');
+      }
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> restartApp(String appName) async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('app.restart', [appName]);
+      return result != null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to restart app $appName: $e');
+      }
+      return false;
     }
   }
 
@@ -737,6 +991,86 @@ class TrueNasApiClient implements ApiClientInterface {
 
       if (kDebugMode) {
         print('TrueNAS API: System stats subscription cleaned up');
+      }
+    }
+  }
+
+  // App stats subscription methods
+  @override
+  Stream<Map<String, AppResourceUsage>> get appStatsStream {
+    _appStatsController ??=
+        StreamController<Map<String, AppResourceUsage>>.broadcast();
+    return _appStatsController!.stream;
+  }
+
+  @override
+  Future<void> subscribeToAppStats() async {
+    if (_isSubscribedToAppStats) {
+      if (kDebugMode) {
+        print('TrueNAS API: Already subscribed to app stats');
+      }
+      return;
+    }
+
+    try {
+      await _ensureAuthenticated();
+
+      _appStatsController ??=
+          StreamController<Map<String, AppResourceUsage>>.broadcast();
+
+      // Subscribe to app stats data
+      _appStatsSubscriptionId =
+          await _client!.sendRequest('core.subscribe', ['app.stats']) as String;
+
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: Subscribed to app stats with ID: $_appStatsSubscriptionId',
+        );
+      }
+
+      _isSubscribedToAppStats = true;
+
+      if (kDebugMode) {
+        print('TrueNAS API: Successfully subscribed to app stats stream');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to subscribe to app stats: $e');
+      }
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<void> unsubscribeFromAppStats() async {
+    if (!_isSubscribedToAppStats || _appStatsSubscriptionId == null) {
+      return;
+    }
+
+    try {
+      if (_client != null && !_client!.isClosed) {
+        await _client!.sendRequest('core.unsubscribe', [
+          _appStatsSubscriptionId!,
+        ]);
+
+        if (kDebugMode) {
+          print(
+            'TrueNAS API: Unsubscribed from app stats with ID: $_appStatsSubscriptionId',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Error unsubscribing from app stats: $e');
+      }
+    } finally {
+      _isSubscribedToAppStats = false;
+      _appStatsSubscriptionId = null;
+      await _appStatsController?.close();
+      _appStatsController = null;
+
+      if (kDebugMode) {
+        print('TrueNAS API: App stats subscription cleaned up');
       }
     }
   }
