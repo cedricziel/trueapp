@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
@@ -6,9 +7,11 @@ import 'package:truenas_manager/providers/dataset_provider.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/providers/system_stats_provider.dart';
 import 'package:truenas_manager/providers/connection_status_provider.dart';
+import 'package:truenas_manager/providers/tray_provider.dart';
 import 'package:truenas_manager/screens/home_screen.dart';
 import 'package:truenas_manager/services/database.dart';
 import 'package:truenas_manager/services/api_client_manager.dart';
+import 'package:truenas_manager/services/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,14 +32,102 @@ void main() async {
         ChangeNotifierProvider(create: (context) => DatasetProvider()),
         ChangeNotifierProvider(create: (context) => AppProvider()),
         ChangeNotifierProvider(create: (context) => SystemStatsProvider()),
+        ChangeNotifierProvider(create: (context) => TrayProvider()),
       ],
       child: const TrueNASManagerApp(),
     ),
   );
 }
 
-class TrueNASManagerApp extends StatelessWidget {
+class TrueNASManagerApp extends StatefulWidget {
   const TrueNASManagerApp({super.key});
+
+  @override
+  State<TrueNASManagerApp> createState() => _TrueNASManagerAppState();
+}
+
+class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Only initialize tray on desktop platforms that support it
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeTray();
+        _setupServerStatusListener();
+      });
+    }
+  }
+
+  void _setupServerStatusListener() {
+    // Only set up listener on desktop platforms
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      final serverProvider = context.read<ServerProvider>();
+      serverProvider.addListener(_updateTrayStatus);
+    }
+  }
+
+  void _initializeTray() {
+    final trayProvider = context.read<TrayProvider>();
+    trayProvider.setCallbacks(
+      onShowWindow: _showWindow,
+      onQuitApp: _quitApp,
+      onRefresh: _refreshServers,
+    );
+    trayProvider.initializeTray();
+  }
+
+  void _showWindow() {
+    WindowManager.showWindow();
+  }
+
+  void _quitApp() {
+    WindowManager.quitApp();
+  }
+
+  void _refreshServers() {
+    final serverProvider = context.read<ServerProvider>();
+    serverProvider.refreshSelectedServer();
+  }
+
+  void _updateTrayStatus() {
+    // Only update tray on desktop platforms
+    if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
+
+    final trayProvider = context.read<TrayProvider>();
+    final serverProvider = context.read<ServerProvider>();
+
+    int totalServers = serverProvider.servers.length;
+    int connectedServers = serverProvider.servers
+        .where(
+          (server) =>
+              // Assuming servers have a connected property or similar
+              true, // For now, assume all servers are connected
+        )
+        .length;
+
+    List<String> alerts = [];
+    // Add any server health alerts if available
+    if (serverProvider.healthError != null) {
+      alerts.add(serverProvider.healthError!);
+    }
+
+    trayProvider.updateServerStatus(
+      connectedServers: connectedServers,
+      totalServers: totalServers,
+      alerts: alerts,
+    );
+  }
+
+  @override
+  void dispose() {
+    // Only remove listener on desktop platforms
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      final serverProvider = context.read<ServerProvider>();
+      serverProvider.removeListener(_updateTrayStatus);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -78,6 +78,20 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               children: [
                 ConnectionStatusTitleWidget(serverId: currentServer.id),
                 const SizedBox(width: 8),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.person_circle, size: 20),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) =>
+                            UserProfileScreen(server: currentServer),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(currentServer.name, textAlign: TextAlign.center),
                 ),
@@ -85,15 +99,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             ),
             leading: CupertinoButton(
               padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.person_circle),
+              child: const Icon(CupertinoIcons.back),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (context) =>
-                        UserProfileScreen(server: currentServer),
-                  ),
-                );
+                Navigator.pop(context);
               },
             ),
             trailing: CupertinoButton(
