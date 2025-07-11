@@ -9,7 +9,10 @@ void main() {
     ) async {
       await tester.pumpWidget(
         const CupertinoApp(
-          home: ErrorStateWidget(message: 'Failed to load data'),
+          home: ErrorStateWidget(
+            title: 'Error',
+            message: 'Failed to load data',
+          ),
         ),
       );
 
@@ -26,6 +29,7 @@ void main() {
       await tester.pumpWidget(
         const CupertinoApp(
           home: ErrorStateWidget(
+            title: 'Network Error',
             message: 'Network error',
             icon: CupertinoIcons.wifi_slash,
           ),
