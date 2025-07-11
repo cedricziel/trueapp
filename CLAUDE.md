@@ -62,3 +62,4 @@ When implementing new features, follow the existing patterns and ensure compatib
 
 ## Development Philosophy
 - We want to use best-practices like coding against interfaces, dependency injection etc whenever we can and it's our responsibility to gradually modernize the parts of the app we touch
+- We want to build smaller, more manageable components when new functionality is added, and consider refactoring chunks into smaller components when we touch them
