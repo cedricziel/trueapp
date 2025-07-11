@@ -21,6 +21,8 @@ class TrueNasApiClient implements ApiClientInterface {
   Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
+  String? _currentConnectionUrl;
+  bool? _isLocalConnection;
 
   // System stats subscription management
   StreamController<SystemStats>? _systemStatsController;
@@ -52,6 +54,9 @@ class TrueNasApiClient implements ApiClientInterface {
       );
 
       final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
+      _currentConnectionUrl = baseUrl;
+      _isLocalConnection = isOnTrustedNetwork;
+      
       if (kDebugMode) {
         print('TrueNAS API: Connecting to WebSocket: $wsUrl');
         print(
@@ -287,7 +292,12 @@ class TrueNasApiClient implements ApiClientInterface {
       }
 
       // Update connection status to connected
-      _connectionStatusProvider?.updateConnectionState(_server.id, TrueNASConnectionState.connected);
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id, 
+        TrueNASConnectionState.connected,
+        connectionUrl: _currentConnectionUrl,
+        isLocalConnection: _isLocalConnection,
+      );
 
       // Start keepalive after successful authentication
       _startKeepalive();

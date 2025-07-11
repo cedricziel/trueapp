@@ -14,6 +14,8 @@ class ConnectionStatus {
   final DateTime? lastPong;
   final String? error;
   final Duration? latency;
+  final String? connectionUrl;
+  final bool? isLocalConnection;
 
   const ConnectionStatus({
     required this.state,
@@ -21,6 +23,8 @@ class ConnectionStatus {
     this.lastPong,
     this.error,
     this.latency,
+    this.connectionUrl,
+    this.isLocalConnection,
   });
 
   bool get isHealthy => state == TrueNASConnectionState.connected && 
@@ -33,6 +37,8 @@ class ConnectionStatus {
     DateTime? lastPong,
     String? error,
     Duration? latency,
+    String? connectionUrl,
+    bool? isLocalConnection,
   }) {
     return ConnectionStatus(
       state: state ?? this.state,
@@ -40,6 +46,8 @@ class ConnectionStatus {
       lastPong: lastPong ?? this.lastPong,
       error: error ?? this.error,
       latency: latency ?? this.latency,
+      connectionUrl: connectionUrl ?? this.connectionUrl,
+      isLocalConnection: isLocalConnection ?? this.isLocalConnection,
     );
   }
 }
@@ -51,7 +59,7 @@ class ConnectionStatusProvider extends ChangeNotifier {
     return _connectionStatuses[serverId];
   }
 
-  void updateConnectionState(String serverId, TrueNASConnectionState state, {String? error}) {
+  void updateConnectionState(String serverId, TrueNASConnectionState state, {String? error, String? connectionUrl, bool? isLocalConnection}) {
     final current = _connectionStatuses[serverId];
     final now = DateTime.now();
     
@@ -67,6 +75,8 @@ class ConnectionStatusProvider extends ChangeNotifier {
       lastPong: lastPong,
       error: error,
       latency: current?.latency,
+      connectionUrl: connectionUrl ?? current?.connectionUrl,
+      isLocalConnection: isLocalConnection ?? current?.isLocalConnection,
     );
     
     if (kDebugMode) {

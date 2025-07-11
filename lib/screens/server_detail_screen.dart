@@ -144,8 +144,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             child: ListView(
               children: [
                 const SizedBox(height: 20),
-                _buildServerInfo(currentServer),
-                const SizedBox(height: 20),
                 _buildSystemStatsSection(currentServer),
                 const SizedBox(height: 20),
                 _buildPoolsSection(currentServer),
@@ -161,46 +159,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
-  Widget _buildServerInfo(NasServer server) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow('Host', server.host),
-          const SizedBox(height: 8),
-          _buildInfoRow('Port', server.port.toString()),
-          const SizedBox(height: 8),
-          _buildInfoRow('Protocol', server.useHttps ? 'HTTPS' : 'HTTP'),
-          const SizedBox(height: 8),
-          _buildInfoRow('Username', server.username),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: CupertinoColors.systemGrey,
-            fontSize: 14,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-      ],
-    );
-  }
 
   Widget _buildActionButtons(BuildContext context, NasServer server) {
     return Padding(

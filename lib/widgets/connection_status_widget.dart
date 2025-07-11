@@ -245,6 +245,49 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(tooltip),
+            if (status.connectionUrl != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text(
+                    'URL: ',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Expanded(
+                    child: Text(
+                      status.connectionUrl!,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              if (status.isLocalConnection != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      status.isLocalConnection! 
+                          ? CupertinoIcons.house_fill 
+                          : CupertinoIcons.globe,
+                      size: 14,
+                      color: status.isLocalConnection! 
+                          ? CupertinoColors.systemGreen
+                          : CupertinoColors.systemBlue,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      status.isLocalConnection! ? 'Local Network' : 'Remote Connection',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: status.isLocalConnection! 
+                            ? CupertinoColors.systemGreen
+                            : CupertinoColors.systemBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
             const SizedBox(height: 8),
             Text('Last ping: ${_formatDateTime(status.lastPing)}'),
             if (status.lastPong != null) ...[
