@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
 import 'package:truenas_manager/services/secure_storage_service.dart';
 
@@ -97,9 +98,13 @@ class AppDatabase extends _$AppDatabase {
         );
       } catch (e) {
         // Log error but don't fail migration
-        print(
-          'Warning: Failed to migrate some credentials to secure storage: $e',
-        );
+        if (kDebugMode) {
+          // Only log in debug mode to avoid cluttering production logs
+          // This can be replaced with a proper logging mechanism
+          print(
+            'Warning: Failed to migrate some credentials to secure storage: $e',
+          );
+        }
       }
     }
   }

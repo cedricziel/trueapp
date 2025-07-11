@@ -84,13 +84,13 @@ class ServerProvider extends ChangeNotifier {
 
   Future<void> loadServers() async {
     _servers = await _database.getAllServers();
-    
+
     // Debug credential migration status
     if (kDebugMode) {
       await CredentialMigrationService.debugStoredCredentials(_database);
       await SecureStorageService.debugListStoredKeys();
     }
-    
+
     notifyListeners();
   }
 

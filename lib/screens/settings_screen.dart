@@ -17,7 +17,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -100,27 +99,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   child: Builder(
-                    builder: (context) {
+                    builder: (builderContext) {
                       final session = AuthenticationSessionService.instance;
                       final isValid = session.isSessionValid;
-                      
+
                       return CupertinoButton(
                         padding: EdgeInsets.zero,
-                        onPressed: () {
+                        onPressed: () async {
                           if (isValid) {
                             // Lock the session
                             session.invalidateSession();
                             setState(() {});
+                            if (!mounted) return;
                             showCupertinoDialog(
-                              context: context,
-                              builder: (context) => CupertinoAlertDialog(
+                              context: builderContext,
+                              builder: (dialogContext) => CupertinoAlertDialog(
                                 title: const Text('Session Locked'),
                                 content: const Text(
                                   'Your authentication session has been locked. You will need to authenticate again to access server credentials.',
                                 ),
                                 actions: [
                                   CupertinoDialogAction(
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(),
                                     child: const Text('OK'),
                                   ),
                                 ],
@@ -128,35 +129,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             );
                           } else {
                             // Test authentication
-                            SecureStorageService.authenticate(
-                              reason: 'Authenticate to unlock session',
-                            ).then((success) {
-                              setState(() {});
-                              if (success) {
-                                showCupertinoDialog(
-                                  context: context,
-                                  builder: (context) => CupertinoAlertDialog(
-                                    title: const Text('Session Unlocked'),
-                                    content: const Text(
-                                      'Authentication successful. Your session will remain active for 30 minutes.',
-                                    ),
-                                    actions: [
-                                      CupertinoDialogAction(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
-                                  ),
+                            final success =
+                                await SecureStorageService.authenticate(
+                                  reason: 'Authenticate to unlock session',
                                 );
-                              }
-                            });
+                            if (!mounted) return;
+                            setState(() {});
+                            if (success && mounted) {
+                              showCupertinoDialog(
+                                // ignore: use_build_context_synchronously
+                                context: builderContext,
+                                builder: (dialogContext) => CupertinoAlertDialog(
+                                  title: const Text('Session Unlocked'),
+                                  content: const Text(
+                                    'Authentication successful. Your session will remain active for 30 minutes.',
+                                  ),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           }
                         },
                         child: Text(
                           isValid ? 'Lock Session' : 'Unlock Session',
                           style: TextStyle(
-                            color: isValid 
-                                ? CupertinoColors.destructiveRed 
+                            color: isValid
+                                ? CupertinoColors.destructiveRed
                                 : CupertinoColors.activeBlue,
                           ),
                         ),

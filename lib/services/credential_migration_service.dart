@@ -4,29 +4,37 @@ import 'package:truenas_manager/services/secure_storage_service.dart';
 
 class CredentialMigrationService {
   static const String migrationCompletedKey = 'credential_migration_completed';
-  
+
   /// Check if all servers have credentials in secure storage
   static Future<bool> checkMigrationStatus(AppDatabase database) async {
     try {
       final servers = await database.getAllServers();
-      
+
       for (final server in servers) {
-        final hasCredentials = await SecureStorageService.hasCredentials(server.id);
+        final hasCredentials = await SecureStorageService.hasCredentials(
+          server.id,
+        );
         if (!hasCredentials) {
           if (kDebugMode) {
-            print('CredentialMigrationService: Server ${server.id} (${server.name}) is missing credentials in secure storage');
+            print(
+              'CredentialMigrationService: Server ${server.id} (${server.name}) is missing credentials in secure storage',
+            );
           }
           return false;
         }
       }
-      
+
       if (kDebugMode) {
-        print('CredentialMigrationService: All ${servers.length} servers have credentials in secure storage');
+        print(
+          'CredentialMigrationService: All ${servers.length} servers have credentials in secure storage',
+        );
       }
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('CredentialMigrationService: Error checking migration status: $e');
+        print(
+          'CredentialMigrationService: Error checking migration status: $e',
+        );
       }
       return false;
     }
@@ -40,7 +48,9 @@ class CredentialMigrationService {
   }) async {
     try {
       if (kDebugMode) {
-        print('CredentialMigrationService: Migrating credentials for server $serverId');
+        print(
+          'CredentialMigrationService: Migrating credentials for server $serverId',
+        );
       }
 
       final success = await SecureStorageService.migrateCredentials(
@@ -51,18 +61,24 @@ class CredentialMigrationService {
 
       if (success) {
         if (kDebugMode) {
-          print('CredentialMigrationService: Successfully migrated credentials for server $serverId');
+          print(
+            'CredentialMigrationService: Successfully migrated credentials for server $serverId',
+          );
         }
       } else {
         if (kDebugMode) {
-          print('CredentialMigrationService: Failed to migrate credentials for server $serverId');
+          print(
+            'CredentialMigrationService: Failed to migrate credentials for server $serverId',
+          );
         }
       }
 
       return success;
     } catch (e) {
       if (kDebugMode) {
-        print('CredentialMigrationService: Error migrating server credentials: $e');
+        print(
+          'CredentialMigrationService: Error migrating server credentials: $e',
+        );
       }
       return false;
     }
@@ -74,14 +90,26 @@ class CredentialMigrationService {
 
     try {
       final servers = await database.getAllServers();
-      print('CredentialMigrationService: Debug - checking ${servers.length} servers:');
-      
+      if (kDebugMode) {
+        print(
+          'CredentialMigrationService: Debug - checking ${servers.length} servers:',
+        );
+      }
+
       for (final server in servers) {
-        final hasCredentials = await SecureStorageService.hasCredentials(server.id);
-        print('  - ${server.name} (${server.id}): ${hasCredentials ? 'HAS' : 'MISSING'} credentials');
+        final hasCredentials = await SecureStorageService.hasCredentials(
+          server.id,
+        );
+        if (kDebugMode) {
+          print(
+            '  - ${server.name} (${server.id}): ${hasCredentials ? 'HAS' : 'MISSING'} credentials',
+          );
+        }
       }
     } catch (e) {
-      print('CredentialMigrationService: Error debugging credentials: $e');
+      if (kDebugMode) {
+        print('CredentialMigrationService: Error debugging credentials: $e');
+      }
     }
   }
 }

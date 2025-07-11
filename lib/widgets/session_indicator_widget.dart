@@ -12,7 +12,7 @@ class SessionIndicatorWidget extends StatefulWidget {
 
 class _SessionIndicatorWidgetState extends State<SessionIndicatorWidget> {
   Timer? _refreshTimer;
-  
+
   @override
   void initState() {
     super.initState();
@@ -23,26 +23,26 @@ class _SessionIndicatorWidgetState extends State<SessionIndicatorWidget> {
       }
     });
   }
-  
+
   @override
   void dispose() {
     _refreshTimer?.cancel();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final session = AuthenticationSessionService.instance;
     final isValid = session.isSessionValid;
     final remaining = session.remainingSessionTime;
-    
+
     if (!isValid || remaining == null) {
       return const SizedBox.shrink();
     }
-    
+
     final minutes = remaining.inMinutes;
     final seconds = remaining.inSeconds % 60;
-    
+
     return CupertinoButton(
       padding: EdgeInsets.zero,
       child: Row(
@@ -51,8 +51,8 @@ class _SessionIndicatorWidgetState extends State<SessionIndicatorWidget> {
           Icon(
             CupertinoIcons.lock_open,
             size: 16,
-            color: minutes < 5 
-                ? CupertinoColors.systemOrange 
+            color: minutes < 5
+                ? CupertinoColors.systemOrange
                 : CupertinoColors.systemGreen,
           ),
           if (kDebugMode) ...[
@@ -61,8 +61,8 @@ class _SessionIndicatorWidgetState extends State<SessionIndicatorWidget> {
               '$minutes:${seconds.toString().padLeft(2, '0')}',
               style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
                 fontSize: 12,
-                color: minutes < 5 
-                    ? CupertinoColors.systemOrange 
+                color: minutes < 5
+                    ? CupertinoColors.systemOrange
                     : CupertinoColors.systemGreen,
               ),
             ),
@@ -79,8 +79,8 @@ class _SessionIndicatorWidgetState extends State<SessionIndicatorWidget> {
               children: [
                 const SizedBox(height: 8),
                 Text(
-                  isValid 
-                      ? 'Session is active. Time remaining: $minutes minutes' 
+                  isValid
+                      ? 'Session is active. Time remaining: $minutes minutes'
                       : 'No active session',
                 ),
                 const SizedBox(height: 8),

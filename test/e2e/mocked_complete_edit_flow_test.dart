@@ -17,9 +17,9 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   final AppDatabase _database;
   final List<NasServer> _servers = [];
   NasServer? _selectedServer;
-  
+
   // Mock authentication state
-  final StreamController<AuthenticationStatus> _authController = 
+  final StreamController<AuthenticationStatus> _authController =
       StreamController<AuthenticationStatus>.broadcast();
 
   MockServerProvider(this._database);
@@ -160,12 +160,12 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
 
   // Authentication-related methods and getters
   @override
-  Stream<AuthenticationStatus> get authenticationStream => _authController.stream;
+  Stream<AuthenticationStatus> get authenticationStream =>
+      _authController.stream;
 
   @override
-  AuthenticationStatus get currentAuthStatus => const AuthenticationStatus(
-    state: AuthenticationState.authenticated,
-  );
+  AuthenticationStatus get currentAuthStatus =>
+      const AuthenticationStatus(state: AuthenticationState.authenticated);
 
   @override
   AuthenticationState get authState => AuthenticationState.authenticated;
