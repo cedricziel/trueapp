@@ -4,12 +4,12 @@ import 'package:truenas_manager/services/database.dart';
 import 'package:drift/native.dart';
 
 void main() {
-  group('Clean Schema v1 Tests', () {
-    test('should create database with schema v1 and nullable ports', () async {
+  group('Clean Schema v3 Tests', () {
+    test('should create database with schema v3 and nullable ports', () async {
       final database = AppDatabase.forTesting(NativeDatabase.memory());
 
-      // Verify schema version is 1
-      expect(database.schemaVersion, 1);
+      // Verify schema version is 3 (secure storage implementation)
+      expect(database.schemaVersion, 3);
 
       // Test inserting server with null port
       final serverWithoutPort = models.NasServer.create(
