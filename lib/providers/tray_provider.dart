@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/services/tray_service.dart';
+import 'package:truenas_manager/services/window_manager.dart';
 
 class TrayProvider with ChangeNotifier {
   final TrayService _trayService = TrayService();
@@ -50,7 +51,15 @@ class TrayProvider with ChangeNotifier {
 
   void setShowInDock(bool value) {
     _showInDock = value;
+    _updateDockVisibility(value);
     notifyListeners();
+  }
+
+  void _updateDockVisibility(bool showInDock) {
+    // Only update on desktop platforms
+    if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
+
+    WindowManager.setDockVisibility(showInDock);
   }
 
   Future<void> updateServerStatus({
@@ -67,6 +76,13 @@ class TrayProvider with ChangeNotifier {
       totalServers: totalServers,
       alerts: alerts,
     );
+  }
+
+  Future<void> updateTheme({required bool isDarkMode}) async {
+    // Only update on desktop platforms
+    if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
+
+    await _trayService.updateTheme(isDarkMode: isDarkMode);
   }
 
   @override

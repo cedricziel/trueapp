@@ -28,9 +28,10 @@ class TrayService with TrayListener {
     if (_isInitialized) return;
 
     try {
+      // Use the custom NAS icon for macOS (start with light icon for light mode)
       await trayManager.setIcon(
         Platform.isMacOS
-            ? 'assets/icons/tray_icon.png'
+            ? 'assets/icons/nasTemplate_light.png'
             : 'assets/icons/tray_icon.ico',
       );
 
@@ -110,6 +111,28 @@ class TrayService with TrayListener {
     }
   }
 
+  Future<void> updateTheme({required bool isDarkMode}) async {
+    if (!_isInitialized) return;
+
+    try {
+      await trayManager.setIcon(
+        Platform.isMacOS
+            ? isDarkMode
+                  ? 'assets/icons/nasTemplate_dark.png' // Dark icon for dark mode
+                  : 'assets/icons/nasTemplate_light.png' // Light icon for light mode
+            : 'assets/icons/tray_icon.ico',
+      );
+
+      if (kDebugMode) {
+        print('Updated tray icon for ${isDarkMode ? 'dark' : 'light'} mode');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to update tray icon theme: $e');
+      }
+    }
+  }
+
   Future<void> dispose() async {
     if (_isInitialized) {
       trayManager.removeListener(this);
@@ -120,12 +143,16 @@ class TrayService with TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    // Handle tray icon click if needed
+    // On macOS, left click should show the context menu
+    if (Platform.isMacOS) {
+      trayManager.popUpContextMenu();
+    }
   }
 
   @override
   void onTrayIconRightMouseDown() {
-    // Show context menu (handled automatically by tray_manager)
+    // Right click should also show context menu
+    trayManager.popUpContextMenu();
   }
 
   @override

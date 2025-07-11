@@ -43,4 +43,17 @@ class WindowManager {
       }
     }
   }
+
+  static Future<void> setDockVisibility(bool visible) async {
+    // Only available on desktop platforms
+    if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
+
+    try {
+      await platform.invokeMethod('setDockVisibility', {'visible': visible});
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        print('Failed to set dock visibility: ${e.message}');
+      }
+    }
+  }
 }
