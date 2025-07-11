@@ -60,7 +60,8 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                 Navigator.push(
                   context,
                   CupertinoPageRoute(
-                    builder: (context) => AppManagementScreen(server: widget.server),
+                    builder: (context) =>
+                        AppManagementScreen(server: widget.server),
                   ),
                 );
               },

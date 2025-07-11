@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AppManagementScreen extends StatefulWidget {
   final NasServer server;
-  
+
   const AppManagementScreen({super.key, required this.server});
 
   @override
