@@ -8,6 +8,7 @@ import 'package:truenas_manager/providers/system_stats_provider.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/widgets/app_icon.dart';
 import 'package:truenas_manager/widgets/system_stats_widget.dart';
+import 'package:truenas_manager/widgets/authentication_state_widget.dart';
 import 'package:truenas_manager/screens/app_detail_screen.dart';
 import 'package:truenas_manager/screens/server_files_screen.dart';
 import 'package:truenas_manager/screens/server_health_screen.dart';
@@ -37,19 +38,26 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       final appProvider = context.read<AppProvider>();
       final systemStatsProvider = context.read<SystemStatsProvider>();
 
-      // Set up server connection first
-      await serverProvider.selectServer(widget.server);
-      await serverProvider.loadCurrentUser();
+      // Check if this server is already selected and authenticated
+      if (serverProvider.selectedServer?.id != widget.server.id) {
+        // Only select if it's a different server
+        await serverProvider.selectServer(widget.server);
+      }
 
-      // Then set up other providers
-      await poolProvider.setApiClient(widget.server);
-      await poolProvider.loadPools();
+      // Only proceed if authenticated
+      if (serverProvider.isAuthenticated) {
+        await serverProvider.loadCurrentUser();
 
-      await appProvider.setApiClient(widget.server);
-      await appProvider.loadApps();
+        // Set up other providers
+        await poolProvider.setApiClient(widget.server);
+        await poolProvider.loadPools();
 
-      await systemStatsProvider.setApiClient(widget.server);
-      await systemStatsProvider.subscribeToStats();
+        await appProvider.setApiClient(widget.server);
+        await appProvider.loadApps();
+
+        await systemStatsProvider.setApiClient(widget.server);
+        await systemStatsProvider.subscribeToStats();
+      }
     });
   }
 
@@ -145,18 +153,20 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               },
             ),
           ),
-          child: SafeArea(
-            child: ListView(
-              children: [
-                const SizedBox(height: 20),
-                _buildSystemStatsSection(currentServer),
-                const SizedBox(height: 20),
-                _buildPoolsSection(currentServer),
-                const SizedBox(height: 20),
-                _buildAppsSection(currentServer),
-                const SizedBox(height: 30),
-                _buildActionButtons(context, currentServer),
-              ],
+          child: AuthenticationStateWidget(
+            child: SafeArea(
+              child: ListView(
+                children: [
+                  const SizedBox(height: 20),
+                  _buildSystemStatsSection(currentServer),
+                  const SizedBox(height: 20),
+                  _buildPoolsSection(currentServer),
+                  const SizedBox(height: 20),
+                  _buildAppsSection(currentServer),
+                  const SizedBox(height: 30),
+                  _buildActionButtons(context, currentServer),
+                ],
+              ),
             ),
           ),
         );

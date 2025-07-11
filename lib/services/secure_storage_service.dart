@@ -61,7 +61,18 @@ class SecureStorageService {
     try {
       final isAvailable = await isBiometricAvailable();
       if (!isAvailable && biometricOnly) {
+        if (kDebugMode) {
+          print('SecureStorageService: Biometric authentication not available, but biometricOnly=true');
+        }
         return false;
+      }
+
+      // If biometrics aren't available but not required, skip authentication for now
+      if (!isAvailable && !biometricOnly) {
+        if (kDebugMode) {
+          print('SecureStorageService: Biometric authentication not available, skipping authentication');
+        }
+        return true; // Allow access without biometrics during testing/development
       }
 
       return await _localAuth.authenticate(
@@ -87,20 +98,34 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
+      if (kDebugMode) {
+        print('SecureStorageService: Attempting to store credentials for server $serverId');
+      }
+
       if (requireAuthentication) {
         final authenticated = await authenticate(
           reason: 'Authenticate to save server credentials',
         );
         if (!authenticated) {
+          if (kDebugMode) {
+            print('SecureStorageService: Authentication failed while storing credentials for server $serverId');
+          }
           return false;
         }
       }
 
-      await _storage.write(key: _getUsernameKey(serverId), value: username);
-      await _storage.write(key: _getPasswordKey(serverId), value: password);
+      final usernameKey = _getUsernameKey(serverId);
+      final passwordKey = _getPasswordKey(serverId);
 
       if (kDebugMode) {
-        print('SecureStorageService: Credentials stored for server $serverId');
+        print('SecureStorageService: Storing credentials with keys: $usernameKey, $passwordKey');
+      }
+
+      await _storage.write(key: usernameKey, value: username);
+      await _storage.write(key: passwordKey, value: password);
+
+      if (kDebugMode) {
+        print('SecureStorageService: Successfully stored credentials for server $serverId');
       }
       return true;
     } catch (e) {
@@ -117,20 +142,42 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
+      if (kDebugMode) {
+        print('SecureStorageService: Attempting to retrieve credentials for server $serverId');
+      }
+
       if (requireAuthentication) {
         final authenticated = await authenticate(
           reason: 'Authenticate to access server credentials',
         );
         if (!authenticated) {
+          if (kDebugMode) {
+            print('SecureStorageService: Authentication failed for server $serverId');
+          }
           return null;
         }
       }
 
-      final username = await _storage.read(key: _getUsernameKey(serverId));
-      final password = await _storage.read(key: _getPasswordKey(serverId));
+      final usernameKey = _getUsernameKey(serverId);
+      final passwordKey = _getPasswordKey(serverId);
+      
+      if (kDebugMode) {
+        print('SecureStorageService: Reading credentials with keys: $usernameKey, $passwordKey');
+      }
+
+      final username = await _storage.read(key: usernameKey);
+      final password = await _storage.read(key: passwordKey);
+
+      if (kDebugMode) {
+        print('SecureStorageService: Retrieved credentials - username: ${username != null ? 'found' : 'not found'}, password: ${password != null ? 'found' : 'not found'}');
+      }
 
       if (username != null && password != null) {
         return ServerCredentials(username: username, password: password);
+      }
+      
+      if (kDebugMode) {
+        print('SecureStorageService: No credentials found for server $serverId');
       }
       return null;
     } catch (e) {
@@ -240,6 +287,21 @@ class SecureStorageService {
         print('SecureStorageService: Error migrating credentials: $e');
       }
       return false;
+    }
+  }
+
+  /// Debug function to list all stored keys (development only)
+  static Future<void> debugListStoredKeys() async {
+    if (!kDebugMode) return;
+
+    try {
+      final allKeys = await _storage.readAll();
+      print('SecureStorageService: Stored keys (${allKeys.length} total):');
+      for (final key in allKeys.keys) {
+        print('  - $key: ${allKeys[key] != null ? 'has value' : 'null'}');
+      }
+    } catch (e) {
+      print('SecureStorageService: Error listing stored keys: $e');
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truenas_manager/providers/server_provider.dart';
@@ -14,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  StreamSubscription? _authSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -22,19 +25,34 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         listen: false,
       );
-      serverProvider.loadServersAndAutoSelect().then((_) {
-        // If a server was auto-selected, navigate to it
-        if (mounted && serverProvider.selectedServer != null) {
+
+      // Listen to authentication state changes
+      _authSubscription = serverProvider.authenticationStream.listen((
+        authStatus,
+      ) {
+        if (mounted &&
+            authStatus.isAuthenticated &&
+            authStatus.server != null) {
+          // Only navigate when successfully authenticated
           Navigator.push(
             context,
             CupertinoPageRoute(
               builder: (context) =>
-                  ServerDetailScreen(server: serverProvider.selectedServer!),
+                  ServerDetailScreen(server: authStatus.server!),
             ),
           );
         }
       });
+
+      // Load servers and attempt auto-selection
+      serverProvider.loadServersAndAutoSelect();
     });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   @override
