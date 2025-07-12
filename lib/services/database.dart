@@ -98,10 +98,6 @@ class AppDatabase extends _$AppDatabase {
     return _instance ??= AppDatabase._();
   }
 
-  // Constructor for production (deprecated - use instance instead)
-  @Deprecated('Use AppDatabase.instance instead')
-  AppDatabase() : super(driftDatabase(name: 'truenas_manager'));
-
   // Constructor for testing that accepts a custom QueryExecutor
   AppDatabase.forTesting(super.e);
 
@@ -667,5 +663,11 @@ class AppDatabase extends _$AppDatabase {
       final updatedConfig = config.copyWith(id: existing.id);
       await updateFullAppConfig(updatedConfig);
     }
+  }
+
+  /// Dispose the database singleton instance
+  static Future<void> disposeInstance() async {
+    await _instance?.close();
+    _instance = null;
   }
 }
