@@ -19,7 +19,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text(widget.app.title),
+        middle: Text(widget.app.effectiveDisplayName),
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.back),
@@ -71,7 +71,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.app.title,
+                widget.app.effectiveDisplayName,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -537,7 +537,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
-        title: Text(widget.app.title),
+        title: Text(widget.app.effectiveDisplayName),
         actions: [
           CupertinoActionSheetAction(
             child: Text(widget.app.installed ? 'Manage App' : 'Install App'),

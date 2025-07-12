@@ -35,6 +35,7 @@ class AppConfigs extends Table {
   TextColumn get displayName => text().nullable()();
   TextColumn get iconUrl => text().nullable()();
   BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -62,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +80,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.createTable(appConfigs);
         await m.createTable(appPortConfigs);
+      }
+      if (from < 5) {
+        await m.addColumn(appConfigs, appConfigs.isFavorite);
       }
     },
   );
@@ -375,5 +379,50 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(serverId)],
     ).get();
     return result.map((row) => row.data).toList();
+  }
+
+  // Favorite app methods
+  Future<List<AppConfigData>> getFavoriteApps(String serverId) async {
+    final query = select(appConfigs)
+      ..where(
+        (tbl) => tbl.serverId.equals(serverId) & tbl.isFavorite.equals(true),
+      )
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.appName)]);
+    return await query.get();
+  }
+
+  Future<void> setAppFavorite(
+    String serverId,
+    String appName,
+    bool isFavorite,
+  ) async {
+    // First, get or create the app config
+    var appConfig = await getAppConfig(serverId, appName);
+
+    if (appConfig == null) {
+      // Create new app config if it doesn't exist
+      await insertAppConfig(
+        AppConfigsCompanion(
+          serverId: Value(serverId),
+          appName: Value(appName),
+          isFavorite: Value(isFavorite),
+        ),
+      );
+      return;
+    }
+
+    // Update existing app config
+    await updateAppConfig(
+      appConfig.id,
+      AppConfigsCompanion(
+        isFavorite: Value(isFavorite),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<bool> isAppFavorite(String serverId, String appName) async {
+    final appConfig = await getAppConfig(serverId, appName);
+    return appConfig?.isFavorite ?? false;
   }
 }

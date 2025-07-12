@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/services/tray_service.dart';
 import 'package:truenas_manager/services/window_manager.dart';
+import 'package:truenas_manager/models/app_config.dart';
 
 class TrayProvider with ChangeNotifier {
   final TrayService _trayService = TrayService();
@@ -66,6 +67,7 @@ class TrayProvider with ChangeNotifier {
     required int connectedServers,
     required int totalServers,
     List<String>? alerts,
+    List<AppConfig>? appsWithPortals,
   }) async {
     // Only update on desktop platforms
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
@@ -75,6 +77,7 @@ class TrayProvider with ChangeNotifier {
       connectedServers: connectedServers,
       totalServers: totalServers,
       alerts: alerts,
+      appsWithPortals: appsWithPortals,
     );
   }
 

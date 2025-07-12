@@ -111,6 +111,11 @@ void main() {
         recommended: false,
         catalog: 'TEST',
         train: 'stable',
+        usedPorts: [],
+        portals: {},
+        customDisplayName: 'Custom Test App',
+        customIconUrl: 'https://example.com/custom-icon.png',
+        primaryCustomUrl: 'https://custom.example.com',
       );
 
       final json = app.toJson();

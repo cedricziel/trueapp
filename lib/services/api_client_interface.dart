@@ -59,13 +59,25 @@ abstract class ApiClientInterface {
 
   // App management methods
   Future<List<App>> getAvailableApps();
+  Future<List<App>> getInstalledApps();
   Future<List<String>> getAppCategories();
   Future<Map<String, dynamic>> getDockerStatus();
+  Future<Map<String, dynamic>> getAppResourceUsage(String appName);
+  Future<Map<String, dynamic>> getAppUpgradeInfo(String appName);
+  Future<bool> upgradeApp(String appName, {String? version});
+  Future<bool> startApp(String appName);
+  Future<bool> stopApp(String appName);
+  Future<bool> restartApp(String appName);
 
   // System stats subscription methods
   Stream<SystemStats> get systemStatsStream;
   Future<void> subscribeToSystemStats();
   Future<void> unsubscribeFromSystemStats();
+
+  // App stats subscription methods
+  Stream<Map<String, AppResourceUsage>> get appStatsStream;
+  Future<void> subscribeToAppStats();
+  Future<void> unsubscribeFromAppStats();
 
   // Additional system information methods
   Future<Map<String, dynamic>> getSystemGeneralConfig();

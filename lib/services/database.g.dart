@@ -766,6 +766,21 @@ class $AppConfigsTable extends AppConfigs
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
+    'isFavorite',
+  );
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+    'is_favorite',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_favorite" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -798,6 +813,7 @@ class $AppConfigsTable extends AppConfigs
     displayName,
     iconUrl,
     isEnabled,
+    isFavorite,
     createdAt,
     updatedAt,
   ];
@@ -853,6 +869,12 @@ class $AppConfigsTable extends AppConfigs
         isEnabled.isAcceptableOrUnknown(data['is_enabled']!, _isEnabledMeta),
       );
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+        _isFavoriteMeta,
+        isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -898,6 +920,10 @@ class $AppConfigsTable extends AppConfigs
         DriftSqlType.bool,
         data['${effectivePrefix}is_enabled'],
       )!,
+      isFavorite: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_favorite'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -922,6 +948,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
   final String? displayName;
   final String? iconUrl;
   final bool isEnabled;
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
   const AppConfigData({
@@ -931,6 +958,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     this.displayName,
     this.iconUrl,
     required this.isEnabled,
+    required this.isFavorite,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -947,6 +975,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       map['icon_url'] = Variable<String>(iconUrl);
     }
     map['is_enabled'] = Variable<bool>(isEnabled);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -964,6 +993,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           ? const Value.absent()
           : Value(iconUrl),
       isEnabled: Value(isEnabled),
+      isFavorite: Value(isFavorite),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -981,6 +1011,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       displayName: serializer.fromJson<String?>(json['displayName']),
       iconUrl: serializer.fromJson<String?>(json['iconUrl']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -995,6 +1026,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       'displayName': serializer.toJson<String?>(displayName),
       'iconUrl': serializer.toJson<String?>(iconUrl),
       'isEnabled': serializer.toJson<bool>(isEnabled),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1007,6 +1039,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     Value<String?> displayName = const Value.absent(),
     Value<String?> iconUrl = const Value.absent(),
     bool? isEnabled,
+    bool? isFavorite,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => AppConfigData(
@@ -1016,6 +1049,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     displayName: displayName.present ? displayName.value : this.displayName,
     iconUrl: iconUrl.present ? iconUrl.value : this.iconUrl,
     isEnabled: isEnabled ?? this.isEnabled,
+    isFavorite: isFavorite ?? this.isFavorite,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1029,6 +1063,9 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           : this.displayName,
       iconUrl: data.iconUrl.present ? data.iconUrl.value : this.iconUrl,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
+      isFavorite: data.isFavorite.present
+          ? data.isFavorite.value
+          : this.isFavorite,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1043,6 +1080,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           ..write('displayName: $displayName, ')
           ..write('iconUrl: $iconUrl, ')
           ..write('isEnabled: $isEnabled, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1057,6 +1095,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     displayName,
     iconUrl,
     isEnabled,
+    isFavorite,
     createdAt,
     updatedAt,
   );
@@ -1070,6 +1109,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           other.displayName == this.displayName &&
           other.iconUrl == this.iconUrl &&
           other.isEnabled == this.isEnabled &&
+          other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1081,6 +1121,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
   final Value<String?> displayName;
   final Value<String?> iconUrl;
   final Value<bool> isEnabled;
+  final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const AppConfigsCompanion({
@@ -1090,6 +1131,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.displayName = const Value.absent(),
     this.iconUrl = const Value.absent(),
     this.isEnabled = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -1100,6 +1142,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.displayName = const Value.absent(),
     this.iconUrl = const Value.absent(),
     this.isEnabled = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : serverId = Value(serverId),
@@ -1111,6 +1154,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Expression<String>? displayName,
     Expression<String>? iconUrl,
     Expression<bool>? isEnabled,
+    Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -1121,6 +1165,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       if (displayName != null) 'display_name': displayName,
       if (iconUrl != null) 'icon_url': iconUrl,
       if (isEnabled != null) 'is_enabled': isEnabled,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1133,6 +1178,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Value<String?>? displayName,
     Value<String?>? iconUrl,
     Value<bool>? isEnabled,
+    Value<bool>? isFavorite,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -1143,6 +1189,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       displayName: displayName ?? this.displayName,
       iconUrl: iconUrl ?? this.iconUrl,
       isEnabled: isEnabled ?? this.isEnabled,
+      isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1169,6 +1216,9 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1187,6 +1237,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
           ..write('displayName: $displayName, ')
           ..write('iconUrl: $iconUrl, ')
           ..write('isEnabled: $isEnabled, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2269,6 +2320,7 @@ typedef $$AppConfigsTableCreateCompanionBuilder =
       Value<String?> displayName,
       Value<String?> iconUrl,
       Value<bool> isEnabled,
+      Value<bool> isFavorite,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -2280,6 +2332,7 @@ typedef $$AppConfigsTableUpdateCompanionBuilder =
       Value<String?> displayName,
       Value<String?> iconUrl,
       Value<bool> isEnabled,
+      Value<bool> isFavorite,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -2360,6 +2413,11 @@ class $$AppConfigsTableFilterComposer
 
   ColumnFilters<bool> get isEnabled => $composableBuilder(
     column: $table.isEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2456,6 +2514,11 @@ class $$AppConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2515,6 +2578,11 @@ class $$AppConfigsTableAnnotationComposer
 
   GeneratedColumn<bool> get isEnabled =>
       $composableBuilder(column: $table.isEnabled, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2605,6 +2673,7 @@ class $$AppConfigsTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> iconUrl = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => AppConfigsCompanion(
@@ -2614,6 +2683,7 @@ class $$AppConfigsTableTableManager
                 displayName: displayName,
                 iconUrl: iconUrl,
                 isEnabled: isEnabled,
+                isFavorite: isFavorite,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -2625,6 +2695,7 @@ class $$AppConfigsTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> iconUrl = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => AppConfigsCompanion.insert(
@@ -2634,6 +2705,7 @@ class $$AppConfigsTableTableManager
                 displayName: displayName,
                 iconUrl: iconUrl,
                 isEnabled: isEnabled,
+                isFavorite: isFavorite,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

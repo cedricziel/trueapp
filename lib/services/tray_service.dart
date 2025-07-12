@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:truenas_manager/models/app_config.dart';
 
 class TrayService with TrayListener {
   static final TrayService _instance = TrayService._internal();
@@ -11,6 +13,7 @@ class TrayService with TrayListener {
   Function()? _onShowWindow;
   Function()? _onQuitApp;
   Function()? _onRefresh;
+  List<AppConfig> _appsWithPortals = [];
 
   void setCallbacks({
     Function()? onShowWindow,
@@ -65,6 +68,7 @@ class TrayService with TrayListener {
     required int connectedServers,
     required int totalServers,
     List<String>? alerts,
+    List<AppConfig>? appsWithPortals,
   }) async {
     if (!_isInitialized) return;
 
@@ -77,32 +81,79 @@ class TrayService with TrayListener {
         tooltip += '\nAlerts: ${alerts.length}';
       }
 
+      if (appsWithPortals != null && appsWithPortals.isNotEmpty) {
+        tooltip += '\nApps: ${appsWithPortals.length} with portals';
+        _appsWithPortals = appsWithPortals; // Store for click handling
+      }
+
       await trayManager.setToolTip(tooltip);
 
-      // Update menu with server status
-      Menu menu = Menu(
-        items: [
-          MenuItem(key: 'show_window', label: 'Show TrueNAS Manager'),
-          MenuItem.separator(),
+      // Build menu items
+      List<MenuItem> menuItems = [
+        MenuItem(key: 'show_window', label: 'Show TrueNAS Manager'),
+        MenuItem.separator(),
+        MenuItem(
+          key: 'server_status',
+          label: 'Servers: $connectedServers/$totalServers',
+          disabled: true,
+        ),
+        if (alerts != null && alerts.isNotEmpty) ...[
           MenuItem(
-            key: 'server_status',
-            label: 'Servers: $connectedServers/$totalServers',
+            key: 'alerts_count',
+            label: 'Alerts: ${alerts.length}',
             disabled: true,
           ),
-          if (alerts != null && alerts.isNotEmpty) ...[
-            MenuItem(
-              key: 'alerts_count',
-              label: 'Alerts: ${alerts.length}',
-              disabled: true,
-            ),
-          ],
-          MenuItem.separator(),
-          MenuItem(key: 'refresh', label: 'Refresh Servers'),
-          MenuItem.separator(),
-          MenuItem(key: 'quit', label: 'Quit'),
         ],
-      );
+      ];
 
+      // Add app portals section
+      if (appsWithPortals != null && appsWithPortals.isNotEmpty) {
+        menuItems.addAll([
+          MenuItem.separator(),
+          MenuItem(key: 'apps_header', label: 'Quick Access', disabled: true),
+        ]);
+
+        // Add each app with its portal URLs
+        for (final app in appsWithPortals.take(10)) {
+          // Limit to 10 apps to avoid menu overflow
+          final primaryPort = app.primaryPort;
+          if (primaryPort != null) {
+            final displayName = app.effectiveDisplayName;
+            final key = 'app_${app.appName}';
+
+            // If app has multiple ports, create a submenu
+            if (app.enabledPorts.length > 1) {
+              final subMenuItems = <MenuItem>[];
+              for (final port in app.enabledPorts) {
+                final portKey = 'app_${app.appName}_port_${port.id}';
+                final portLabel = port.serviceName ?? 'Port ${port.portNumber}';
+                subMenuItems.add(MenuItem(key: portKey, label: portLabel));
+              }
+
+              menuItems.add(
+                MenuItem(
+                  key: key,
+                  label: displayName,
+                  submenu: Menu(items: subMenuItems),
+                ),
+              );
+            } else {
+              // Single port, direct menu item
+              menuItems.add(MenuItem(key: key, label: displayName));
+            }
+          }
+        }
+      }
+
+      // Add bottom menu items
+      menuItems.addAll([
+        MenuItem.separator(),
+        MenuItem(key: 'refresh', label: 'Refresh Servers'),
+        MenuItem.separator(),
+        MenuItem(key: 'quit', label: 'Quit'),
+      ]);
+
+      Menu menu = Menu(items: menuItems);
       await trayManager.setContextMenu(menu);
     } catch (e) {
       if (kDebugMode) {
@@ -167,6 +218,68 @@ class TrayService with TrayListener {
       case 'quit':
         _onQuitApp?.call();
         break;
+      default:
+        // Handle app portal clicks
+        if (menuItem.key?.startsWith('app_') == true) {
+          _handleAppPortalClick(menuItem.key!);
+        }
+        break;
+    }
+  }
+
+  void _handleAppPortalClick(String menuKey) async {
+    try {
+      if (menuKey.contains('_port_')) {
+        // Handle specific port click (app_name_port_id)
+        final parts = menuKey.split('_');
+        if (parts.length >= 4) {
+          final portId = int.tryParse(parts.last);
+          if (portId != null) {
+            // Find the app and port
+            for (final app in _appsWithPortals) {
+              try {
+                final port = app.ports.firstWhere((p) => p.id == portId);
+                await _openPortalUrl(port.effectiveUrl);
+                return;
+              } catch (e) {
+                // Continue searching
+              }
+            }
+          }
+        }
+      } else {
+        // Handle primary app click (app_name)
+        final appName = menuKey.substring(4); // Remove 'app_' prefix
+        try {
+          final app = _appsWithPortals.firstWhere((a) => a.appName == appName);
+          if (app.primaryPort != null) {
+            await _openPortalUrl(app.primaryPort!.effectiveUrl);
+          }
+        } catch (e) {
+          // App not found
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to handle app portal click: $e');
+      }
+    }
+  }
+
+  Future<void> _openPortalUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (kDebugMode) {
+          print('Cannot launch URL: $url');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to open portal URL $url: $e');
+      }
     }
   }
 }

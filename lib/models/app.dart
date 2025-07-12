@@ -27,6 +27,159 @@ class AppMaintainer extends Equatable {
   List<Object?> get props => [name, email, url];
 }
 
+class AppResourceUsage extends Equatable {
+  final double cpuUsage;
+  final int memoryUsage;
+  final int memoryLimit;
+  final double networkRxBytes;
+  final double networkTxBytes;
+  final DateTime? lastUpdated;
+
+  const AppResourceUsage({
+    required this.cpuUsage,
+    required this.memoryUsage,
+    required this.memoryLimit,
+    required this.networkRxBytes,
+    required this.networkTxBytes,
+    this.lastUpdated,
+  });
+
+  factory AppResourceUsage.fromJson(Map<String, dynamic> json) {
+    return AppResourceUsage(
+      cpuUsage: (json['cpu_usage'] as num?)?.toDouble() ?? 0.0,
+      memoryUsage: (json['memory_usage'] as num?)?.toInt() ?? 0,
+      memoryLimit: (json['memory_limit'] as num?)?.toInt() ?? 0,
+      networkRxBytes: (json['network_rx_bytes'] as num?)?.toDouble() ?? 0.0,
+      networkTxBytes: (json['network_tx_bytes'] as num?)?.toDouble() ?? 0.0,
+      lastUpdated: json['last_updated'] != null
+          ? DateTime.tryParse(json['last_updated'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cpu_usage': cpuUsage,
+      'memory_usage': memoryUsage,
+      'memory_limit': memoryLimit,
+      'network_rx_bytes': networkRxBytes,
+      'network_tx_bytes': networkTxBytes,
+      'last_updated': lastUpdated?.toIso8601String(),
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+    cpuUsage,
+    memoryUsage,
+    memoryLimit,
+    networkRxBytes,
+    networkTxBytes,
+    lastUpdated,
+  ];
+}
+
+class AppPortInfo extends Equatable {
+  final int containerPort;
+  final String protocol;
+  final List<AppHostPort> hostPorts;
+
+  const AppPortInfo({
+    required this.containerPort,
+    required this.protocol,
+    required this.hostPorts,
+  });
+
+  factory AppPortInfo.fromJson(Map<String, dynamic> json) {
+    return AppPortInfo(
+      containerPort: json['container_port'] as int? ?? 0,
+      protocol: json['protocol'] as String? ?? 'tcp',
+      hostPorts:
+          (json['host_ports'] as List<dynamic>?)
+              ?.map((e) => AppHostPort.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'container_port': containerPort,
+      'protocol': protocol,
+      'host_ports': hostPorts.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  @override
+  List<Object?> get props => [containerPort, protocol, hostPorts];
+}
+
+class AppHostPort extends Equatable {
+  final int hostPort;
+  final String hostIp;
+
+  const AppHostPort({required this.hostPort, required this.hostIp});
+
+  factory AppHostPort.fromJson(Map<String, dynamic> json) {
+    return AppHostPort(
+      hostPort: json['host_port'] as int? ?? 0,
+      hostIp: json['host_ip'] as String? ?? '0.0.0.0',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'host_port': hostPort, 'host_ip': hostIp};
+  }
+
+  @override
+  List<Object?> get props => [hostPort, hostIp];
+}
+
+class AppUpgradeInfo extends Equatable {
+  final bool upgradeAvailable;
+  final String? availableVersion;
+  final String? currentVersion;
+  final String? upgradeNotes;
+  final bool canUpgrade;
+
+  const AppUpgradeInfo({
+    required this.upgradeAvailable,
+    this.availableVersion,
+    this.currentVersion,
+    this.upgradeNotes,
+    required this.canUpgrade,
+  });
+
+  factory AppUpgradeInfo.fromJson(Map<String, dynamic> json) {
+    return AppUpgradeInfo(
+      upgradeAvailable: json['upgrade_available'] as bool? ?? false,
+      availableVersion: json['available_version'] as String?,
+      currentVersion: json['current_version'] as String?,
+      upgradeNotes: json['upgrade_notes'] as String?,
+      canUpgrade: json['can_upgrade'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'upgrade_available': upgradeAvailable,
+      'available_version': availableVersion,
+      'current_version': currentVersion,
+      'upgrade_notes': upgradeNotes,
+      'can_upgrade': canUpgrade,
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+    upgradeAvailable,
+    availableVersion,
+    currentVersion,
+    upgradeNotes,
+    canUpgrade,
+  ];
+}
+
 class App extends Equatable {
   final String name;
   final String title;
@@ -49,6 +202,13 @@ class App extends Equatable {
   final bool recommended;
   final String catalog;
   final String train;
+  final AppResourceUsage? resourceUsage;
+  final AppUpgradeInfo? upgradeInfo;
+  final List<AppPortInfo> usedPorts;
+  final Map<String, String> portals;
+  final String? customDisplayName;
+  final String? customIconUrl;
+  final String? primaryCustomUrl;
 
   const App({
     required this.name,
@@ -72,7 +232,32 @@ class App extends Equatable {
     required this.recommended,
     required this.catalog,
     required this.train,
+    this.resourceUsage,
+    this.upgradeInfo,
+    required this.usedPorts,
+    required this.portals,
+    this.customDisplayName,
+    this.customIconUrl,
+    this.primaryCustomUrl,
   });
+
+  String get effectiveDisplayName {
+    if (customDisplayName != null) return customDisplayName!;
+
+    // For installed apps, show the instance name from the API
+    if (installed) {
+      return name;
+    }
+
+    return title;
+  }
+
+  String? get effectiveIconUrl => customIconUrl ?? iconUrl;
+  String? get primaryUrl {
+    if (primaryCustomUrl != null) return primaryCustomUrl;
+    if (portals.isNotEmpty) return portals.values.first;
+    return null;
+  }
 
   factory App.fromJson(Map<String, dynamic> json) {
     return App(
@@ -119,6 +304,29 @@ class App extends Equatable {
       recommended: json['recommended'] as bool? ?? false,
       catalog: json['catalog'] as String? ?? '',
       train: json['train'] as String? ?? '',
+      resourceUsage: json['resource_usage'] != null
+          ? AppResourceUsage.fromJson(
+              json['resource_usage'] as Map<String, dynamic>,
+            )
+          : null,
+      upgradeInfo: json['upgrade_info'] != null
+          ? AppUpgradeInfo.fromJson(
+              json['upgrade_info'] as Map<String, dynamic>,
+            )
+          : null,
+      usedPorts:
+          (json['used_ports'] as List<dynamic>?)
+              ?.map((e) => AppPortInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      portals:
+          (json['portals'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(key, value.toString()),
+          ) ??
+          {},
+      customDisplayName: json['custom_display_name'] as String?,
+      customIconUrl: json['custom_icon_url'] as String?,
+      primaryCustomUrl: json['primary_custom_url'] as String?,
     );
   }
 
@@ -147,6 +355,13 @@ class App extends Equatable {
       'recommended': recommended,
       'catalog': catalog,
       'train': train,
+      'resource_usage': resourceUsage?.toJson(),
+      'upgrade_info': upgradeInfo?.toJson(),
+      'used_ports': usedPorts.map((e) => e.toJson()).toList(),
+      'portals': portals,
+      'custom_display_name': customDisplayName,
+      'custom_icon_url': customIconUrl,
+      'primary_custom_url': primaryCustomUrl,
     };
   }
 
@@ -173,5 +388,12 @@ class App extends Equatable {
     recommended,
     catalog,
     train,
+    resourceUsage,
+    upgradeInfo,
+    usedPorts,
+    portals,
+    customDisplayName,
+    customIconUrl,
+    primaryCustomUrl,
   ];
 }

@@ -4,8 +4,7 @@ import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/providers/app_config_provider.dart';
-import 'package:truenas_manager/widgets/app_icon.dart';
-import 'package:truenas_manager/screens/app_detail_screen.dart';
+import 'package:truenas_manager/widgets/app_card_widget.dart';
 import 'package:truenas_manager/screens/app_management_screen.dart';
 
 class ServerAppsScreen extends StatefulWidget {
@@ -18,8 +17,10 @@ class ServerAppsScreen extends StatefulWidget {
 }
 
 class _ServerAppsScreenState extends State<ServerAppsScreen> {
-  int _selectedSegment = 0; // 0 = Installed, 1 = Available, 2 = Manage
+  int _selectedSegment =
+      0; // 0 = Installed, 1 = Available, 2 = Favorites, 3 = Updates Available
   String _searchQuery = '';
+  bool _sortByName = true;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -29,8 +30,9 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
       final appProvider = context.read<AppProvider>();
       final appConfigProvider = context.read<AppConfigProvider>();
       await appProvider.setApiClient(widget.server);
-      await appProvider.loadApps();
+      appProvider.setAppConfigProvider(appConfigProvider);
       await appConfigProvider.setServer(widget.server.id);
+      await appProvider.loadApps();
     });
   }
 
@@ -98,12 +100,20 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
               child: CupertinoSegmentedControl<int>(
                 children: const {
                   0: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text('Installed'),
                   ),
                   1: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text('Available'),
+                  ),
+                  2: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text('Favorites'),
+                  ),
+                  3: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text('Updates'),
                   ),
                 },
                 onValueChanged: (value) {
@@ -114,11 +124,55 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                 groupValue: _selectedSegment,
               ),
             ),
+            // Sort and filter controls
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    color: _sortByName
+                        ? CupertinoColors.systemBlue
+                        : CupertinoColors.systemGrey4,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.sort_down,
+                          size: 16,
+                          color: _sortByName
+                              ? CupertinoColors.white
+                              : CupertinoColors.systemGrey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Sort by Name',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _sortByName
+                                ? CupertinoColors.white
+                                : CupertinoColors.systemGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _sortByName = !_sortByName;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             // Apps list
             Expanded(
-              child: Consumer<AppProvider>(
-                builder: (context, appProvider, child) {
+              child: Consumer2<AppProvider, AppConfigProvider>(
+                builder: (context, appProvider, appConfigProvider, child) {
                   if (appProvider.isLoading) {
                     return const Center(child: CupertinoActivityIndicator());
                   }
@@ -139,7 +193,7 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                     itemBuilder: (context, index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildAppCard(apps[index]),
+                        child: AppCardWidget(app: apps[index]),
                       );
                     },
                   );
@@ -155,12 +209,32 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
   List<App> _getFilteredApps(AppProvider appProvider) {
     List<App> apps;
 
-    if (_selectedSegment == 0) {
-      apps = appProvider.installedApps;
-    } else {
-      apps = appProvider.availableApps;
+    switch (_selectedSegment) {
+      case 0: // Installed
+        apps = appProvider.installedApps;
+        break;
+      case 1: // Available
+        apps = appProvider.availableApps;
+        break;
+      case 2: // Favorites
+        final appConfigProvider = context.read<AppConfigProvider>();
+        final favoriteAppNames = appConfigProvider.favoriteAppConfigs
+            .map((config) => config.appName)
+            .toSet();
+        apps = appProvider.apps
+            .where((app) => favoriteAppNames.contains(app.name))
+            .toList();
+        break;
+      case 3: // Updates Available
+        apps = appProvider.installedApps
+            .where((app) => app.upgradeInfo?.upgradeAvailable == true)
+            .toList();
+        break;
+      default:
+        apps = appProvider.installedApps;
     }
 
+    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       apps = apps.where((app) {
         return app.title.toLowerCase().contains(_searchQuery) ||
@@ -170,6 +244,13 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
             ) ||
             app.tags.any((tag) => tag.toLowerCase().contains(_searchQuery));
       }).toList();
+    }
+
+    // Apply sorting
+    if (_sortByName) {
+      apps.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
     }
 
     return apps;
@@ -215,21 +296,47 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
   }
 
   Widget _buildEmptyView() {
-    final isInstalled = _selectedSegment == 0;
+    String title;
+    String subtitle;
+    IconData icon;
+
+    switch (_selectedSegment) {
+      case 0: // Installed
+        title = 'No installed apps';
+        subtitle = 'Install apps from the Available tab to see them here.';
+        icon = CupertinoIcons.app_badge;
+        break;
+      case 1: // Available
+        title = 'No available apps';
+        subtitle = 'Check your connection and try refreshing.';
+        icon = CupertinoIcons.app;
+        break;
+      case 2: // Favorites
+        title = 'No favorite apps';
+        subtitle = 'Mark apps as favorites to see them here.';
+        icon = CupertinoIcons.heart;
+        break;
+      case 3: // Updates Available
+        title = 'No updates available';
+        subtitle = 'All your apps are up to date!';
+        icon = CupertinoIcons.arrow_up_circle;
+        break;
+      default:
+        title = 'No apps found';
+        subtitle = 'Try adjusting your search or filters.';
+        icon = CupertinoIcons.app;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isInstalled ? CupertinoIcons.app_badge : CupertinoIcons.app,
-              size: 48,
-              color: CupertinoColors.systemGrey,
-            ),
+            Icon(icon, size: 48, color: CupertinoColors.systemGrey),
             const SizedBox(height: 16),
             Text(
-              isInstalled ? 'No installed apps' : 'No available apps',
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -238,160 +345,13 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _searchQuery.isNotEmpty
-                  ? 'No apps match your search'
-                  : isInstalled
-                  ? 'Install apps to see them here'
-                  : 'Check your connection or try again later',
+              _searchQuery.isNotEmpty ? 'No apps match your search' : subtitle,
               style: const TextStyle(
                 fontSize: 14,
                 color: CupertinoColors.systemGrey2,
               ),
               textAlign: TextAlign.center,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppCard(App app) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                // App icon with network image support
-                AppIcon(app: app, size: 50),
-                const SizedBox(width: 16),
-                // App info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        app.title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        app.description,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: app.installed
-                        ? CupertinoColors.systemGreen.withOpacity(0.1)
-                        : CupertinoColors.systemBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    app.installed ? 'Installed' : 'Available',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: app.installed
-                          ? CupertinoColors.systemGreen
-                          : CupertinoColors.systemBlue,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            // App metadata
-            if (app.categories.isNotEmpty ||
-                app.latestAppVersion.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (app.categories.isNotEmpty) ...[
-                    Icon(
-                      CupertinoIcons.tag,
-                      size: 14,
-                      color: CupertinoColors.systemGrey2,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      app.categories.take(2).join(', '),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.systemGrey2,
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  if (app.latestAppVersion.isNotEmpty) ...[
-                    Text(
-                      'v${app.latestAppVersion}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.systemGrey2,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-            // Health error for installed apps
-            if (app.installed && !app.healthy && app.healthyError != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      CupertinoIcons.exclamationmark_triangle_fill,
-                      size: 14,
-                      color: CupertinoColors.systemRed,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        app.healthyError!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: CupertinoColors.systemRed,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
