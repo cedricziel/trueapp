@@ -89,6 +89,17 @@ class AppPortConfigs extends Table {
 
 @DriftDatabase(tables: [NasServers, AppConfigs, AppPortConfigs])
 class AppDatabase extends _$AppDatabase {
+  static AppDatabase? _instance;
+
+  AppDatabase._() : super(driftDatabase(name: 'truenas_manager'));
+
+  // Singleton pattern
+  static AppDatabase get instance {
+    return _instance ??= AppDatabase._();
+  }
+
+  // Constructor for production (deprecated - use instance instead)
+  @Deprecated('Use AppDatabase.instance instead')
   AppDatabase() : super(driftDatabase(name: 'truenas_manager'));
 
   // Constructor for testing that accepts a custom QueryExecutor

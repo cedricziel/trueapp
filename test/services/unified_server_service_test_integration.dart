@@ -11,8 +11,18 @@ void _testDefaultServerManagement() {
     );
     await service.initialize();
 
-    final server1 = NasServer.create(name: 'Server 1', host: '192.168.1.100', username: 'admin', password: 'temp-password');
-    final server2 = NasServer.create(name: 'Server 2', host: '192.168.1.101', username: 'admin', password: 'temp-password');
+    final server1 = NasServer.create(
+      name: 'Server 1',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
+    final server2 = NasServer.create(
+      name: 'Server 2',
+      host: '192.168.1.101',
+      username: 'admin',
+      password: 'temp-password',
+    );
 
     await service.saveServerConfig(server: server1, password: 'pass1');
     await service.saveServerConfig(server: server2, password: 'pass2');
@@ -36,7 +46,12 @@ void _testDefaultServerManagement() {
     );
     await service.initialize();
 
-    final server = NasServer.create(name: 'Server', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+    final server = NasServer.create(
+      name: 'Server',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
     await service.saveServerConfig(server: server, password: 'pass');
     await service.setDefaultServer(server.id);
 
@@ -56,8 +71,18 @@ void _testDefaultServerManagement() {
     );
     await service.initialize();
 
-    final server1 = NasServer.create(name: 'Server 1', host: '192.168.1.100', username: 'admin', password: 'temp-password');
-    final server2 = NasServer.create(name: 'Server 2', host: '192.168.1.101', username: 'admin', password: 'temp-password');
+    final server1 = NasServer.create(
+      name: 'Server 1',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
+    final server2 = NasServer.create(
+      name: 'Server 2',
+      host: '192.168.1.101',
+      username: 'admin',
+      password: 'temp-password',
+    );
 
     await service.saveServerConfig(server: server1, password: 'pass1');
     await service.saveServerConfig(server: server2, password: 'pass2');
@@ -69,7 +94,7 @@ void _testDefaultServerManagement() {
 
     final allServers = await service.getAllServers();
     final defaultServers = allServers.where((s) => s.isDefault).toList();
-    
+
     expect(defaultServers.length, equals(1));
     expect(defaultServers.first.id, equals(server2.id));
   });
@@ -85,8 +110,18 @@ void _testServerRetrieval() {
     );
     await service.initialize();
 
-    final server1 = NasServer.create(name: 'Server 1', host: '192.168.1.100', username: 'admin', password: 'temp-password');
-    final server2 = NasServer.create(name: 'Server 2', host: '192.168.1.101', username: 'admin', password: 'temp-password');
+    final server1 = NasServer.create(
+      name: 'Server 1',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
+    final server2 = NasServer.create(
+      name: 'Server 2',
+      host: '192.168.1.101',
+      username: 'admin',
+      password: 'temp-password',
+    );
 
     await service.saveServerConfig(server: server1, password: 'pass1');
     await service.saveServerConfig(server: server2, password: 'pass2');
@@ -106,7 +141,12 @@ void _testServerRetrieval() {
     );
     await service.initialize();
 
-    final server = NasServer.create(name: 'Test Server', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+    final server = NasServer.create(
+      name: 'Test Server',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
     await service.saveServerConfig(server: server, password: 'password');
 
     final retrievedServer = await service.getServer(server.id);
@@ -142,7 +182,7 @@ void _testStreamUpdates() {
     await service.initialize();
 
     final stream = service.serversStream;
-    
+
     expect(stream, isNotNull);
     expect(stream, isA<Stream<List<NasServer>>>());
   });
@@ -178,30 +218,41 @@ void _testStreamUpdates() {
 }
 
 void _testErrorHandling() {
-  test('should auto-initialize when operations called before explicit initialization', () async {
-    final repository = MockServerRepository();
-    final keychain = MockKeychainService();
-    final service = UnifiedServerService(
-      repository: repository,
-      keychain: keychain,
-    );
-    // Don't explicitly initialize
+  test(
+    'should auto-initialize when operations called before explicit initialization',
+    () async {
+      final repository = MockServerRepository();
+      final keychain = MockKeychainService();
+      final service = UnifiedServerService(
+        repository: repository,
+        keychain: keychain,
+      );
+      // Don't explicitly initialize
 
-    final server = NasServer.create(name: 'Test', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+      final server = NasServer.create(
+        name: 'Test',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
 
-    // These should succeed due to auto-initialization
-    final saveResult = await service.saveServerConfig(server: server, password: 'pass');
-    expect(saveResult, isTrue);
-    
-    final servers = await service.getAllServers();
-    expect(servers.length, equals(1));
-    
-    final retrievedServer = await service.getServer(server.id);
-    expect(retrievedServer, isNotNull);
-    
-    // Service should now be initialized
-    expect(service.isInitialized, isTrue);
-  });
+      // These should succeed due to auto-initialization
+      final saveResult = await service.saveServerConfig(
+        server: server,
+        password: 'pass',
+      );
+      expect(saveResult, isTrue);
+
+      final servers = await service.getAllServers();
+      expect(servers.length, equals(1));
+
+      final retrievedServer = await service.getServer(server.id);
+      expect(retrievedServer, isNotNull);
+
+      // Service should now be initialized
+      expect(service.isInitialized, isTrue);
+    },
+  );
 
   test('should handle keychain failures gracefully', () async {
     final repository = MockServerRepository();
@@ -213,7 +264,12 @@ void _testErrorHandling() {
     );
     await service.initialize();
 
-    final server = NasServer.create(name: 'Test', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+    final server = NasServer.create(
+      name: 'Test',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
 
     // Should succeed even when keychain fails - server metadata is saved, password can be added later
     final result = await service.saveServerConfig(
@@ -223,8 +279,11 @@ void _testErrorHandling() {
 
     expect(result, isTrue); // Metadata save succeeds
     expect(repository.serverCount, equals(1)); // Server is saved
-    expect(keychain.passwordCount, equals(0)); // Password is not saved due to keychain failure
-    
+    expect(
+      keychain.passwordCount,
+      equals(0),
+    ); // Password is not saved due to keychain failure
+
     // Password retrieval should return null
     final password = await service.getPassword(server.id);
     expect(password, isNull);
@@ -278,8 +337,9 @@ void _testIntegrationScenarios() {
     expect(defaultResult, isTrue);
 
     // Retrieve with password
-    final (retrievedServer, password) = 
-        await service.getServerWithPassword(server.id);
+    final (retrievedServer, password) = await service.getServerWithPassword(
+      server.id,
+    );
     expect(retrievedServer, isNotNull);
     expect(password, equals('secure-password'));
     expect(retrievedServer!.isDefault, isTrue);
@@ -309,46 +369,68 @@ void _testIntegrationScenarios() {
     expect(deletedPassword, isNull);
   });
 
-  test('should handle multiple servers with different configurations', () async {
-    final repository = MockServerRepository();
-    final keychain = MockKeychainService();
-    final service = UnifiedServerService(
-      repository: repository,
-      keychain: keychain,
-    );
-    await service.initialize();
-
-    // Create multiple servers
-    final servers = [
-      NasServer.create(name: 'Home Server', host: '192.168.1.100', port: 80, username: 'admin', password: 'temp-password'),
-      NasServer.create(name: 'Office Server', host: '10.0.0.100', port: 443, useHttps: true, username: 'admin', password: 'temp-password'),
-      NasServer.create(name: 'Cloud Server', host: 'cloud.example.com', port: 8080, username: 'admin', password: 'temp-password'),
-    ];
-
-    // Save all servers
-    for (int i = 0; i < servers.length; i++) {
-      final result = await service.saveServerConfig(
-        server: servers[i],
-        password: 'password-$i',
+  test(
+    'should handle multiple servers with different configurations',
+    () async {
+      final repository = MockServerRepository();
+      final keychain = MockKeychainService();
+      final service = UnifiedServerService(
+        repository: repository,
+        keychain: keychain,
       );
-      expect(result, isTrue);
-    }
+      await service.initialize();
 
-    // Set middle server as default
-    await service.setDefaultServer(servers[1].id);
+      // Create multiple servers
+      final servers = [
+        NasServer.create(
+          name: 'Home Server',
+          host: '192.168.1.100',
+          port: 80,
+          username: 'admin',
+          password: 'temp-password',
+        ),
+        NasServer.create(
+          name: 'Office Server',
+          host: '10.0.0.100',
+          port: 443,
+          useHttps: true,
+          username: 'admin',
+          password: 'temp-password',
+        ),
+        NasServer.create(
+          name: 'Cloud Server',
+          host: 'cloud.example.com',
+          port: 8080,
+          username: 'admin',
+          password: 'temp-password',
+        ),
+      ];
 
-    // Verify all servers exist
-    final allServers = await service.getAllServers();
-    expect(allServers.length, equals(3));
+      // Save all servers
+      for (int i = 0; i < servers.length; i++) {
+        final result = await service.saveServerConfig(
+          server: servers[i],
+          password: 'password-$i',
+        );
+        expect(result, isTrue);
+      }
 
-    // Verify default server
-    final defaultServer = await service.getDefaultServer();
-    expect(defaultServer!.name, equals('Office Server'));
+      // Set middle server as default
+      await service.setDefaultServer(servers[1].id);
 
-    // Verify passwords
-    for (int i = 0; i < servers.length; i++) {
-      final password = await service.getPassword(servers[i].id);
-      expect(password, equals('password-$i'));
-    }
-  });
+      // Verify all servers exist
+      final allServers = await service.getAllServers();
+      expect(allServers.length, equals(3));
+
+      // Verify default server
+      final defaultServer = await service.getDefaultServer();
+      expect(defaultServer!.name, equals('Office Server'));
+
+      // Verify passwords
+      for (int i = 0; i < servers.length; i++) {
+        final password = await service.getPassword(servers[i].id);
+        expect(password, equals('password-$i'));
+      }
+    },
+  );
 }

@@ -16,7 +16,7 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<List<NasServer>> getAllServers() async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     return _servers.values.map((server) {
       final isDefault = server.id == _defaultServerId;
       return isDefault ? server.copyWith(isDefault: true) : server;
@@ -26,10 +26,10 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<NasServer?> getServer(String id) async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     final server = _servers[id];
     if (server == null) return null;
-    
+
     final isDefault = server.id == _defaultServerId;
     return isDefault ? server.copyWith(isDefault: true) : server;
   }
@@ -52,10 +52,10 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<void> deleteServer(String id) async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     final removed = _servers.remove(id) != null;
     if (!removed) throw Exception('Server not found');
-    
+
     if (_defaultServerId == id) {
       _defaultServerId = null;
     }
@@ -64,7 +64,7 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<NasServer?> getDefaultServer() async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     if (_defaultServerId == null) return null;
     final server = _servers[_defaultServerId];
     return server?.copyWith(isDefault: true);
@@ -73,18 +73,20 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<void> setDefaultServer(String id) async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     if (!_servers.containsKey(id)) {
       throw Exception('Server not found');
     }
-    
+
     if (_defaultServerId != null) {
       final previousDefault = _servers[_defaultServerId!];
       if (previousDefault != null) {
-        _servers[_defaultServerId!] = previousDefault.copyWith(isDefault: false);
+        _servers[_defaultServerId!] = previousDefault.copyWith(
+          isDefault: false,
+        );
       }
     }
-    
+
     _defaultServerId = id;
     final server = _servers[id]!;
     _servers[id] = server.copyWith(isDefault: true);
@@ -93,7 +95,7 @@ class MockAppDatabase implements AppDatabase {
   @override
   Future<void> clearDefaultServer() async {
     if (_shouldThrowErrors) throw Exception('Database error');
-    
+
     if (_defaultServerId != null) {
       final server = _servers[_defaultServerId!];
       if (server != null) {
@@ -106,14 +108,14 @@ class MockAppDatabase implements AppDatabase {
   int get serverCount => _servers.length;
   bool get hasDefaultServer => _defaultServerId != null;
   String? get defaultServerId => _defaultServerId;
-  
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  
+
   group('SqliteServerRepository', () {
     late MockAppDatabase mockDatabase;
     late SqliteServerRepository repository;
@@ -134,18 +136,18 @@ void main() {
 
     test('should save and retrieve servers', () async {
       await repository.initialize();
-      
+
       final server = NasServer.create(
         name: 'Test Server',
         host: '192.168.1.100',
         username: 'admin',
         password: 'temp-password',
       );
-      
+
       final saveResult = await repository.saveServer(server);
       expect(saveResult, isTrue);
       expect(mockDatabase.serverCount, equals(1));
-      
+
       final retrievedServer = await repository.getServer(server.id);
       expect(retrievedServer, isNotNull);
       expect(retrievedServer!.name, equals('Test Server'));
@@ -153,23 +155,38 @@ void main() {
 
     test('should get all servers', () async {
       await repository.initialize();
-      
-      final server1 = NasServer.create(name: 'Server 1', host: '192.168.1.100', username: 'admin', password: 'temp-password');
-      final server2 = NasServer.create(name: 'Server 2', host: '192.168.1.101', username: 'admin', password: 'temp-password');
-      
+
+      final server1 = NasServer.create(
+        name: 'Server 1',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
+      final server2 = NasServer.create(
+        name: 'Server 2',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'temp-password',
+      );
+
       await repository.saveServer(server1);
       await repository.saveServer(server2);
-      
+
       final servers = await repository.getAllServers();
       expect(servers.length, equals(2));
     });
 
     test('should delete servers', () async {
       await repository.initialize();
-      
-      final server = NasServer.create(name: 'Test Server', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+
+      final server = NasServer.create(
+        name: 'Test Server',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
       await repository.saveServer(server);
-      
+
       final deleteResult = await repository.deleteServer(server.id);
       expect(deleteResult, isTrue);
       expect(mockDatabase.serverCount, equals(0));
@@ -177,37 +194,42 @@ void main() {
 
     test('should manage default server', () async {
       await repository.initialize();
-      
-      final server = NasServer.create(name: 'Default Server', host: '192.168.1.100', username: 'admin', password: 'temp-password');
+
+      final server = NasServer.create(
+        name: 'Default Server',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
       await repository.saveServer(server);
-      
+
       final setResult = await repository.setDefaultServer(server.id);
       expect(setResult, isTrue);
-      
+
       final defaultServer = await repository.getDefaultServer();
       expect(defaultServer, isNotNull);
       expect(defaultServer!.isDefault, isTrue);
-      
+
       final clearResult = await repository.clearDefaultServer();
       expect(clearResult, isTrue);
-      
+
       final clearedDefault = await repository.getDefaultServer();
       expect(clearedDefault, isNull);
     });
 
     test('should report correct capabilities', () async {
       await repository.initialize();
-      
+
       expect(repository.supportsOfflineAccess, isTrue);
       expect(repository.supportsAutoSync, isFalse);
-      
+
       final syncResult = await repository.sync();
       expect(syncResult, isTrue);
     });
 
     test('should provide servers stream', () async {
       await repository.initialize();
-      
+
       final stream = repository.serversStream;
       expect(stream, isA<Stream<List<NasServer>>>());
     });
@@ -215,12 +237,17 @@ void main() {
     test('should handle errors gracefully', () async {
       await repository.initialize();
       mockDatabase.setShouldThrowErrors(true);
-      
-      final server = NasServer.create(name: 'Test Server', host: '192.168.1.100', username: 'admin', password: 'temp-password');
-      
+
+      final server = NasServer.create(
+        name: 'Test Server',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
+
       final saveResult = await repository.saveServer(server);
       expect(saveResult, isFalse);
-      
+
       final setDefaultResult = await repository.setDefaultServer('test-id');
       expect(setDefaultResult, isFalse);
     });

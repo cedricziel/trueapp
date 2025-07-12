@@ -30,7 +30,7 @@ class ServerRepositoryFactory {
       if (kDebugMode) {
         print('ServerRepositoryFactory: Using SQLite repository');
       }
-      final db = database ?? AppDatabase();
+      final db = database ?? AppDatabase.instance;
       _instance = SqliteServerRepository(db);
     }
 
@@ -42,7 +42,7 @@ class ServerRepositoryFactory {
           'ServerRepositoryFactory: CloudKit failed, falling back to SQLite',
         );
       }
-      final db = database ?? AppDatabase();
+      final db = database ?? AppDatabase.instance;
       _instance = SqliteServerRepository(db);
       await _instance!.initialize();
     }

@@ -83,11 +83,11 @@ void main() {
 
         // Set second server as default - should not throw
         await serverProvider.setDefaultServer(secondServer.id);
-        
+
         // Load servers and auto-select - should not throw
         await serverProvider.loadServersAndAutoSelect();
         expect(serverProvider.selectedServer, isNotNull);
-        
+
         // Provider should have multiple servers
         expect(serverProvider.servers.length, greaterThanOrEqualTo(2));
       },
@@ -151,7 +151,7 @@ void main() {
 
       // Refresh should not throw an error even when no server is selected
       await serverProvider.refreshSelectedServer();
-      
+
       // This test verifies the method handles null selectedServer gracefully
       // (Auto-selection might still occur due to stream updates)
     });
@@ -199,7 +199,7 @@ void main() {
       );
       expect(updatedServerInList.name, 'Updated Test Server');
       expect(updatedServerInList.host, '192.168.1.150');
-      
+
       // Verify selected server is not null (the specific values may vary due to authentication flow)
       expect(serverProvider.selectedServer, isNotNull);
       expect(serverProvider.selectedServer?.id, testServer.id);
@@ -284,7 +284,7 @@ void main() {
     test('should persist server updates to service', () async {
       // Select the test server first so we have something to update
       serverProvider.selectServer(testServer);
-      
+
       // Update server through provider
       final updatedServer = testServer.copyWith(
         name: 'Database Test Server',
@@ -307,7 +307,7 @@ void main() {
     test('should handle service errors gracefully', () async {
       // Select the test server first so we have something to update
       serverProvider.selectServer(testServer);
-      
+
       // This test would need a more sophisticated mock that can simulate failures
       // For now, we'll just verify the provider doesn't crash with valid operations
       final updatedServer = testServer.copyWith(name: 'Error Test Server');
@@ -316,7 +316,9 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update succeeded by checking the service directly
-      final serverFromService = await mockServerService.getServer(testServer.id);
+      final serverFromService = await mockServerService.getServer(
+        testServer.id,
+      );
       expect(serverFromService, isNotNull);
       expect(serverFromService!.name, 'Error Test Server');
     });
@@ -325,12 +327,15 @@ void main() {
   group('Additional Coverage Tests', () {
     test('should handle authentication state changes', () async {
       // Test authentication stream
-      expect(serverProvider.authenticationStream, isA<Stream<AuthenticationStatus>>());
-      
+      expect(
+        serverProvider.authenticationStream,
+        isA<Stream<AuthenticationStatus>>(),
+      );
+
       // Test current auth status
       final authStatus = serverProvider.currentAuthStatus;
       expect(authStatus.state, isA<AuthenticationState>());
-      
+
       // Test legacy getters
       expect(serverProvider.authState, isA<AuthenticationState>());
       expect(serverProvider.isAuthenticated, isA<bool>());
@@ -351,7 +356,7 @@ void main() {
     test('should handle server list operations', () async {
       // Test initial server list
       expect(serverProvider.servers, isA<List<NasServer>>());
-      
+
       // Add multiple servers
       final server2 = NasServer.create(
         name: 'Server 2',
@@ -360,17 +365,17 @@ void main() {
         password: 'password',
       );
       await serverProvider.addServer(server2, 'password2');
-      
+
       expect(serverProvider.servers.length, greaterThanOrEqualTo(2));
     });
 
     test('should handle default server operations', () async {
       // Test default server getter
       expect(serverProvider.defaultServer, isA<NasServer?>());
-      
+
       // Set default server
       await serverProvider.setDefaultServer(testServer.id);
-      
+
       // Clear default server
       await serverProvider.clearDefaultServer();
       expect(serverProvider.defaultServer, isNull);
@@ -379,11 +384,11 @@ void main() {
     test('should handle server selection and clearing', () async {
       // Clear any existing selection first
       serverProvider.clearSelectedServer();
-      
+
       // Select server
       serverProvider.selectServer(testServer);
       expect(serverProvider.selectedServer, isNotNull);
-      
+
       // Clear selected server
       serverProvider.clearSelectedServer();
       // Note: Auto-selection may occur due to server stream updates
@@ -393,10 +398,10 @@ void main() {
     test('should handle refresh operations', () async {
       // Clear any existing selection first
       serverProvider.clearSelectedServer();
-      
+
       // Test refresh with no selected server (should not crash)
       await serverProvider.refreshSelectedServer();
-      
+
       // Select server and refresh
       serverProvider.selectServer(testServer);
       await serverProvider.refreshSelectedServer();
@@ -406,7 +411,7 @@ void main() {
     test('should properly dispose resources', () {
       // Create a new provider to test disposal
       final testProvider = TestProviders.createServerProvider();
-      
+
       // Should not throw
       testProvider.dispose();
     });
@@ -414,11 +419,11 @@ void main() {
     test('should handle edge cases in auto-selection', () async {
       // Create empty provider
       final emptyProvider = TestProviders.createServerProvider();
-      
+
       // Auto-select with no servers should not crash
       await emptyProvider.loadServersAndAutoSelect();
       expect(emptyProvider.selectedServer, isNull);
-      
+
       emptyProvider.dispose();
     });
   });

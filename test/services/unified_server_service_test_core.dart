@@ -26,56 +26,59 @@ void _testServerConfiguration() {
     expect(result, isTrue);
     expect(repository.serverCount, equals(1));
     expect(keychain.passwordCount, equals(1));
-    
+
     final savedServer = await repository.getServer(server.id);
     expect(savedServer, isNotNull);
     expect(savedServer!.name, equals('Test Server'));
     expect(savedServer.host, equals('192.168.1.100'));
-    
+
     final savedPassword = await keychain.getPassword(server.id);
     expect(savedPassword, equals('secure-password'));
   });
 
-  test('should update server configuration without changing password', () async {
-    final repository = MockServerRepository();
-    final keychain = MockKeychainService();
-    final service = UnifiedServerService(
-      repository: repository,
-      keychain: keychain,
-    );
-    await service.initialize();
+  test(
+    'should update server configuration without changing password',
+    () async {
+      final repository = MockServerRepository();
+      final keychain = MockKeychainService();
+      final service = UnifiedServerService(
+        repository: repository,
+        keychain: keychain,
+      );
+      await service.initialize();
 
-    final originalServer = NasServer.create(
-      name: 'Original Server',
-      host: '192.168.1.100',
-      username: 'admin',
-      password: 'temp-password',
-    );
+      final originalServer = NasServer.create(
+        name: 'Original Server',
+        host: '192.168.1.100',
+        username: 'admin',
+        password: 'temp-password',
+      );
 
-    // Save initial configuration
-    await service.saveServerConfig(
-      server: originalServer,
-      password: 'original-password',
-    );
+      // Save initial configuration
+      await service.saveServerConfig(
+        server: originalServer,
+        password: 'original-password',
+      );
 
-    // Update server metadata only
-    final updatedServer = originalServer.copyWith(
-      name: 'Updated Server',
-      host: '192.168.1.200',
-    );
+      // Update server metadata only
+      final updatedServer = originalServer.copyWith(
+        name: 'Updated Server',
+        host: '192.168.1.200',
+      );
 
-    final result = await service.updateServerConfig(updatedServer);
+      final result = await service.updateServerConfig(updatedServer);
 
-    expect(result, isTrue);
-    
-    final savedServer = await repository.getServer(originalServer.id);
-    expect(savedServer!.name, equals('Updated Server'));
-    expect(savedServer.host, equals('192.168.1.200'));
-    
-    // Password should remain unchanged
-    final password = await keychain.getPassword(originalServer.id);
-    expect(password, equals('original-password'));
-  });
+      expect(result, isTrue);
+
+      final savedServer = await repository.getServer(originalServer.id);
+      expect(savedServer!.name, equals('Updated Server'));
+      expect(savedServer.host, equals('192.168.1.200'));
+
+      // Password should remain unchanged
+      final password = await keychain.getPassword(originalServer.id);
+      expect(password, equals('original-password'));
+    },
+  );
 
   test('should delete server configuration and password', () async {
     final repository = MockServerRepository();
@@ -94,10 +97,7 @@ void _testServerConfiguration() {
     );
 
     // Save server first
-    await service.saveServerConfig(
-      server: server,
-      password: 'test-password',
-    );
+    await service.saveServerConfig(server: server, password: 'test-password');
 
     expect(repository.serverCount, equals(1));
     expect(keychain.passwordCount, equals(1));
@@ -108,10 +108,10 @@ void _testServerConfiguration() {
     expect(result, isTrue);
     expect(repository.serverCount, equals(0));
     expect(keychain.passwordCount, equals(0));
-    
+
     final deletedServer = await repository.getServer(server.id);
     expect(deletedServer, isNull);
-    
+
     final deletedPassword = await keychain.getPassword(server.id);
     expect(deletedPassword, isNull);
   });
@@ -157,7 +157,7 @@ void _testPasswordManagement() {
 
     const serverId = 'test-server-id';
     const password = 'test-password';
-    
+
     keychain.addPassword(serverId, password);
 
     final result = await service.getPassword(serverId);
@@ -199,8 +199,8 @@ void _testPasswordManagement() {
     repository.addServer(server);
     keychain.addPassword(server.id, password);
 
-    final (retrievedServer, retrievedPassword) = 
-        await service.getServerWithPassword(server.id);
+    final (retrievedServer, retrievedPassword) = await service
+        .getServerWithPassword(server.id);
 
     expect(retrievedServer, isNotNull);
     expect(retrievedServer!.name, equals('Test Server'));
@@ -216,8 +216,9 @@ void _testPasswordManagement() {
     );
     await service.initialize();
 
-    final (server, password) = 
-        await service.getServerWithPassword('non-existent-id');
+    final (server, password) = await service.getServerWithPassword(
+      'non-existent-id',
+    );
 
     expect(server, isNull);
     expect(password, isNull);
@@ -242,8 +243,8 @@ void _testPasswordManagement() {
     repository.addServer(server);
     // No password stored in keychain
 
-    final (retrievedServer, retrievedPassword) = 
-        await service.getServerWithPassword(server.id);
+    final (retrievedServer, retrievedPassword) = await service
+        .getServerWithPassword(server.id);
 
     expect(retrievedServer, isNotNull);
     expect(retrievedPassword, isNull);

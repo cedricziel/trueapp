@@ -7,6 +7,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/edit_server_screen.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
 
 void main() {
   late AppDatabase database;
@@ -45,6 +46,9 @@ void main() {
       return MultiProvider(
         providers: [
           Provider<AppDatabase>.value(value: database),
+          Provider<UnifiedServerService>.value(
+            value: TestProviders.createMockUnifiedServerService(),
+          ),
           ChangeNotifierProvider.value(value: serverProvider),
         ],
         child: CupertinoApp(home: EditServerScreen(server: testServer)),
@@ -249,6 +253,9 @@ void main() {
         MultiProvider(
           providers: [
             Provider<AppDatabase>.value(value: database),
+            Provider<UnifiedServerService>.value(
+              value: TestProviders.createMockUnifiedServerService(),
+            ),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
           child: CupertinoApp(
@@ -309,6 +316,9 @@ void main() {
         MultiProvider(
           providers: [
             Provider<AppDatabase>.value(value: database),
+            Provider<UnifiedServerService>.value(
+              value: TestProviders.createMockUnifiedServerService(),
+            ),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
           child: CupertinoApp(
@@ -396,6 +406,9 @@ void main() {
           home: MultiProvider(
             providers: [
               Provider<AppDatabase>.value(value: database),
+              Provider<UnifiedServerService>.value(
+                value: TestProviders.createMockUnifiedServerService(),
+              ),
               ChangeNotifierProvider.value(value: serverProvider),
             ],
             child: EditServerScreen(server: testServer),

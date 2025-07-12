@@ -9,7 +9,7 @@ part 'unified_server_service_test_core.dart';
 part 'unified_server_service_test_integration.dart';
 
 /// Comprehensive test suite for UnifiedServerService
-/// 
+///
 /// This test suite follows SOLID principles by testing:
 /// - Single Responsibility: Each test focuses on one aspect
 /// - Open/Closed: Uses interfaces for extensibility
@@ -30,7 +30,7 @@ void main() {
         repository: mockRepository,
         keychain: mockKeychain,
       );
-      
+
       testServer = NasServer.create(
         name: 'Test Server',
         host: '192.168.1.100',
@@ -108,13 +108,13 @@ class MockServerRepository implements ServerRepositoryInterface {
   Future<bool> setDefaultServer(String id) async {
     if (!_isInitialized) return false;
     if (_shouldFailOperations) return false;
-    
+
     // Clear all defaults
     final servers = _servers.values.toList();
     for (final server in servers) {
       _servers[server.id] = server.copyWith(isDefault: false);
     }
-    
+
     // Set new default
     final server = _servers[id];
     if (server != null) {
@@ -128,7 +128,7 @@ class MockServerRepository implements ServerRepositoryInterface {
   Future<bool> clearDefaultServer() async {
     if (!_isInitialized) return false;
     if (_shouldFailOperations) return false;
-    
+
     final servers = _servers.values.toList();
     for (final server in servers) {
       if (server.isDefault) {
@@ -199,7 +199,7 @@ class MockKeychainService {
   }
 
   int get passwordCount => _passwords.length;
-  
+
   void clear() {
     _passwords.clear();
   }

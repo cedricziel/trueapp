@@ -15,7 +15,7 @@ void main() {
     test('should detect CloudKit support correctly', () {
       final supportsCloudKit = ServerRepositoryFactory.supportsCloudKit;
       final expectedSupport = Platform.isIOS || Platform.isMacOS;
-      
+
       expect(supportsCloudKit, equals(expectedSupport));
     });
 
@@ -29,12 +29,9 @@ void main() {
 
     test('should support factory reset', () async {
       await ServerRepositoryFactory.reset();
-      
+
       // Should not throw
-      expect(
-        () => ServerRepositoryFactory.reset(),
-        returnsNormally,
-      );
+      expect(() => ServerRepositoryFactory.reset(), returnsNormally);
     });
 
     test('should detect platform correctly', () {

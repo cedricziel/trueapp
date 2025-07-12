@@ -11,7 +11,7 @@ void _testInitialization() {
     );
 
     final result = await service.initialize();
-    
+
     expect(result, isTrue);
     expect(service.isInitialized, isTrue);
   });
@@ -26,7 +26,7 @@ void _testInitialization() {
     );
 
     final result = await service.initialize();
-    
+
     expect(result, isFalse);
     expect(service.isInitialized, isFalse);
   });
@@ -43,7 +43,7 @@ void _testInitialization() {
     final result1 = await service.initialize();
     final result2 = await service.initialize();
     final result3 = await service.initialize();
-    
+
     expect(result1, isTrue);
     expect(result2, isTrue);
     expect(result3, isTrue);
@@ -59,7 +59,7 @@ void _testInitialization() {
     );
 
     await service.initialize();
-    
+
     expect(service.supportsOfflineAccess, isTrue);
     expect(service.supportsAutoSync, isFalse);
   });

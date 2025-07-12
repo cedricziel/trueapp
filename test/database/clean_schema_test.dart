@@ -4,14 +4,14 @@ import 'package:truehub/services/database.dart';
 import 'package:drift/native.dart';
 
 void main() {
-  group('Clean Schema v9 Tests', () {
+  group('Clean Schema v10 Tests', () {
     test(
-      'should create database with schema v9 and complete app metadata',
+      'should create database with schema v10 and complete app metadata',
       () async {
         final database = AppDatabase.forTesting(NativeDatabase.memory());
 
-        // Verify schema version is 9 (includes complete app metadata for offline access)
-        expect(database.schemaVersion, 9);
+        // Verify schema version is 10 (includes complete app metadata for offline access)
+        expect(database.schemaVersion, 10);
 
         // Test inserting server with null port
         final serverWithoutPort = models.NasServer.create(

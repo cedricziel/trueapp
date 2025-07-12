@@ -11,7 +11,8 @@ class UnifiedServerService {
   static UnifiedServerService? _instance;
 
   final ServerRepositoryInterface _repository;
-  final dynamic _keychain; // Generic to support both production and mock keychains
+  final dynamic
+  _keychain; // Generic to support both production and mock keychains
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
@@ -31,17 +32,17 @@ class UnifiedServerService {
 
     final repository = await ServerRepositoryFactory.create();
     final keychain = NativeKeychainService.instance;
-    
+
     _instance = UnifiedServerService(
       repository: repository,
       keychain: keychain,
     );
-    
+
     final initialized = await _instance!.initialize();
     if (!initialized) {
       throw StateError('Failed to initialize UnifiedServerService');
     }
-    
+
     return _instance!;
   }
 
@@ -86,7 +87,7 @@ class UnifiedServerService {
         print('  - Offline access: ${_repository.supportsOfflineAccess}');
         print('  - Auto sync: ${_repository.supportsAutoSync}');
       }
-      
+
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -121,7 +122,10 @@ class UnifiedServerService {
       if (!metadataSuccess) return false;
 
       // Save password to keychain
-      final passwordSuccess = await _keychain.storePassword(server.id, password);
+      final passwordSuccess = await _keychain.storePassword(
+        serverId: server.id,
+        password: password,
+      );
 
       if (!passwordSuccess) {
         if (kDebugMode) {
@@ -156,7 +160,9 @@ class UnifiedServerService {
       final metadataSuccess = await _repository.deleteServer(serverId);
 
       // Delete password from keychain
-      final passwordSuccess = await _keychain.deletePassword(serverId);
+      final passwordSuccess = await _keychain.deletePassword(
+        serverId: serverId,
+      );
 
       if (!passwordSuccess) {
         if (kDebugMode) {
@@ -177,7 +183,7 @@ class UnifiedServerService {
 
   /// Get password for a server
   Future<String?> getPassword(String serverId) async {
-    return await _keychain.getPassword(serverId);
+    return await _keychain.getPassword(serverId: serverId);
   }
 
   /// Get server with credentials loaded
