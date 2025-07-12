@@ -74,3 +74,6 @@ When implementing new features, follow the existing patterns and ensure compatib
 
 ## Dart Language Notes
 - We want to make use of dart's ability to trim down files with part of
+
+## Utilities
+- We want to create shared test utilities that work in many contexts
