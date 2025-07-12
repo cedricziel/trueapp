@@ -2,13 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/providers/server_provider.dart';
 
 class DatasetProvider extends ChangeNotifier {
+  final UnifiedServerService _serverService;
   TrueNasApiClient? _apiClient;
   String? _currentServerId;
   List<Map<String, dynamic>> _datasets = [];
   bool _isLoading = false;
   String? _error;
+
+  DatasetProvider(this._serverService);
 
   List<Map<String, dynamic>> get datasets => _datasets;
   bool get isLoading => _isLoading;
@@ -27,7 +32,19 @@ class DatasetProvider extends ChangeNotifier {
 
     if (server != null) {
       try {
-        _apiClient = await ApiClientManager.getClient(server);
+        // Load credentials for the server
+        final serverWithCredentials =
+            await ServerProvider.loadServerCredentials(server, _serverService);
+
+        if (serverWithCredentials != null) {
+          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        } else {
+          if (kDebugMode) {
+            print(
+              'DatasetProvider: No credentials available for server ${server.id}',
+            );
+          }
+        }
       } catch (e) {
         if (kDebugMode) {
           print('DatasetProvider: Failed to get API client: $e');
@@ -48,7 +65,21 @@ class DatasetProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      _apiClient = await ApiClientManager.getClient(server);
+      // Load credentials for the server
+      final serverWithCredentials = await ServerProvider.loadServerCredentials(
+        server,
+        _serverService,
+      );
+
+      if (serverWithCredentials != null) {
+        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+      } else {
+        if (kDebugMode) {
+          print(
+            'DatasetProvider: No credentials available for server ${server.id}',
+          );
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         print('DatasetProvider: Failed to get API client: $e');

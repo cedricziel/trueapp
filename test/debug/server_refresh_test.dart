@@ -1,3 +1,4 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/providers/server_provider.dart';
@@ -11,7 +12,9 @@ void main() {
 
     setUp(() {
       database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(database);
+      serverProvider = ServerProvider(
+        TestProviders.createMockUnifiedServerService(),
+      );
     });
 
     tearDown(() async {
@@ -30,7 +33,7 @@ void main() {
       );
 
       await database.insertServer(testServer);
-      await serverProvider.loadServers();
+      await serverProvider.loadServersAndAutoSelect();
 
       // Select the server
       serverProvider.selectServer(testServer);

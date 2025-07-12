@@ -4,7 +4,6 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/app_config.dart' as app_models;
-import 'package:truehub/services/secure_storage_service.dart';
 
 part 'database.g.dart';
 
@@ -13,6 +12,9 @@ class NasServers extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get host => text()();
+  TextColumn get username => text().withDefault(
+    const Constant(''),
+  )(); // Username is non-sensitive metadata
   TextColumn get localUrl => text().nullable()();
   TextColumn get trustedWifiSsids => text().withDefault(const Constant('[]'))();
   IntColumn get port => integer().nullable()();
@@ -93,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -149,6 +151,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 9) {
         await m.addColumn(appPortConfigs, appPortConfigs.apiUrl);
       }
+      if (from < 10) {
+        // Re-add username column as non-sensitive metadata
+        // Password remains in keychain only
+        await m.addColumn(nasServers, nasServers.username);
+      }
     },
   );
 
@@ -159,23 +166,10 @@ class AppDatabase extends _$AppDatabase {
     // First, read all existing servers with their credentials before schema change
     if (fromVersion < 3) {
       try {
-        // Query the old table structure with credentials
-        final oldServers = await customSelect(
-          'SELECT id, username, password FROM nas_servers',
-        ).get();
-
-        // Migrate each server's credentials to secure storage
-        for (final server in oldServers) {
-          final serverId = server.data['id'] as String;
-          final username = server.data['username'] as String;
-          final password = server.data['password'] as String;
-
-          await SecureStorageService.migrateCredentials(
-            serverId: serverId,
-            username: username,
-            password: password,
-          );
-        }
+        // Migration to old SecureStorageService no longer needed
+        // Note: Old server credentials are handled by UnifiedServerService
+        // Credentials are now handled by ServerSyncService
+        // Old servers with embedded credentials will be cleaned up
 
         // Drop the username and password columns
         await m.alterTable(
@@ -234,6 +228,7 @@ class AppDatabase extends _$AppDatabase {
         id: Value(server.id),
         name: Value(server.name),
         host: Value(server.host),
+        username: Value(server.username),
         localUrl: Value(server.localUrl),
         trustedWifiSsids: Value(jsonEncode(server.trustedWifiSsids)),
         port: Value(server.port),
@@ -245,12 +240,7 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
 
-    // Store credentials securely
-    await SecureStorageService.storeCredentials(
-      serverId: server.id,
-      username: server.username,
-      password: server.password,
-    );
+    // Note: Credentials are now handled by ServerSyncService, not stored here
   }
 
   Future<void> updateServer(models.NasServer server) async {
@@ -259,6 +249,7 @@ class AppDatabase extends _$AppDatabase {
       NasServersCompanion(
         name: Value(server.name),
         host: Value(server.host),
+        username: Value(server.username),
         localUrl: Value(server.localUrl),
         trustedWifiSsids: Value(jsonEncode(server.trustedWifiSsids)),
         port: Value(server.port),
@@ -270,24 +261,14 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
 
-    // Update credentials securely
-    await SecureStorageService.storeCredentials(
-      serverId: server.id,
-      username: server.username,
-      password: server.password,
-    );
+    // Note: Credentials are now handled by ServerSyncService, not stored here
   }
 
   Future<void> deleteServer(String id) async {
     // Delete server from database
     await (delete(nasServers)..where((tbl) => tbl.id.equals(id))).go();
 
-    // Delete credentials from secure storage
-    await SecureStorageService.deleteCredentials(
-      serverId: id,
-      requireAuthentication:
-          false, // No auth required for deletion during server removal
-    );
+    // Note: Credentials are now handled by ServerSyncService, not deleted here
   }
 
   Future<void> updateLastConnected(String id) async {
@@ -332,8 +313,9 @@ class AppDatabase extends _$AppDatabase {
       localUrl: row.localUrl,
       trustedWifiSsids: trustedWifiSsids,
       port: row.port,
-      username: '', // Credentials are now stored securely, retrieved separately
-      password: '', // Credentials are now stored securely, retrieved separately
+      username: row.username, // Username is non-sensitive metadata stored in DB
+      password:
+          '', // Password is stored securely in keychain, retrieved separately
       useHttps: row.useHttps,
       allowUntrustedCertificates: row.allowUntrustedCertificates,
       lastConnected: row.lastConnected,
@@ -343,18 +325,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Helper method to get server with credentials from secure storage
-  Future<models.NasServer?> getServerWithCredentials(String id) async {
-    final server = await getServer(id);
-    if (server == null) return null;
-
-    final credentials = await SecureStorageService.getCredentials(serverId: id);
-    if (credentials == null) return null;
-
-    return server.copyWith(
-      username: credentials.username,
-      password: credentials.password,
-    );
-  }
+  /// DEPRECATED: Use ServerSyncService.getPassword() instead
+  // Future<models.NasServer?> getServerWithCredentials(String id) async {
+  //   // This method is no longer used - credentials are handled by ServerSyncService
+  //   return await getServer(id);
+  // }
 
   // App Configuration Methods
   Future<List<AppConfigData>> getAppConfigs(String serverId) async {

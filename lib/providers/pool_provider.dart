@@ -3,13 +3,18 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/providers/server_provider.dart';
 
 class PoolProvider extends ChangeNotifier {
+  final UnifiedServerService _serverService;
   TrueNasApiClient? _apiClient;
   String? _currentServerId;
   List<Map<String, dynamic>> _pools = [];
   bool _isLoading = false;
   ConnectionError? _connectionError;
+
+  PoolProvider(this._serverService);
 
   List<Map<String, dynamic>> get pools => _pools;
   bool get isLoading => _isLoading;
@@ -29,7 +34,19 @@ class PoolProvider extends ChangeNotifier {
 
     if (server != null) {
       try {
-        _apiClient = await ApiClientManager.getClient(server);
+        // Load credentials for the server
+        final serverWithCredentials =
+            await ServerProvider.loadServerCredentials(server, _serverService);
+
+        if (serverWithCredentials != null) {
+          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        } else {
+          if (kDebugMode) {
+            print(
+              'PoolProvider: No credentials available for server ${server.id}',
+            );
+          }
+        }
       } catch (e) {
         if (kDebugMode) {
           print('PoolProvider: Failed to get API client: $e');
@@ -50,7 +67,21 @@ class PoolProvider extends ChangeNotifier {
     _connectionError = null;
 
     try {
-      _apiClient = await ApiClientManager.getClient(server);
+      // Load credentials for the server
+      final serverWithCredentials = await ServerProvider.loadServerCredentials(
+        server,
+        _serverService,
+      );
+
+      if (serverWithCredentials != null) {
+        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+      } else {
+        if (kDebugMode) {
+          print(
+            'PoolProvider: No credentials available for server ${server.id}',
+          );
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         print('PoolProvider: Failed to get API client: $e');

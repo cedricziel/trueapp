@@ -1,3 +1,4 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,9 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(database);
+    serverProvider = ServerProvider(
+      TestProviders.createMockUnifiedServerService(),
+    );
 
     // Create and register a test server
     testServer = NasServer.create(
@@ -31,7 +34,7 @@ void main() {
       allowUntrustedCertificates: false,
     );
 
-    await serverProvider.addServer(testServer);
+    await serverProvider.addServer(testServer, 'password');
     serverProvider.selectServer(testServer); // Select the server for editing
   });
 
@@ -60,7 +63,11 @@ void main() {
             providers: [
               Provider<AppDatabase>.value(value: database),
               ChangeNotifierProvider.value(value: serverProvider),
-              ChangeNotifierProvider(create: (_) => PoolProvider()),
+              ChangeNotifierProvider(
+                create: (_) => PoolProvider(
+                  TestProviders.createMockUnifiedServerService(),
+                ),
+              ),
             ],
             child: CupertinoApp(
               home: ServerDetailScreen(server: serverProvider.selectedServer!),
@@ -177,7 +184,11 @@ void main() {
             providers: [
               Provider<AppDatabase>.value(value: database),
               ChangeNotifierProvider.value(value: serverProvider),
-              ChangeNotifierProvider(create: (_) => PoolProvider()),
+              ChangeNotifierProvider(
+                create: (_) => PoolProvider(
+                  TestProviders.createMockUnifiedServerService(),
+                ),
+              ),
             ],
             child: CupertinoApp(
               home: EditServerScreen(server: serverProvider.selectedServer!),

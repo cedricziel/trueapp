@@ -302,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       // Reload servers in the provider - this will create a fresh database
-      await serverProvider.loadServers();
+      await serverProvider.loadServersAndAutoSelect();
 
       // Close loading dialog
       if (context.mounted) {

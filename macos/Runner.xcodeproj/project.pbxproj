@@ -29,6 +29,8 @@
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
 		BEFD3BB2F163470D5AD38632 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3C224FB200A0C2EA78DA82C /* Pods_Runner.framework */; };
 		DE8550CFA0BA288AA095FFDD /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BE7E6914AB56538719D882B /* Pods_RunnerTests.framework */; };
+		E157FCFF2E2293C300C3BCD1 /* CloudKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E157FCFD2E2293C300C3BCD1 /* CloudKitPlugin.swift */; };
+		E157FD002E2293C300C3BCD1 /* KeychainPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E157FCFE2E2293C300C3BCD1 /* KeychainPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +90,8 @@
 		CF627C6D1F63561FD38E2D89 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		D355EEC5D194185016D18A2F /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		D7938B243F25847299828798 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		E157FCFD2E2293C300C3BCD1 /* CloudKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CloudKitPlugin.swift; path = Runner/CloudKitPlugin.swift; sourceTree = "<group>"; };
+		E157FCFE2E2293C300C3BCD1 /* KeychainPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainPlugin.swift; path = Runner/KeychainPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +136,8 @@
 		33CC10E42044A3C60003C045 = {
 			isa = PBXGroup;
 			children = (
+				E157FCFD2E2293C300C3BCD1 /* CloudKitPlugin.swift */,
+				E157FCFE2E2293C300C3BCD1 /* KeychainPlugin.swift */,
 				33FAB671232836740065AC1E /* Runner */,
 				33CEB47122A05771004F2AC0 /* Flutter */,
 				331C80D6294CF71000263BE5 /* RunnerTests */,
@@ -439,6 +445,8 @@
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
+				E157FCFF2E2293C300C3BCD1 /* CloudKitPlugin.swift in Sources */,
+				E157FD002E2293C300C3BCD1 /* KeychainPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

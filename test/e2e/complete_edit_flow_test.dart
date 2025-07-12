@@ -1,3 +1,4 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,8 +17,10 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(database);
-    poolProvider = PoolProvider();
+    serverProvider = ServerProvider(
+      TestProviders.createMockUnifiedServerService(),
+    );
+    poolProvider = PoolProvider(TestProviders.createMockUnifiedServerService());
 
     // Create and register a test server
     testServer = NasServer.create(
@@ -32,7 +35,7 @@ void main() {
       allowUntrustedCertificates: false,
     );
 
-    await serverProvider.addServer(testServer);
+    await serverProvider.addServer(testServer, 'password');
   });
 
   tearDown(() async {

@@ -1,3 +1,4 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,9 @@ void main() {
 
     setUp(() {
       database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(database);
+      serverProvider = ServerProvider(
+        TestProviders.createMockUnifiedServerService(),
+      );
     });
 
     tearDown(() async {

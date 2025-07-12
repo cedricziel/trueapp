@@ -13,6 +13,7 @@ import 'package:truehub/screens/home_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/window_manager.dart';
+import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/models/app_config.dart';
 
 void main() async {
@@ -20,22 +21,35 @@ void main() async {
 
   final database = AppDatabase();
   final connectionStatusProvider = ConnectionStatusProvider();
+  final unifiedServerService = await UnifiedServerService.createForProduction();
 
-  // Set up the connection status provider for API client manager
+  // Initialize services
   ApiClientManager.setConnectionStatusProvider(connectionStatusProvider);
 
   runApp(
     MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: database),
+        Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
-        ChangeNotifierProvider(create: (context) => ServerProvider(database)),
-        ChangeNotifierProvider(create: (context) => PoolProvider()),
-        ChangeNotifierProvider(create: (context) => DatasetProvider()),
         ChangeNotifierProvider(
-          create: (context) => AppProvider(database: database),
+          create: (context) => ServerProvider(unifiedServerService),
         ),
-        ChangeNotifierProvider(create: (context) => SystemStatsProvider()),
+        ChangeNotifierProvider(
+          create: (context) => PoolProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => DatasetProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => AppProvider(
+            database: database,
+            serverService: unifiedServerService,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SystemStatsProvider(unifiedServerService),
+        ),
         ChangeNotifierProvider(create: (context) => TrayProvider()),
       ],
       child: const TrueNASManagerApp(),

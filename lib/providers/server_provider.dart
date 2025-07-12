@@ -3,11 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/user_info.dart';
-import 'package:truehub/services/database.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_manager.dart';
-import 'package:truehub/services/secure_storage_service.dart';
-import 'package:truehub/services/credential_migration_service.dart';
+import 'package:truehub/services/unified_server_service.dart';
 
 enum AuthenticationState {
   none,
@@ -31,7 +29,7 @@ class AuthenticationStatus {
 }
 
 class ServerProvider extends ChangeNotifier {
-  final AppDatabase _database;
+  final UnifiedServerService _serverService;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
   TrueNasApiClient? _apiClient;
@@ -49,8 +47,24 @@ class ServerProvider extends ChangeNotifier {
   bool _isLoadingUser = false;
   String? _userError;
 
-  ServerProvider(this._database) {
-    loadServers();
+  late StreamSubscription<List<models.NasServer>> _serversSubscription;
+
+  ServerProvider(this._serverService) {
+    _initializeProvider();
+  }
+
+  void _initializeProvider() {
+    // Listen to server changes from the unified service
+    _serversSubscription = _serverService.serversStream.listen((servers) {
+      _servers = servers;
+      notifyListeners();
+
+      // Auto-select server if needed
+      _autoSelectServer();
+    });
+
+    // Load initial servers
+    _loadServers();
   }
 
   List<models.NasServer> get servers => _servers;
@@ -82,20 +96,19 @@ class ServerProvider extends ChangeNotifier {
   bool get isLoadingUser => _isLoadingUser;
   String? get userError => _userError;
 
-  Future<void> loadServers() async {
-    _servers = await _database.getAllServers();
-
-    // Debug credential migration status
-    if (kDebugMode) {
-      await CredentialMigrationService.debugStoredCredentials(_database);
-      await SecureStorageService.debugListStoredKeys();
+  Future<void> _loadServers() async {
+    try {
+      _servers = await _serverService.getAllServers();
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        print('ServerProvider: Failed to load servers: $e');
+      }
     }
-
-    notifyListeners();
   }
 
   Future<void> loadServersAndAutoSelect() async {
-    await loadServers();
+    await _loadServers();
     await _autoSelectServer();
   }
 
@@ -105,39 +118,103 @@ class ServerProvider extends ChangeNotifier {
     }
 
     // First check for default server
-    final defaultServer = await _database.getDefaultServer();
+    final defaultServer = await _serverService.getDefaultServer();
     if (defaultServer != null) {
-      selectServer(defaultServer);
+      await selectServer(defaultServer);
       return;
     }
 
     // If no default server and only one server exists, auto-select it
     if (_servers.length == 1) {
-      selectServer(_servers.first);
+      await selectServer(_servers.first);
     }
   }
 
-  Future<void> addServer(models.NasServer server) async {
-    await _database.insertServer(server);
-    await loadServers();
+  Future<void> addServer(models.NasServer server, String password) async {
+    final success = await _serverService.saveServerConfig(
+      server: server,
+      password: password,
+    );
+
+    if (!success) {
+      throw Exception('Failed to save server configuration');
+    }
   }
 
-  Future<void> updateServer(models.NasServer server) async {
-    await _database.updateServer(server);
-    await loadServers();
+  Future<void> updateServer(models.NasServer server, {String? password}) async {
+    bool success;
 
-    // If this is the currently selected server, refresh it
+    if (password != null) {
+      success = await _serverService.saveServerConfig(
+        server: server,
+        password: password,
+      );
+    } else {
+      success = await _serverService.updateServerConfig(server);
+    }
+
+    if (!success) {
+      throw Exception('Failed to update server configuration');
+    }
+
+    // If this is the currently selected server, force complete re-authentication
     if (_selectedServer?.id == server.id) {
-      await refreshSelectedServer();
+      if (kDebugMode) {
+        print(
+          'ServerProvider: Forcing complete client recreation for updated server ${server.id}',
+        );
+      }
+
+      // Clear current authentication state
+      _clearAuthState();
+
+      // Get the fresh server data
+      final updatedServer = await _serverService.getServer(server.id);
+      if (updatedServer != null) {
+        _selectedServer = updatedServer;
+
+        // Force complete client recreation with fresh credentials
+        final (serverWithCreds, password) = await _serverService
+            .getServerWithPassword(server.id);
+        if (serverWithCreds != null && password != null) {
+          final serverForClient = serverWithCreds.copyWith(password: password);
+          _apiClient = await ApiClientManager.forceRecreateClient(
+            serverForClient,
+          );
+          _authState = AuthenticationState.authenticated;
+          _authError = null;
+
+          if (kDebugMode) {
+            print(
+              'ServerProvider: Successfully recreated client with fresh credentials for server ${server.id}',
+            );
+          }
+        } else {
+          _authState = AuthenticationState.required;
+          _authError = 'Authentication required to access server credentials';
+        }
+
+        _emitAuthStatus();
+      }
+
+      notifyListeners();
+    } else {
+      // For non-selected servers, just close any cached client
+      await ApiClientManager.closeClient(server.id);
     }
   }
 
   Future<void> deleteServer(String id) async {
-    await _database.deleteServer(id);
+    final success = await _serverService.deleteServerConfig(id);
+
+    if (!success) {
+      throw Exception('Failed to delete server configuration');
+    }
+
     if (_selectedServer?.id == id) {
       _selectedServer = null;
+      _clearAuthState();
     }
-    await loadServers();
   }
 
   Future<void> selectServer(models.NasServer? server) async {
@@ -147,7 +224,16 @@ class ServerProvider extends ChangeNotifier {
     }
 
     // Reset state
+    _clearAuthState();
     _selectedServer = server;
+
+    if (server != null) {
+      await _authenticateAndConnect(server);
+    }
+    notifyListeners();
+  }
+
+  void _clearAuthState() {
     _apiClient = null;
     _authState = AuthenticationState.none;
     _authError = null;
@@ -155,11 +241,6 @@ class ServerProvider extends ChangeNotifier {
     _healthError = null;
     _currentUser = null;
     _userError = null;
-
-    if (server != null) {
-      await _authenticateAndConnect(server);
-    }
-    notifyListeners();
   }
 
   void _emitAuthStatus() {
@@ -178,22 +259,17 @@ class ServerProvider extends ChangeNotifier {
       _emitAuthStatus();
       notifyListeners();
 
-      // Get credentials from secure storage
-      final credentials = await SecureStorageService.getCredentials(
-        serverId: server.id,
-      );
+      // Get credentials from unified server service
+      final (serverWithCreds, password) = await _serverService
+          .getServerWithPassword(server.id);
 
-      if (credentials != null) {
+      if (serverWithCreds != null && password != null) {
         // Create server with credentials for API client
-        final serverWithCredentials = server.copyWith(
-          username: credentials.username,
-          password: credentials.password,
-        );
+        final serverForClient = serverWithCreds.copyWith(password: password);
 
-        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        _apiClient = await ApiClientManager.getClient(serverForClient);
         _authState = AuthenticationState.authenticated;
         _authError = null;
-        _database.updateLastConnected(server.id);
 
         if (kDebugMode) {
           print(
@@ -221,6 +297,43 @@ class ServerProvider extends ChangeNotifier {
     _emitAuthStatus();
   }
 
+  /// Static method to load credentials for any server object
+  /// Can be used by other providers without needing a ServerProvider instance
+  static Future<models.NasServer?> loadServerCredentials(
+    models.NasServer server,
+    UnifiedServerService serverService,
+  ) async {
+    try {
+      if (kDebugMode) {
+        print(
+          'ServerProvider: Loading credentials for ${server.name} - current username: "${server.username}"',
+        );
+      }
+
+      final password = await serverService.getPassword(server.id);
+
+      if (password != null) {
+        final serverWithCreds = server.copyWith(password: password);
+        if (kDebugMode) {
+          print(
+            'ServerProvider: Loaded credentials for ${server.name} - username: "${serverWithCreds.username}", has password: true',
+          );
+        }
+        return serverWithCreds;
+      } else {
+        if (kDebugMode) {
+          print('ServerProvider: No password found for server ${server.id}');
+        }
+        return null;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('ServerProvider: Error loading server credentials: $e');
+      }
+      return null;
+    }
+  }
+
   /// Retry authentication for the currently selected server
   Future<void> retryAuthentication() async {
     if (_selectedServer != null) {
@@ -235,24 +348,18 @@ class ServerProvider extends ChangeNotifier {
     }
 
     _selectedServer = null;
-    _apiClient = null;
-    _authState = AuthenticationState.none;
-    _authError = null;
-    _serverHealth = null;
-    _healthError = null;
-    _currentUser = null;
-    _userError = null;
+    _clearAuthState();
     _emitAuthStatus();
     notifyListeners();
   }
 
   Future<void> refreshSelectedServer() async {
     if (_selectedServer != null) {
-      final updated = await _database.getServer(_selectedServer!.id);
+      final updated = await _serverService.getServer(_selectedServer!.id);
       if (updated != null) {
         _selectedServer = updated;
         notifyListeners();
-      } else {}
+      }
     }
   }
 
@@ -292,72 +399,66 @@ class ServerProvider extends ChangeNotifier {
 
   Future<bool> testServerConnection(models.NasServer server) async {
     try {
-      // Get credentials from secure storage
-      final credentials = await SecureStorageService.getCredentials(
-        serverId: server.id,
-        requireAuthentication: false, // Don't require auth for testing
-      );
-
-      if (credentials == null) {
+      // For testing, use the credentials passed in the server object
+      if (server.username.isEmpty || server.password.isEmpty) {
         if (kDebugMode) {
-          print('ServerProvider: No credentials found for server ${server.id}');
+          print(
+            'ServerProvider: Username or password empty for connection test',
+          );
         }
         return false;
       }
 
-      final serverWithCredentials = server.copyWith(
-        username: credentials.username,
-        password: credentials.password,
-      );
-
-      final apiClient = TrueNasApiClient(serverWithCredentials, null);
+      final apiClient = TrueNasApiClient(server, null);
       final result = await apiClient.testConnection();
       await apiClient.close();
       return result;
     } catch (e) {
+      if (kDebugMode) {
+        print('ServerProvider: Connection test failed: $e');
+      }
       return false;
     }
   }
 
   Future<bool> validateServerCredentials(models.NasServer server) async {
     try {
-      // Get credentials from secure storage
-      final credentials = await SecureStorageService.getCredentials(
-        serverId: server.id,
-        requireAuthentication: false, // Don't require auth for validation
-      );
-
-      if (credentials == null) {
+      // For validation, use the credentials passed in the server object
+      if (server.username.isEmpty || server.password.isEmpty) {
         if (kDebugMode) {
-          print('ServerProvider: No credentials found for server ${server.id}');
+          print(
+            'ServerProvider: Username or password empty for credential validation',
+          );
         }
         return false;
       }
 
-      final serverWithCredentials = server.copyWith(
-        username: credentials.username,
-        password: credentials.password,
-      );
-
-      final apiClient = TrueNasApiClient(serverWithCredentials, null);
+      final apiClient = TrueNasApiClient(server, null);
       final result = await apiClient
-          .validateLogin(credentials.username, credentials.password)
+          .validateLogin(server.username, server.password)
           .timeout(const Duration(seconds: 15));
       await apiClient.close();
       return result;
     } catch (e) {
+      if (kDebugMode) {
+        print('ServerProvider: Credential validation failed: $e');
+      }
       return false;
     }
   }
 
   Future<void> setDefaultServer(String serverId) async {
-    await _database.setDefaultServer(serverId);
-    await loadServers();
+    final success = await _serverService.setDefaultServer(serverId);
+    if (!success) {
+      throw Exception('Failed to set default server');
+    }
   }
 
   Future<void> clearDefaultServer() async {
-    await _database.clearDefaultServer();
-    await loadServers();
+    final success = await _serverService.clearDefaultServer();
+    if (!success) {
+      throw Exception('Failed to clear default server');
+    }
   }
 
   models.NasServer? get defaultServer {
@@ -374,6 +475,7 @@ class ServerProvider extends ChangeNotifier {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
       ApiClientManager.releaseClient(_selectedServer!.id);
     }
+    _serversSubscription.cancel();
     _authController.close();
     super.dispose();
   }

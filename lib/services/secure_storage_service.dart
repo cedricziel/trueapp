@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:truehub/services/authentication_session_service.dart';
+import 'package:truehub/models/keychain_server_config.dart';
 
 class ServerCredentials {
   final String username;
@@ -14,10 +16,14 @@ class SecureStorageService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
+      accessibility: KeychainAccessibility.first_unlock,
+      synchronizable: true,
+      groupId: 'com.cedricziel.truehub.shared',
     ),
     mOptions: MacOsOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
+      accessibility: KeychainAccessibility.first_unlock,
+      synchronizable: true,
+      groupId: 'com.cedricziel.truehub.shared',
     ),
   );
 
@@ -25,6 +31,9 @@ class SecureStorageService {
 
   static String _getUsernameKey(String serverId) => 'server_username_$serverId';
   static String _getPasswordKey(String serverId) => 'server_password_$serverId';
+  static String _getServerConfigKey(String serverId) =>
+      'server_config_$serverId';
+  static const String _serverListKey = 'server_list';
 
   /// Check if biometric authentication is available on this device
   static Future<bool> isBiometricAvailable() async {
@@ -340,6 +349,199 @@ class SecureStorageService {
       } catch (e) {
         print('SecureStorageService: Error listing stored keys: $e');
       }
+    }
+  }
+
+  /// Store complete server configuration in keychain
+  static Future<bool> storeServerConfig({
+    required KeychainServerConfig config,
+    bool requireAuthentication = true,
+  }) async {
+    try {
+      if (kDebugMode) {
+        print(
+          'SecureStorageService: Attempting to store server config for ${config.id}',
+        );
+      }
+
+      if (requireAuthentication) {
+        final authenticated = await authenticate(
+          reason: 'Authenticate to save server configuration',
+        );
+        if (!authenticated) {
+          return false;
+        }
+      }
+
+      // Store the complete config as JSON
+      final configKey = _getServerConfigKey(config.id);
+      await _storage.write(key: configKey, value: config.toJsonString());
+
+      // Also store in legacy format for backward compatibility
+      await _storage.write(
+        key: _getUsernameKey(config.id),
+        value: config.username,
+      );
+      await _storage.write(
+        key: _getPasswordKey(config.id),
+        value: config.password,
+      );
+
+      // Update server list
+      await _addToServerList(config.id);
+
+      if (kDebugMode) {
+        print(
+          'SecureStorageService: Successfully stored server config for ${config.id}',
+        );
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error storing server config: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Retrieve complete server configuration from keychain
+  static Future<KeychainServerConfig?> getServerConfig({
+    required String serverId,
+    bool requireAuthentication = true,
+  }) async {
+    try {
+      if (requireAuthentication) {
+        final authenticated = await authenticate(
+          reason: 'Authenticate to access server configuration',
+        );
+        if (!authenticated) {
+          return null;
+        }
+      }
+
+      final configKey = _getServerConfigKey(serverId);
+      final configJson = await _storage.read(key: configKey);
+
+      if (configJson != null) {
+        return KeychainServerConfig.fromJsonString(configJson);
+      }
+
+      // Fall back to legacy format if no complete config exists
+      final credentials = await getCredentials(
+        serverId: serverId,
+        requireAuthentication: false,
+      );
+      if (credentials != null) {
+        if (kDebugMode) {
+          print(
+            'SecureStorageService: Found legacy credentials for $serverId, but no complete config',
+          );
+        }
+      }
+
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error retrieving server config: $e');
+      }
+      return null;
+    }
+  }
+
+  /// Get list of all server IDs stored in keychain
+  static Future<List<String>> getServerList() async {
+    try {
+      final serverListJson = await _storage.read(key: _serverListKey);
+      if (serverListJson != null) {
+        final List<dynamic> list = jsonDecode(serverListJson);
+        return list.cast<String>();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error retrieving server list: $e');
+      }
+      return [];
+    }
+  }
+
+  /// Add server ID to the server list
+  static Future<void> _addToServerList(String serverId) async {
+    try {
+      final serverList = await getServerList();
+      if (!serverList.contains(serverId)) {
+        serverList.add(serverId);
+        await _storage.write(
+          key: _serverListKey,
+          value: jsonEncode(serverList),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error updating server list: $e');
+      }
+    }
+  }
+
+  /// Remove server ID from the server list
+  static Future<void> _removeFromServerList(String serverId) async {
+    try {
+      final serverList = await getServerList();
+      serverList.remove(serverId);
+      await _storage.write(key: _serverListKey, value: jsonEncode(serverList));
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error updating server list: $e');
+      }
+    }
+  }
+
+  /// Delete complete server configuration
+  static Future<bool> deleteServerConfig({
+    required String serverId,
+    bool requireAuthentication = true,
+  }) async {
+    try {
+      if (requireAuthentication) {
+        final authenticated = await authenticate(
+          reason: 'Authenticate to delete server configuration',
+        );
+        if (!authenticated) {
+          return false;
+        }
+      }
+
+      // Delete all server-related keys
+      await _storage.delete(key: _getServerConfigKey(serverId));
+      await _storage.delete(key: _getUsernameKey(serverId));
+      await _storage.delete(key: _getPasswordKey(serverId));
+
+      // Remove from server list
+      await _removeFromServerList(serverId);
+
+      if (kDebugMode) {
+        print('SecureStorageService: Server config deleted for $serverId');
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error deleting server config: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Check if server config exists in keychain
+  static Future<bool> hasServerConfig(String serverId) async {
+    try {
+      final configKey = _getServerConfigKey(serverId);
+      final config = await _storage.read(key: configKey);
+      return config != null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('SecureStorageService: Error checking server config: $e');
+      }
+      return false;
     }
   }
 }

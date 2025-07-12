@@ -8,9 +8,12 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/providers/server_provider.dart';
 
 class AppProvider extends ChangeNotifier {
   final AppDatabase _database;
+  final UnifiedServerService _serverService;
   TrueNasApiClient? _apiClient;
   String? _currentServerId;
   NasServer? _currentServer;
@@ -21,7 +24,11 @@ class AppProvider extends ChangeNotifier {
   StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
   final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
-  AppProvider({required AppDatabase database}) : _database = database;
+  AppProvider({
+    required AppDatabase database,
+    required UnifiedServerService serverService,
+  }) : _database = database,
+       _serverService = serverService;
 
   List<AppConfig> get appConfigs => _appConfigs;
   List<String> get categories => _categories;
@@ -56,7 +63,19 @@ class AppProvider extends ChangeNotifier {
 
     if (server != null) {
       try {
-        _apiClient = await ApiClientManager.getClient(server);
+        // Load credentials for the server
+        final serverWithCredentials =
+            await ServerProvider.loadServerCredentials(server, _serverService);
+
+        if (serverWithCredentials != null) {
+          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        } else {
+          if (kDebugMode) {
+            print(
+              'AppProvider: No credentials available for server ${server.id}',
+            );
+          }
+        }
         // Load persisted app configs for offline access
         await _loadPersistedAppConfigs();
       } catch (e) {
@@ -83,7 +102,21 @@ class AppProvider extends ChangeNotifier {
     _connectionError = null;
 
     try {
-      _apiClient = await ApiClientManager.getClient(server);
+      // Load credentials for the server
+      final serverWithCredentials = await ServerProvider.loadServerCredentials(
+        server,
+        _serverService,
+      );
+
+      if (serverWithCredentials != null) {
+        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+      } else {
+        if (kDebugMode) {
+          print(
+            'AppProvider: No credentials available for server ${server.id}',
+          );
+        }
+      }
       // Load persisted app configs for offline access
       await _loadPersistedAppConfigs();
     } catch (e) {

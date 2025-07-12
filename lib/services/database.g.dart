@@ -36,6 +36,18 @@ class $NasServersTable extends NasServers
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _usernameMeta = const VerificationMeta(
+    'username',
+  );
+  @override
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+    'username',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _localUrlMeta = const VerificationMeta(
     'localUrl',
   );
@@ -145,6 +157,7 @@ class $NasServersTable extends NasServers
     id,
     name,
     host,
+    username,
     localUrl,
     trustedWifiSsids,
     port,
@@ -186,6 +199,12 @@ class $NasServersTable extends NasServers
       );
     } else if (isInserting) {
       context.missing(_hostMeta);
+    }
+    if (data.containsKey('username')) {
+      context.handle(
+        _usernameMeta,
+        username.isAcceptableOrUnknown(data['username']!, _usernameMeta),
+      );
     }
     if (data.containsKey('local_url')) {
       context.handle(
@@ -265,6 +284,10 @@ class $NasServersTable extends NasServers
         DriftSqlType.string,
         data['${effectivePrefix}host'],
       )!,
+      username: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}username'],
+      )!,
       localUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_url'],
@@ -310,6 +333,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final String id;
   final String name;
   final String host;
+  final String username;
   final String? localUrl;
   final String trustedWifiSsids;
   final int? port;
@@ -322,6 +346,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     required this.id,
     required this.name,
     required this.host,
+    required this.username,
     this.localUrl,
     required this.trustedWifiSsids,
     this.port,
@@ -337,6 +362,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['host'] = Variable<String>(host);
+    map['username'] = Variable<String>(username);
     if (!nullToAbsent || localUrl != null) {
       map['local_url'] = Variable<String>(localUrl);
     }
@@ -361,6 +387,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: Value(id),
       name: Value(name),
       host: Value(host),
+      username: Value(username),
       localUrl: localUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(localUrl),
@@ -385,6 +412,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       host: serializer.fromJson<String>(json['host']),
+      username: serializer.fromJson<String>(json['username']),
       localUrl: serializer.fromJson<String?>(json['localUrl']),
       trustedWifiSsids: serializer.fromJson<String>(json['trustedWifiSsids']),
       port: serializer.fromJson<int?>(json['port']),
@@ -404,6 +432,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'host': serializer.toJson<String>(host),
+      'username': serializer.toJson<String>(username),
       'localUrl': serializer.toJson<String?>(localUrl),
       'trustedWifiSsids': serializer.toJson<String>(trustedWifiSsids),
       'port': serializer.toJson<int?>(port),
@@ -421,6 +450,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     String? id,
     String? name,
     String? host,
+    String? username,
     Value<String?> localUrl = const Value.absent(),
     String? trustedWifiSsids,
     Value<int?> port = const Value.absent(),
@@ -433,6 +463,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     id: id ?? this.id,
     name: name ?? this.name,
     host: host ?? this.host,
+    username: username ?? this.username,
     localUrl: localUrl.present ? localUrl.value : this.localUrl,
     trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
     port: port.present ? port.value : this.port,
@@ -450,6 +481,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       host: data.host.present ? data.host.value : this.host,
+      username: data.username.present ? data.username.value : this.username,
       localUrl: data.localUrl.present ? data.localUrl.value : this.localUrl,
       trustedWifiSsids: data.trustedWifiSsids.present
           ? data.trustedWifiSsids.value
@@ -473,6 +505,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('username: $username, ')
           ..write('localUrl: $localUrl, ')
           ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
@@ -490,6 +523,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     id,
     name,
     host,
+    username,
     localUrl,
     trustedWifiSsids,
     port,
@@ -506,6 +540,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           other.id == this.id &&
           other.name == this.name &&
           other.host == this.host &&
+          other.username == this.username &&
           other.localUrl == this.localUrl &&
           other.trustedWifiSsids == this.trustedWifiSsids &&
           other.port == this.port &&
@@ -520,6 +555,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> host;
+  final Value<String> username;
   final Value<String?> localUrl;
   final Value<String> trustedWifiSsids;
   final Value<int?> port;
@@ -533,6 +569,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.host = const Value.absent(),
+    this.username = const Value.absent(),
     this.localUrl = const Value.absent(),
     this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
@@ -547,6 +584,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     required String id,
     required String name,
     required String host,
+    this.username = const Value.absent(),
     this.localUrl = const Value.absent(),
     this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
@@ -563,6 +601,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? host,
+    Expression<String>? username,
     Expression<String>? localUrl,
     Expression<String>? trustedWifiSsids,
     Expression<int>? port,
@@ -577,6 +616,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (host != null) 'host': host,
+      if (username != null) 'username': username,
       if (localUrl != null) 'local_url': localUrl,
       if (trustedWifiSsids != null) 'trusted_wifi_ssids': trustedWifiSsids,
       if (port != null) 'port': port,
@@ -594,6 +634,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? host,
+    Value<String>? username,
     Value<String?>? localUrl,
     Value<String>? trustedWifiSsids,
     Value<int?>? port,
@@ -608,6 +649,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       id: id ?? this.id,
       name: name ?? this.name,
       host: host ?? this.host,
+      username: username ?? this.username,
       localUrl: localUrl ?? this.localUrl,
       trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
       port: port ?? this.port,
@@ -632,6 +674,9 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     }
     if (host.present) {
       map['host'] = Variable<String>(host.value);
+    }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
     }
     if (localUrl.present) {
       map['local_url'] = Variable<String>(localUrl.value);
@@ -671,6 +716,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('username: $username, ')
           ..write('localUrl: $localUrl, ')
           ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
@@ -3027,6 +3073,7 @@ typedef $$NasServersTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String host,
+      Value<String> username,
       Value<String?> localUrl,
       Value<String> trustedWifiSsids,
       Value<int?> port,
@@ -3042,6 +3089,7 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> host,
+      Value<String> username,
       Value<String?> localUrl,
       Value<String> trustedWifiSsids,
       Value<int?> port,
@@ -3097,6 +3145,11 @@ class $$NasServersTableFilterComposer
 
   ColumnFilters<String> get host => $composableBuilder(
     column: $table.host,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get username => $composableBuilder(
+    column: $table.username,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3190,6 +3243,11 @@ class $$NasServersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get username => $composableBuilder(
+    column: $table.username,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get localUrl => $composableBuilder(
     column: $table.localUrl,
     builder: (column) => ColumnOrderings(column),
@@ -3248,6 +3306,9 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<String> get host =>
       $composableBuilder(column: $table.host, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
 
   GeneratedColumn<String> get localUrl =>
       $composableBuilder(column: $table.localUrl, builder: (column) => column);
@@ -3336,6 +3397,7 @@ class $$NasServersTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> host = const Value.absent(),
+                Value<String> username = const Value.absent(),
                 Value<String?> localUrl = const Value.absent(),
                 Value<String> trustedWifiSsids = const Value.absent(),
                 Value<int?> port = const Value.absent(),
@@ -3349,6 +3411,7 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                username: username,
                 localUrl: localUrl,
                 trustedWifiSsids: trustedWifiSsids,
                 port: port,
@@ -3364,6 +3427,7 @@ class $$NasServersTableTableManager
                 required String id,
                 required String name,
                 required String host,
+                Value<String> username = const Value.absent(),
                 Value<String?> localUrl = const Value.absent(),
                 Value<String> trustedWifiSsids = const Value.absent(),
                 Value<int?> port = const Value.absent(),
@@ -3377,6 +3441,7 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                username: username,
                 localUrl: localUrl,
                 trustedWifiSsids: trustedWifiSsids,
                 port: port,
