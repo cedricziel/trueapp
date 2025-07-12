@@ -3,15 +3,19 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  private var cloudKitPluginInstance: CloudKitPlugin?
+  
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     
-    // Register our custom plugins
+    // Register our custom plugins and store CloudKit instance for notifications
     let controller = window?.rootViewController as! FlutterViewController
-    CloudKitPlugin.register(with: registrar(forPlugin: "CloudKitPlugin")!)
+    let cloudKitRegistrar = registrar(forPlugin: "CloudKitPlugin")!
+    CloudKitPlugin.register(with: cloudKitRegistrar)
+    
     KeychainPlugin.register(with: registrar(forPlugin: "KeychainPlugin")!)
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -23,11 +27,8 @@ import UIKit
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
-    // Forward CloudKit notifications to our plugin
-    if let cloudKitPlugin = registrar(forPlugin: "CloudKitPlugin")?.valuePublished(byPlugin: "CloudKitPlugin") as? CloudKitPlugin {
-      cloudKitPlugin.handleCloudKitNotification(userInfo)
-    }
-    
+    // CloudKit push notifications are handled automatically by the plugin's subscription system
+    // No need to manually forward them since they're handled via the event channel
     completionHandler(.newData)
   }
 }
