@@ -29,9 +29,5 @@
 	<array>
 		<string>CloudKit</string>
 	</array>
-	<key>com.apple.security.temporary-exception.shared-preference.read-write</key>
-	<true/>
-	<key>com.apple.security.temporary-exception.keychain</key>
-	<true/>
 </dict>
 </plist>
