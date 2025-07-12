@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/dataset_provider.dart';
-import 'package:truenas_manager/screens/dataset_detail_screen.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/screens/dataset_detail_screen.dart';
 
 class PoolDetailScreen extends StatefulWidget {
   final NasServer server;

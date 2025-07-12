@@ -1,25 +1,24 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
-import 'package:truenas_manager/providers/system_stats_provider.dart';
-import 'package:truenas_manager/widgets/system_stats_widget.dart';
-import 'package:truenas_manager/widgets/authentication_state_widget.dart';
-import 'package:truenas_manager/widgets/action_button_widget.dart';
-import 'package:truenas_manager/widgets/pool_card_widget.dart';
-import 'package:truenas_manager/widgets/app_card_widget.dart';
-import 'package:truenas_manager/widgets/error_state_widget.dart';
-import 'package:truenas_manager/widgets/empty_state_widget.dart';
-import 'package:truenas_manager/screens/server_files_screen.dart';
-import 'package:truenas_manager/screens/server_health_screen.dart';
-import 'package:truenas_manager/screens/server_pools_screen.dart';
-import 'package:truenas_manager/screens/edit_server_screen.dart';
-import 'package:truenas_manager/screens/user_profile_screen.dart';
-import 'package:truenas_manager/screens/server_apps_screen.dart';
-import 'package:truenas_manager/widgets/connection_status_widget.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/widgets/system_stats_widget.dart';
+import 'package:truehub/widgets/authentication_state_widget.dart';
+import 'package:truehub/widgets/action_button_widget.dart';
+import 'package:truehub/widgets/pool_card_widget.dart';
+import 'package:truehub/widgets/app_card_widget.dart';
+import 'package:truehub/widgets/error_state_widget.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
+import 'package:truehub/screens/server_files_screen.dart';
+import 'package:truehub/screens/server_health_screen.dart';
+import 'package:truehub/screens/server_pools_screen.dart';
+import 'package:truehub/screens/edit_server_screen.dart';
+import 'package:truehub/screens/user_profile_screen.dart';
+import 'package:truehub/screens/server_apps_screen.dart';
+import 'package:truehub/widgets/connection_status_widget.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -38,7 +37,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       final serverProvider = context.read<ServerProvider>();
       final poolProvider = context.read<PoolProvider>();
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
       final systemStatsProvider = context.read<SystemStatsProvider>();
 
       // Check if this server is already selected and authenticated
@@ -56,8 +54,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         await poolProvider.loadPools();
 
         await appProvider.setApiClient(widget.server);
-        appProvider.setAppConfigProvider(appConfigProvider);
-        await appConfigProvider.setServer(widget.server.id);
         await appProvider.loadApps();
 
         await systemStatsProvider.setApiClient(widget.server);
@@ -337,8 +333,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   }
 
   Widget _buildAppsSection(NasServer server) {
-    return Consumer2<AppProvider, AppConfigProvider>(
-      builder: (context, appProvider, appConfigProvider, child) {
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -392,7 +388,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     _buildAppsSummaryCard(context, appProvider, server),
                     const SizedBox(height: 16),
                     // Show favorite apps
-                    if (appConfigProvider.favoriteAppConfigs.isNotEmpty) ...[
+                    if (appProvider.favoriteApps.isNotEmpty) ...[
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
@@ -417,13 +413,11 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                           ),
                         ),
                       ),
-                      ...appConfigProvider.favoriteAppConfigs.take(3).map((
-                        config,
-                      ) {
-                        // Find the corresponding app
+                      ...appProvider.favoriteApps.take(3).map((appConfig) {
+                        // Convert AppConfig to App for display
                         try {
                           final app = appProvider.apps.firstWhere(
-                            (app) => app.name == config.appName,
+                            (app) => app.name == appConfig.appName,
                           );
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
@@ -449,8 +443,12 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     NasServer server,
   ) {
     // Calculate app statistics
-    final installedApps = appProvider.installedApps;
-    final availableApps = appProvider.availableApps;
+    final installedApps = appProvider.apps
+        .where((app) => app.installed)
+        .toList();
+    final availableApps = appProvider.apps
+        .where((app) => !app.installed)
+        .toList();
     final appsWithUpdates = installedApps
         .where(
           (app) => app.upgradeInfo != null && app.upgradeInfo!.upgradeAvailable,

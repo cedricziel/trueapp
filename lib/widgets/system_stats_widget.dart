@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/system_stats.dart';
-import 'package:truenas_manager/providers/system_stats_provider.dart';
-import 'package:truenas_manager/widgets/responsive_row.dart';
-import 'package:truenas_manager/widgets/usage_bar.dart';
+import 'package:truehub/models/system_stats.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/widgets/responsive_row.dart';
+import 'package:truehub/widgets/usage_bar.dart';
 
 class SystemStatsWidget extends StatelessWidget {
   const SystemStatsWidget({super.key});

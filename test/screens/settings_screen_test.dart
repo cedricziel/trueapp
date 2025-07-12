@@ -1,9 +1,10 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/screens/settings_screen.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/settings_screen.dart';
+import 'package:truehub/services/database.dart';
 import 'package:drift/native.dart';
 
 void main() {
@@ -13,7 +14,9 @@ void main() {
 
     setUp(() {
       database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(database);
+      serverProvider = ServerProvider(
+        TestProviders.createMockUnifiedServerService(),
+      );
     });
 
     tearDown(() async {

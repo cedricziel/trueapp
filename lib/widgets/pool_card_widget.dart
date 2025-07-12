@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/widgets/storage_metric_widget.dart';
-import 'package:truenas_manager/screens/pool_detail_screen.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/widgets/storage_metric_widget.dart';
+import 'package:truehub/screens/pool_detail_screen.dart';
 
 class PoolCardWidget extends StatelessWidget {
   final Map<String, dynamic> pool;

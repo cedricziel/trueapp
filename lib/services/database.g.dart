@@ -36,6 +36,18 @@ class $NasServersTable extends NasServers
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _usernameMeta = const VerificationMeta(
+    'username',
+  );
+  @override
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+    'username',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _localUrlMeta = const VerificationMeta(
     'localUrl',
   );
@@ -145,6 +157,7 @@ class $NasServersTable extends NasServers
     id,
     name,
     host,
+    username,
     localUrl,
     trustedWifiSsids,
     port,
@@ -186,6 +199,12 @@ class $NasServersTable extends NasServers
       );
     } else if (isInserting) {
       context.missing(_hostMeta);
+    }
+    if (data.containsKey('username')) {
+      context.handle(
+        _usernameMeta,
+        username.isAcceptableOrUnknown(data['username']!, _usernameMeta),
+      );
     }
     if (data.containsKey('local_url')) {
       context.handle(
@@ -265,6 +284,10 @@ class $NasServersTable extends NasServers
         DriftSqlType.string,
         data['${effectivePrefix}host'],
       )!,
+      username: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}username'],
+      )!,
       localUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_url'],
@@ -310,6 +333,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
   final String id;
   final String name;
   final String host;
+  final String username;
   final String? localUrl;
   final String trustedWifiSsids;
   final int? port;
@@ -322,6 +346,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     required this.id,
     required this.name,
     required this.host,
+    required this.username,
     this.localUrl,
     required this.trustedWifiSsids,
     this.port,
@@ -337,6 +362,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['host'] = Variable<String>(host);
+    map['username'] = Variable<String>(username);
     if (!nullToAbsent || localUrl != null) {
       map['local_url'] = Variable<String>(localUrl);
     }
@@ -361,6 +387,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: Value(id),
       name: Value(name),
       host: Value(host),
+      username: Value(username),
       localUrl: localUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(localUrl),
@@ -385,6 +412,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       host: serializer.fromJson<String>(json['host']),
+      username: serializer.fromJson<String>(json['username']),
       localUrl: serializer.fromJson<String?>(json['localUrl']),
       trustedWifiSsids: serializer.fromJson<String>(json['trustedWifiSsids']),
       port: serializer.fromJson<int?>(json['port']),
@@ -404,6 +432,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'host': serializer.toJson<String>(host),
+      'username': serializer.toJson<String>(username),
       'localUrl': serializer.toJson<String?>(localUrl),
       'trustedWifiSsids': serializer.toJson<String>(trustedWifiSsids),
       'port': serializer.toJson<int?>(port),
@@ -421,6 +450,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     String? id,
     String? name,
     String? host,
+    String? username,
     Value<String?> localUrl = const Value.absent(),
     String? trustedWifiSsids,
     Value<int?> port = const Value.absent(),
@@ -433,6 +463,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     id: id ?? this.id,
     name: name ?? this.name,
     host: host ?? this.host,
+    username: username ?? this.username,
     localUrl: localUrl.present ? localUrl.value : this.localUrl,
     trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
     port: port.present ? port.value : this.port,
@@ -450,6 +481,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       host: data.host.present ? data.host.value : this.host,
+      username: data.username.present ? data.username.value : this.username,
       localUrl: data.localUrl.present ? data.localUrl.value : this.localUrl,
       trustedWifiSsids: data.trustedWifiSsids.present
           ? data.trustedWifiSsids.value
@@ -473,6 +505,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('username: $username, ')
           ..write('localUrl: $localUrl, ')
           ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
@@ -490,6 +523,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
     id,
     name,
     host,
+    username,
     localUrl,
     trustedWifiSsids,
     port,
@@ -506,6 +540,7 @@ class NasServerData extends DataClass implements Insertable<NasServerData> {
           other.id == this.id &&
           other.name == this.name &&
           other.host == this.host &&
+          other.username == this.username &&
           other.localUrl == this.localUrl &&
           other.trustedWifiSsids == this.trustedWifiSsids &&
           other.port == this.port &&
@@ -520,6 +555,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> host;
+  final Value<String> username;
   final Value<String?> localUrl;
   final Value<String> trustedWifiSsids;
   final Value<int?> port;
@@ -533,6 +569,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.host = const Value.absent(),
+    this.username = const Value.absent(),
     this.localUrl = const Value.absent(),
     this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
@@ -547,6 +584,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     required String id,
     required String name,
     required String host,
+    this.username = const Value.absent(),
     this.localUrl = const Value.absent(),
     this.trustedWifiSsids = const Value.absent(),
     this.port = const Value.absent(),
@@ -563,6 +601,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? host,
+    Expression<String>? username,
     Expression<String>? localUrl,
     Expression<String>? trustedWifiSsids,
     Expression<int>? port,
@@ -577,6 +616,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (host != null) 'host': host,
+      if (username != null) 'username': username,
       if (localUrl != null) 'local_url': localUrl,
       if (trustedWifiSsids != null) 'trusted_wifi_ssids': trustedWifiSsids,
       if (port != null) 'port': port,
@@ -594,6 +634,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? host,
+    Value<String>? username,
     Value<String?>? localUrl,
     Value<String>? trustedWifiSsids,
     Value<int?>? port,
@@ -608,6 +649,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
       id: id ?? this.id,
       name: name ?? this.name,
       host: host ?? this.host,
+      username: username ?? this.username,
       localUrl: localUrl ?? this.localUrl,
       trustedWifiSsids: trustedWifiSsids ?? this.trustedWifiSsids,
       port: port ?? this.port,
@@ -632,6 +674,9 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
     }
     if (host.present) {
       map['host'] = Variable<String>(host.value);
+    }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
     }
     if (localUrl.present) {
       map['local_url'] = Variable<String>(localUrl.value);
@@ -671,6 +716,7 @@ class NasServersCompanion extends UpdateCompanion<NasServerData> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('host: $host, ')
+          ..write('username: $username, ')
           ..write('localUrl: $localUrl, ')
           ..write('trustedWifiSsids: $trustedWifiSsids, ')
           ..write('port: $port, ')
@@ -805,6 +851,239 @@ class $AppConfigsTable extends AppConfigs
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _installedMeta = const VerificationMeta(
+    'installed',
+  );
+  @override
+  late final GeneratedColumn<bool> installed = GeneratedColumn<bool>(
+    'installed',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("installed" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _healthyMeta = const VerificationMeta(
+    'healthy',
+  );
+  @override
+  late final GeneratedColumn<bool> healthy = GeneratedColumn<bool>(
+    'healthy',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("healthy" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _healthyErrorMeta = const VerificationMeta(
+    'healthyError',
+  );
+  @override
+  late final GeneratedColumn<String> healthyError = GeneratedColumn<String>(
+    'healthy_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<String> version = GeneratedColumn<String>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _appVersionMeta = const VerificationMeta(
+    'appVersion',
+  );
+  @override
+  late final GeneratedColumn<String> appVersion = GeneratedColumn<String>(
+    'app_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _humanVersionMeta = const VerificationMeta(
+    'humanVersion',
+  );
+  @override
+  late final GeneratedColumn<String> humanVersion = GeneratedColumn<String>(
+    'human_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoriesMeta = const VerificationMeta(
+    'categories',
+  );
+  @override
+  late final GeneratedColumn<String> categories = GeneratedColumn<String>(
+    'categories',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _homeMeta = const VerificationMeta('home');
+  @override
+  late final GeneratedColumn<String> home = GeneratedColumn<String>(
+    'home',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recommendedMeta = const VerificationMeta(
+    'recommended',
+  );
+  @override
+  late final GeneratedColumn<bool> recommended = GeneratedColumn<bool>(
+    'recommended',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("recommended" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _catalogMeta = const VerificationMeta(
+    'catalog',
+  );
+  @override
+  late final GeneratedColumn<String> catalog = GeneratedColumn<String>(
+    'catalog',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trainMeta = const VerificationMeta('train');
+  @override
+  late final GeneratedColumn<String> train = GeneratedColumn<String>(
+    'train',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastApiUpdateMeta = const VerificationMeta(
+    'lastApiUpdate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastApiUpdate =
+      GeneratedColumn<DateTime>(
+        'last_api_update',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _screenshotsMeta = const VerificationMeta(
+    'screenshots',
+  );
+  @override
+  late final GeneratedColumn<String> screenshots = GeneratedColumn<String>(
+    'screenshots',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourcesMeta = const VerificationMeta(
+    'sources',
+  );
+  @override
+  late final GeneratedColumn<String> sources = GeneratedColumn<String>(
+    'sources',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _appReadmeMeta = const VerificationMeta(
+    'appReadme',
+  );
+  @override
+  late final GeneratedColumn<String> appReadme = GeneratedColumn<String>(
+    'app_readme',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maintainersJsonMeta = const VerificationMeta(
+    'maintainersJson',
+  );
+  @override
+  late final GeneratedColumn<String> maintainersJson = GeneratedColumn<String>(
+    'maintainers_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _upgradeInfoJsonMeta = const VerificationMeta(
+    'upgradeInfoJson',
+  );
+  @override
+  late final GeneratedColumn<String> upgradeInfoJson = GeneratedColumn<String>(
+    'upgrade_info_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _usedPortsJsonMeta = const VerificationMeta(
+    'usedPortsJson',
+  );
+  @override
+  late final GeneratedColumn<String> usedPortsJson = GeneratedColumn<String>(
+    'used_ports_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -816,6 +1095,27 @@ class $AppConfigsTable extends AppConfigs
     isFavorite,
     createdAt,
     updatedAt,
+    title,
+    description,
+    installed,
+    healthy,
+    healthyError,
+    version,
+    appVersion,
+    humanVersion,
+    categories,
+    home,
+    tags,
+    recommended,
+    catalog,
+    train,
+    lastApiUpdate,
+    screenshots,
+    sources,
+    appReadme,
+    maintainersJson,
+    upgradeInfoJson,
+    usedPortsJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -887,6 +1187,159 @@ class $AppConfigsTable extends AppConfigs
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('installed')) {
+      context.handle(
+        _installedMeta,
+        installed.isAcceptableOrUnknown(data['installed']!, _installedMeta),
+      );
+    }
+    if (data.containsKey('healthy')) {
+      context.handle(
+        _healthyMeta,
+        healthy.isAcceptableOrUnknown(data['healthy']!, _healthyMeta),
+      );
+    }
+    if (data.containsKey('healthy_error')) {
+      context.handle(
+        _healthyErrorMeta,
+        healthyError.isAcceptableOrUnknown(
+          data['healthy_error']!,
+          _healthyErrorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('app_version')) {
+      context.handle(
+        _appVersionMeta,
+        appVersion.isAcceptableOrUnknown(data['app_version']!, _appVersionMeta),
+      );
+    }
+    if (data.containsKey('human_version')) {
+      context.handle(
+        _humanVersionMeta,
+        humanVersion.isAcceptableOrUnknown(
+          data['human_version']!,
+          _humanVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('categories')) {
+      context.handle(
+        _categoriesMeta,
+        categories.isAcceptableOrUnknown(data['categories']!, _categoriesMeta),
+      );
+    }
+    if (data.containsKey('home')) {
+      context.handle(
+        _homeMeta,
+        home.isAcceptableOrUnknown(data['home']!, _homeMeta),
+      );
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('recommended')) {
+      context.handle(
+        _recommendedMeta,
+        recommended.isAcceptableOrUnknown(
+          data['recommended']!,
+          _recommendedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('catalog')) {
+      context.handle(
+        _catalogMeta,
+        catalog.isAcceptableOrUnknown(data['catalog']!, _catalogMeta),
+      );
+    }
+    if (data.containsKey('train')) {
+      context.handle(
+        _trainMeta,
+        train.isAcceptableOrUnknown(data['train']!, _trainMeta),
+      );
+    }
+    if (data.containsKey('last_api_update')) {
+      context.handle(
+        _lastApiUpdateMeta,
+        lastApiUpdate.isAcceptableOrUnknown(
+          data['last_api_update']!,
+          _lastApiUpdateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('screenshots')) {
+      context.handle(
+        _screenshotsMeta,
+        screenshots.isAcceptableOrUnknown(
+          data['screenshots']!,
+          _screenshotsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sources')) {
+      context.handle(
+        _sourcesMeta,
+        sources.isAcceptableOrUnknown(data['sources']!, _sourcesMeta),
+      );
+    }
+    if (data.containsKey('app_readme')) {
+      context.handle(
+        _appReadmeMeta,
+        appReadme.isAcceptableOrUnknown(data['app_readme']!, _appReadmeMeta),
+      );
+    }
+    if (data.containsKey('maintainers_json')) {
+      context.handle(
+        _maintainersJsonMeta,
+        maintainersJson.isAcceptableOrUnknown(
+          data['maintainers_json']!,
+          _maintainersJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('upgrade_info_json')) {
+      context.handle(
+        _upgradeInfoJsonMeta,
+        upgradeInfoJson.isAcceptableOrUnknown(
+          data['upgrade_info_json']!,
+          _upgradeInfoJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('used_ports_json')) {
+      context.handle(
+        _usedPortsJsonMeta,
+        usedPortsJson.isAcceptableOrUnknown(
+          data['used_ports_json']!,
+          _usedPortsJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -932,6 +1385,90 @@ class $AppConfigsTable extends AppConfigs
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      installed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}installed'],
+      ),
+      healthy: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}healthy'],
+      ),
+      healthyError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}healthy_error'],
+      ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version'],
+      ),
+      appVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_version'],
+      ),
+      humanVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}human_version'],
+      ),
+      categories: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}categories'],
+      ),
+      home: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}home'],
+      ),
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      ),
+      recommended: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}recommended'],
+      ),
+      catalog: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}catalog'],
+      ),
+      train: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}train'],
+      ),
+      lastApiUpdate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_api_update'],
+      ),
+      screenshots: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}screenshots'],
+      ),
+      sources: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sources'],
+      ),
+      appReadme: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_readme'],
+      ),
+      maintainersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}maintainers_json'],
+      ),
+      upgradeInfoJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}upgrade_info_json'],
+      ),
+      usedPortsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}used_ports_json'],
+      ),
     );
   }
 
@@ -951,6 +1488,27 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
   final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? title;
+  final String? description;
+  final bool? installed;
+  final bool? healthy;
+  final String? healthyError;
+  final String? version;
+  final String? appVersion;
+  final String? humanVersion;
+  final String? categories;
+  final String? home;
+  final String? tags;
+  final bool? recommended;
+  final String? catalog;
+  final String? train;
+  final DateTime? lastApiUpdate;
+  final String? screenshots;
+  final String? sources;
+  final String? appReadme;
+  final String? maintainersJson;
+  final String? upgradeInfoJson;
+  final String? usedPortsJson;
   const AppConfigData({
     required this.id,
     required this.serverId,
@@ -961,6 +1519,27 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     required this.isFavorite,
     required this.createdAt,
     required this.updatedAt,
+    this.title,
+    this.description,
+    this.installed,
+    this.healthy,
+    this.healthyError,
+    this.version,
+    this.appVersion,
+    this.humanVersion,
+    this.categories,
+    this.home,
+    this.tags,
+    this.recommended,
+    this.catalog,
+    this.train,
+    this.lastApiUpdate,
+    this.screenshots,
+    this.sources,
+    this.appReadme,
+    this.maintainersJson,
+    this.upgradeInfoJson,
+    this.usedPortsJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -978,6 +1557,69 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     map['is_favorite'] = Variable<bool>(isFavorite);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || installed != null) {
+      map['installed'] = Variable<bool>(installed);
+    }
+    if (!nullToAbsent || healthy != null) {
+      map['healthy'] = Variable<bool>(healthy);
+    }
+    if (!nullToAbsent || healthyError != null) {
+      map['healthy_error'] = Variable<String>(healthyError);
+    }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<String>(version);
+    }
+    if (!nullToAbsent || appVersion != null) {
+      map['app_version'] = Variable<String>(appVersion);
+    }
+    if (!nullToAbsent || humanVersion != null) {
+      map['human_version'] = Variable<String>(humanVersion);
+    }
+    if (!nullToAbsent || categories != null) {
+      map['categories'] = Variable<String>(categories);
+    }
+    if (!nullToAbsent || home != null) {
+      map['home'] = Variable<String>(home);
+    }
+    if (!nullToAbsent || tags != null) {
+      map['tags'] = Variable<String>(tags);
+    }
+    if (!nullToAbsent || recommended != null) {
+      map['recommended'] = Variable<bool>(recommended);
+    }
+    if (!nullToAbsent || catalog != null) {
+      map['catalog'] = Variable<String>(catalog);
+    }
+    if (!nullToAbsent || train != null) {
+      map['train'] = Variable<String>(train);
+    }
+    if (!nullToAbsent || lastApiUpdate != null) {
+      map['last_api_update'] = Variable<DateTime>(lastApiUpdate);
+    }
+    if (!nullToAbsent || screenshots != null) {
+      map['screenshots'] = Variable<String>(screenshots);
+    }
+    if (!nullToAbsent || sources != null) {
+      map['sources'] = Variable<String>(sources);
+    }
+    if (!nullToAbsent || appReadme != null) {
+      map['app_readme'] = Variable<String>(appReadme);
+    }
+    if (!nullToAbsent || maintainersJson != null) {
+      map['maintainers_json'] = Variable<String>(maintainersJson);
+    }
+    if (!nullToAbsent || upgradeInfoJson != null) {
+      map['upgrade_info_json'] = Variable<String>(upgradeInfoJson);
+    }
+    if (!nullToAbsent || usedPortsJson != null) {
+      map['used_ports_json'] = Variable<String>(usedPortsJson);
+    }
     return map;
   }
 
@@ -996,6 +1638,65 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       isFavorite: Value(isFavorite),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      installed: installed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(installed),
+      healthy: healthy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(healthy),
+      healthyError: healthyError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(healthyError),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      appVersion: appVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appVersion),
+      humanVersion: humanVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(humanVersion),
+      categories: categories == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categories),
+      home: home == null && nullToAbsent ? const Value.absent() : Value(home),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
+      recommended: recommended == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recommended),
+      catalog: catalog == null && nullToAbsent
+          ? const Value.absent()
+          : Value(catalog),
+      train: train == null && nullToAbsent
+          ? const Value.absent()
+          : Value(train),
+      lastApiUpdate: lastApiUpdate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastApiUpdate),
+      screenshots: screenshots == null && nullToAbsent
+          ? const Value.absent()
+          : Value(screenshots),
+      sources: sources == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sources),
+      appReadme: appReadme == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appReadme),
+      maintainersJson: maintainersJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maintainersJson),
+      upgradeInfoJson: upgradeInfoJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(upgradeInfoJson),
+      usedPortsJson: usedPortsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(usedPortsJson),
     );
   }
 
@@ -1014,6 +1715,27 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      title: serializer.fromJson<String?>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
+      installed: serializer.fromJson<bool?>(json['installed']),
+      healthy: serializer.fromJson<bool?>(json['healthy']),
+      healthyError: serializer.fromJson<String?>(json['healthyError']),
+      version: serializer.fromJson<String?>(json['version']),
+      appVersion: serializer.fromJson<String?>(json['appVersion']),
+      humanVersion: serializer.fromJson<String?>(json['humanVersion']),
+      categories: serializer.fromJson<String?>(json['categories']),
+      home: serializer.fromJson<String?>(json['home']),
+      tags: serializer.fromJson<String?>(json['tags']),
+      recommended: serializer.fromJson<bool?>(json['recommended']),
+      catalog: serializer.fromJson<String?>(json['catalog']),
+      train: serializer.fromJson<String?>(json['train']),
+      lastApiUpdate: serializer.fromJson<DateTime?>(json['lastApiUpdate']),
+      screenshots: serializer.fromJson<String?>(json['screenshots']),
+      sources: serializer.fromJson<String?>(json['sources']),
+      appReadme: serializer.fromJson<String?>(json['appReadme']),
+      maintainersJson: serializer.fromJson<String?>(json['maintainersJson']),
+      upgradeInfoJson: serializer.fromJson<String?>(json['upgradeInfoJson']),
+      usedPortsJson: serializer.fromJson<String?>(json['usedPortsJson']),
     );
   }
   @override
@@ -1029,6 +1751,27 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'title': serializer.toJson<String?>(title),
+      'description': serializer.toJson<String?>(description),
+      'installed': serializer.toJson<bool?>(installed),
+      'healthy': serializer.toJson<bool?>(healthy),
+      'healthyError': serializer.toJson<String?>(healthyError),
+      'version': serializer.toJson<String?>(version),
+      'appVersion': serializer.toJson<String?>(appVersion),
+      'humanVersion': serializer.toJson<String?>(humanVersion),
+      'categories': serializer.toJson<String?>(categories),
+      'home': serializer.toJson<String?>(home),
+      'tags': serializer.toJson<String?>(tags),
+      'recommended': serializer.toJson<bool?>(recommended),
+      'catalog': serializer.toJson<String?>(catalog),
+      'train': serializer.toJson<String?>(train),
+      'lastApiUpdate': serializer.toJson<DateTime?>(lastApiUpdate),
+      'screenshots': serializer.toJson<String?>(screenshots),
+      'sources': serializer.toJson<String?>(sources),
+      'appReadme': serializer.toJson<String?>(appReadme),
+      'maintainersJson': serializer.toJson<String?>(maintainersJson),
+      'upgradeInfoJson': serializer.toJson<String?>(upgradeInfoJson),
+      'usedPortsJson': serializer.toJson<String?>(usedPortsJson),
     };
   }
 
@@ -1042,6 +1785,27 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     bool? isFavorite,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> title = const Value.absent(),
+    Value<String?> description = const Value.absent(),
+    Value<bool?> installed = const Value.absent(),
+    Value<bool?> healthy = const Value.absent(),
+    Value<String?> healthyError = const Value.absent(),
+    Value<String?> version = const Value.absent(),
+    Value<String?> appVersion = const Value.absent(),
+    Value<String?> humanVersion = const Value.absent(),
+    Value<String?> categories = const Value.absent(),
+    Value<String?> home = const Value.absent(),
+    Value<String?> tags = const Value.absent(),
+    Value<bool?> recommended = const Value.absent(),
+    Value<String?> catalog = const Value.absent(),
+    Value<String?> train = const Value.absent(),
+    Value<DateTime?> lastApiUpdate = const Value.absent(),
+    Value<String?> screenshots = const Value.absent(),
+    Value<String?> sources = const Value.absent(),
+    Value<String?> appReadme = const Value.absent(),
+    Value<String?> maintainersJson = const Value.absent(),
+    Value<String?> upgradeInfoJson = const Value.absent(),
+    Value<String?> usedPortsJson = const Value.absent(),
   }) => AppConfigData(
     id: id ?? this.id,
     serverId: serverId ?? this.serverId,
@@ -1052,6 +1816,35 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     isFavorite: isFavorite ?? this.isFavorite,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    title: title.present ? title.value : this.title,
+    description: description.present ? description.value : this.description,
+    installed: installed.present ? installed.value : this.installed,
+    healthy: healthy.present ? healthy.value : this.healthy,
+    healthyError: healthyError.present ? healthyError.value : this.healthyError,
+    version: version.present ? version.value : this.version,
+    appVersion: appVersion.present ? appVersion.value : this.appVersion,
+    humanVersion: humanVersion.present ? humanVersion.value : this.humanVersion,
+    categories: categories.present ? categories.value : this.categories,
+    home: home.present ? home.value : this.home,
+    tags: tags.present ? tags.value : this.tags,
+    recommended: recommended.present ? recommended.value : this.recommended,
+    catalog: catalog.present ? catalog.value : this.catalog,
+    train: train.present ? train.value : this.train,
+    lastApiUpdate: lastApiUpdate.present
+        ? lastApiUpdate.value
+        : this.lastApiUpdate,
+    screenshots: screenshots.present ? screenshots.value : this.screenshots,
+    sources: sources.present ? sources.value : this.sources,
+    appReadme: appReadme.present ? appReadme.value : this.appReadme,
+    maintainersJson: maintainersJson.present
+        ? maintainersJson.value
+        : this.maintainersJson,
+    upgradeInfoJson: upgradeInfoJson.present
+        ? upgradeInfoJson.value
+        : this.upgradeInfoJson,
+    usedPortsJson: usedPortsJson.present
+        ? usedPortsJson.value
+        : this.usedPortsJson,
   );
   AppConfigData copyWithCompanion(AppConfigsCompanion data) {
     return AppConfigData(
@@ -1068,6 +1861,49 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           : this.isFavorite,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      installed: data.installed.present ? data.installed.value : this.installed,
+      healthy: data.healthy.present ? data.healthy.value : this.healthy,
+      healthyError: data.healthyError.present
+          ? data.healthyError.value
+          : this.healthyError,
+      version: data.version.present ? data.version.value : this.version,
+      appVersion: data.appVersion.present
+          ? data.appVersion.value
+          : this.appVersion,
+      humanVersion: data.humanVersion.present
+          ? data.humanVersion.value
+          : this.humanVersion,
+      categories: data.categories.present
+          ? data.categories.value
+          : this.categories,
+      home: data.home.present ? data.home.value : this.home,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      recommended: data.recommended.present
+          ? data.recommended.value
+          : this.recommended,
+      catalog: data.catalog.present ? data.catalog.value : this.catalog,
+      train: data.train.present ? data.train.value : this.train,
+      lastApiUpdate: data.lastApiUpdate.present
+          ? data.lastApiUpdate.value
+          : this.lastApiUpdate,
+      screenshots: data.screenshots.present
+          ? data.screenshots.value
+          : this.screenshots,
+      sources: data.sources.present ? data.sources.value : this.sources,
+      appReadme: data.appReadme.present ? data.appReadme.value : this.appReadme,
+      maintainersJson: data.maintainersJson.present
+          ? data.maintainersJson.value
+          : this.maintainersJson,
+      upgradeInfoJson: data.upgradeInfoJson.present
+          ? data.upgradeInfoJson.value
+          : this.upgradeInfoJson,
+      usedPortsJson: data.usedPortsJson.present
+          ? data.usedPortsJson.value
+          : this.usedPortsJson,
     );
   }
 
@@ -1082,13 +1918,34 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           ..write('isEnabled: $isEnabled, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('installed: $installed, ')
+          ..write('healthy: $healthy, ')
+          ..write('healthyError: $healthyError, ')
+          ..write('version: $version, ')
+          ..write('appVersion: $appVersion, ')
+          ..write('humanVersion: $humanVersion, ')
+          ..write('categories: $categories, ')
+          ..write('home: $home, ')
+          ..write('tags: $tags, ')
+          ..write('recommended: $recommended, ')
+          ..write('catalog: $catalog, ')
+          ..write('train: $train, ')
+          ..write('lastApiUpdate: $lastApiUpdate, ')
+          ..write('screenshots: $screenshots, ')
+          ..write('sources: $sources, ')
+          ..write('appReadme: $appReadme, ')
+          ..write('maintainersJson: $maintainersJson, ')
+          ..write('upgradeInfoJson: $upgradeInfoJson, ')
+          ..write('usedPortsJson: $usedPortsJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     serverId,
     appName,
@@ -1098,7 +1955,28 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     isFavorite,
     createdAt,
     updatedAt,
-  );
+    title,
+    description,
+    installed,
+    healthy,
+    healthyError,
+    version,
+    appVersion,
+    humanVersion,
+    categories,
+    home,
+    tags,
+    recommended,
+    catalog,
+    train,
+    lastApiUpdate,
+    screenshots,
+    sources,
+    appReadme,
+    maintainersJson,
+    upgradeInfoJson,
+    usedPortsJson,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1111,7 +1989,28 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           other.isEnabled == this.isEnabled &&
           other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.installed == this.installed &&
+          other.healthy == this.healthy &&
+          other.healthyError == this.healthyError &&
+          other.version == this.version &&
+          other.appVersion == this.appVersion &&
+          other.humanVersion == this.humanVersion &&
+          other.categories == this.categories &&
+          other.home == this.home &&
+          other.tags == this.tags &&
+          other.recommended == this.recommended &&
+          other.catalog == this.catalog &&
+          other.train == this.train &&
+          other.lastApiUpdate == this.lastApiUpdate &&
+          other.screenshots == this.screenshots &&
+          other.sources == this.sources &&
+          other.appReadme == this.appReadme &&
+          other.maintainersJson == this.maintainersJson &&
+          other.upgradeInfoJson == this.upgradeInfoJson &&
+          other.usedPortsJson == this.usedPortsJson);
 }
 
 class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
@@ -1124,6 +2023,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
   final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> title;
+  final Value<String?> description;
+  final Value<bool?> installed;
+  final Value<bool?> healthy;
+  final Value<String?> healthyError;
+  final Value<String?> version;
+  final Value<String?> appVersion;
+  final Value<String?> humanVersion;
+  final Value<String?> categories;
+  final Value<String?> home;
+  final Value<String?> tags;
+  final Value<bool?> recommended;
+  final Value<String?> catalog;
+  final Value<String?> train;
+  final Value<DateTime?> lastApiUpdate;
+  final Value<String?> screenshots;
+  final Value<String?> sources;
+  final Value<String?> appReadme;
+  final Value<String?> maintainersJson;
+  final Value<String?> upgradeInfoJson;
+  final Value<String?> usedPortsJson;
   const AppConfigsCompanion({
     this.id = const Value.absent(),
     this.serverId = const Value.absent(),
@@ -1134,6 +2054,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.installed = const Value.absent(),
+    this.healthy = const Value.absent(),
+    this.healthyError = const Value.absent(),
+    this.version = const Value.absent(),
+    this.appVersion = const Value.absent(),
+    this.humanVersion = const Value.absent(),
+    this.categories = const Value.absent(),
+    this.home = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.recommended = const Value.absent(),
+    this.catalog = const Value.absent(),
+    this.train = const Value.absent(),
+    this.lastApiUpdate = const Value.absent(),
+    this.screenshots = const Value.absent(),
+    this.sources = const Value.absent(),
+    this.appReadme = const Value.absent(),
+    this.maintainersJson = const Value.absent(),
+    this.upgradeInfoJson = const Value.absent(),
+    this.usedPortsJson = const Value.absent(),
   });
   AppConfigsCompanion.insert({
     this.id = const Value.absent(),
@@ -1145,6 +2086,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.installed = const Value.absent(),
+    this.healthy = const Value.absent(),
+    this.healthyError = const Value.absent(),
+    this.version = const Value.absent(),
+    this.appVersion = const Value.absent(),
+    this.humanVersion = const Value.absent(),
+    this.categories = const Value.absent(),
+    this.home = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.recommended = const Value.absent(),
+    this.catalog = const Value.absent(),
+    this.train = const Value.absent(),
+    this.lastApiUpdate = const Value.absent(),
+    this.screenshots = const Value.absent(),
+    this.sources = const Value.absent(),
+    this.appReadme = const Value.absent(),
+    this.maintainersJson = const Value.absent(),
+    this.upgradeInfoJson = const Value.absent(),
+    this.usedPortsJson = const Value.absent(),
   }) : serverId = Value(serverId),
        appName = Value(appName);
   static Insertable<AppConfigData> custom({
@@ -1157,6 +2119,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<bool>? installed,
+    Expression<bool>? healthy,
+    Expression<String>? healthyError,
+    Expression<String>? version,
+    Expression<String>? appVersion,
+    Expression<String>? humanVersion,
+    Expression<String>? categories,
+    Expression<String>? home,
+    Expression<String>? tags,
+    Expression<bool>? recommended,
+    Expression<String>? catalog,
+    Expression<String>? train,
+    Expression<DateTime>? lastApiUpdate,
+    Expression<String>? screenshots,
+    Expression<String>? sources,
+    Expression<String>? appReadme,
+    Expression<String>? maintainersJson,
+    Expression<String>? upgradeInfoJson,
+    Expression<String>? usedPortsJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1168,6 +2151,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (installed != null) 'installed': installed,
+      if (healthy != null) 'healthy': healthy,
+      if (healthyError != null) 'healthy_error': healthyError,
+      if (version != null) 'version': version,
+      if (appVersion != null) 'app_version': appVersion,
+      if (humanVersion != null) 'human_version': humanVersion,
+      if (categories != null) 'categories': categories,
+      if (home != null) 'home': home,
+      if (tags != null) 'tags': tags,
+      if (recommended != null) 'recommended': recommended,
+      if (catalog != null) 'catalog': catalog,
+      if (train != null) 'train': train,
+      if (lastApiUpdate != null) 'last_api_update': lastApiUpdate,
+      if (screenshots != null) 'screenshots': screenshots,
+      if (sources != null) 'sources': sources,
+      if (appReadme != null) 'app_readme': appReadme,
+      if (maintainersJson != null) 'maintainers_json': maintainersJson,
+      if (upgradeInfoJson != null) 'upgrade_info_json': upgradeInfoJson,
+      if (usedPortsJson != null) 'used_ports_json': usedPortsJson,
     });
   }
 
@@ -1181,6 +2185,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Value<bool>? isFavorite,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? title,
+    Value<String?>? description,
+    Value<bool?>? installed,
+    Value<bool?>? healthy,
+    Value<String?>? healthyError,
+    Value<String?>? version,
+    Value<String?>? appVersion,
+    Value<String?>? humanVersion,
+    Value<String?>? categories,
+    Value<String?>? home,
+    Value<String?>? tags,
+    Value<bool?>? recommended,
+    Value<String?>? catalog,
+    Value<String?>? train,
+    Value<DateTime?>? lastApiUpdate,
+    Value<String?>? screenshots,
+    Value<String?>? sources,
+    Value<String?>? appReadme,
+    Value<String?>? maintainersJson,
+    Value<String?>? upgradeInfoJson,
+    Value<String?>? usedPortsJson,
   }) {
     return AppConfigsCompanion(
       id: id ?? this.id,
@@ -1192,6 +2217,27 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      installed: installed ?? this.installed,
+      healthy: healthy ?? this.healthy,
+      healthyError: healthyError ?? this.healthyError,
+      version: version ?? this.version,
+      appVersion: appVersion ?? this.appVersion,
+      humanVersion: humanVersion ?? this.humanVersion,
+      categories: categories ?? this.categories,
+      home: home ?? this.home,
+      tags: tags ?? this.tags,
+      recommended: recommended ?? this.recommended,
+      catalog: catalog ?? this.catalog,
+      train: train ?? this.train,
+      lastApiUpdate: lastApiUpdate ?? this.lastApiUpdate,
+      screenshots: screenshots ?? this.screenshots,
+      sources: sources ?? this.sources,
+      appReadme: appReadme ?? this.appReadme,
+      maintainersJson: maintainersJson ?? this.maintainersJson,
+      upgradeInfoJson: upgradeInfoJson ?? this.upgradeInfoJson,
+      usedPortsJson: usedPortsJson ?? this.usedPortsJson,
     );
   }
 
@@ -1225,6 +2271,69 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (installed.present) {
+      map['installed'] = Variable<bool>(installed.value);
+    }
+    if (healthy.present) {
+      map['healthy'] = Variable<bool>(healthy.value);
+    }
+    if (healthyError.present) {
+      map['healthy_error'] = Variable<String>(healthyError.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<String>(version.value);
+    }
+    if (appVersion.present) {
+      map['app_version'] = Variable<String>(appVersion.value);
+    }
+    if (humanVersion.present) {
+      map['human_version'] = Variable<String>(humanVersion.value);
+    }
+    if (categories.present) {
+      map['categories'] = Variable<String>(categories.value);
+    }
+    if (home.present) {
+      map['home'] = Variable<String>(home.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (recommended.present) {
+      map['recommended'] = Variable<bool>(recommended.value);
+    }
+    if (catalog.present) {
+      map['catalog'] = Variable<String>(catalog.value);
+    }
+    if (train.present) {
+      map['train'] = Variable<String>(train.value);
+    }
+    if (lastApiUpdate.present) {
+      map['last_api_update'] = Variable<DateTime>(lastApiUpdate.value);
+    }
+    if (screenshots.present) {
+      map['screenshots'] = Variable<String>(screenshots.value);
+    }
+    if (sources.present) {
+      map['sources'] = Variable<String>(sources.value);
+    }
+    if (appReadme.present) {
+      map['app_readme'] = Variable<String>(appReadme.value);
+    }
+    if (maintainersJson.present) {
+      map['maintainers_json'] = Variable<String>(maintainersJson.value);
+    }
+    if (upgradeInfoJson.present) {
+      map['upgrade_info_json'] = Variable<String>(upgradeInfoJson.value);
+    }
+    if (usedPortsJson.present) {
+      map['used_ports_json'] = Variable<String>(usedPortsJson.value);
+    }
     return map;
   }
 
@@ -1239,7 +2348,28 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
           ..write('isEnabled: $isEnabled, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('installed: $installed, ')
+          ..write('healthy: $healthy, ')
+          ..write('healthyError: $healthyError, ')
+          ..write('version: $version, ')
+          ..write('appVersion: $appVersion, ')
+          ..write('humanVersion: $humanVersion, ')
+          ..write('categories: $categories, ')
+          ..write('home: $home, ')
+          ..write('tags: $tags, ')
+          ..write('recommended: $recommended, ')
+          ..write('catalog: $catalog, ')
+          ..write('train: $train, ')
+          ..write('lastApiUpdate: $lastApiUpdate, ')
+          ..write('screenshots: $screenshots, ')
+          ..write('sources: $sources, ')
+          ..write('appReadme: $appReadme, ')
+          ..write('maintainersJson: $maintainersJson, ')
+          ..write('upgradeInfoJson: $upgradeInfoJson, ')
+          ..write('usedPortsJson: $usedPortsJson')
           ..write(')'))
         .toString();
   }
@@ -1323,6 +2453,15 @@ class $AppPortConfigsTable extends AppPortConfigs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _apiUrlMeta = const VerificationMeta('apiUrl');
+  @override
+  late final GeneratedColumn<String> apiUrl = GeneratedColumn<String>(
+    'api_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isPrimaryMeta = const VerificationMeta(
     'isPrimary',
   );
@@ -1385,6 +2524,7 @@ class $AppPortConfigsTable extends AppPortConfigs
     protocol,
     serviceName,
     customUrl,
+    apiUrl,
     isPrimary,
     isEnabled,
     createdAt,
@@ -1445,6 +2585,12 @@ class $AppPortConfigsTable extends AppPortConfigs
         customUrl.isAcceptableOrUnknown(data['custom_url']!, _customUrlMeta),
       );
     }
+    if (data.containsKey('api_url')) {
+      context.handle(
+        _apiUrlMeta,
+        apiUrl.isAcceptableOrUnknown(data['api_url']!, _apiUrlMeta),
+      );
+    }
     if (data.containsKey('is_primary')) {
       context.handle(
         _isPrimaryMeta,
@@ -1502,6 +2648,10 @@ class $AppPortConfigsTable extends AppPortConfigs
         DriftSqlType.string,
         data['${effectivePrefix}custom_url'],
       ),
+      apiUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_url'],
+      ),
       isPrimary: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_primary'],
@@ -1535,6 +2685,7 @@ class AppPortConfigData extends DataClass
   final String protocol;
   final String? serviceName;
   final String? customUrl;
+  final String? apiUrl;
   final bool isPrimary;
   final bool isEnabled;
   final DateTime createdAt;
@@ -1546,6 +2697,7 @@ class AppPortConfigData extends DataClass
     required this.protocol,
     this.serviceName,
     this.customUrl,
+    this.apiUrl,
     required this.isPrimary,
     required this.isEnabled,
     required this.createdAt,
@@ -1563,6 +2715,9 @@ class AppPortConfigData extends DataClass
     }
     if (!nullToAbsent || customUrl != null) {
       map['custom_url'] = Variable<String>(customUrl);
+    }
+    if (!nullToAbsent || apiUrl != null) {
+      map['api_url'] = Variable<String>(apiUrl);
     }
     map['is_primary'] = Variable<bool>(isPrimary);
     map['is_enabled'] = Variable<bool>(isEnabled);
@@ -1583,6 +2738,9 @@ class AppPortConfigData extends DataClass
       customUrl: customUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(customUrl),
+      apiUrl: apiUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(apiUrl),
       isPrimary: Value(isPrimary),
       isEnabled: Value(isEnabled),
       createdAt: Value(createdAt),
@@ -1602,6 +2760,7 @@ class AppPortConfigData extends DataClass
       protocol: serializer.fromJson<String>(json['protocol']),
       serviceName: serializer.fromJson<String?>(json['serviceName']),
       customUrl: serializer.fromJson<String?>(json['customUrl']),
+      apiUrl: serializer.fromJson<String?>(json['apiUrl']),
       isPrimary: serializer.fromJson<bool>(json['isPrimary']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -1618,6 +2777,7 @@ class AppPortConfigData extends DataClass
       'protocol': serializer.toJson<String>(protocol),
       'serviceName': serializer.toJson<String?>(serviceName),
       'customUrl': serializer.toJson<String?>(customUrl),
+      'apiUrl': serializer.toJson<String?>(apiUrl),
       'isPrimary': serializer.toJson<bool>(isPrimary),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -1632,6 +2792,7 @@ class AppPortConfigData extends DataClass
     String? protocol,
     Value<String?> serviceName = const Value.absent(),
     Value<String?> customUrl = const Value.absent(),
+    Value<String?> apiUrl = const Value.absent(),
     bool? isPrimary,
     bool? isEnabled,
     DateTime? createdAt,
@@ -1643,6 +2804,7 @@ class AppPortConfigData extends DataClass
     protocol: protocol ?? this.protocol,
     serviceName: serviceName.present ? serviceName.value : this.serviceName,
     customUrl: customUrl.present ? customUrl.value : this.customUrl,
+    apiUrl: apiUrl.present ? apiUrl.value : this.apiUrl,
     isPrimary: isPrimary ?? this.isPrimary,
     isEnabled: isEnabled ?? this.isEnabled,
     createdAt: createdAt ?? this.createdAt,
@@ -1662,6 +2824,7 @@ class AppPortConfigData extends DataClass
           ? data.serviceName.value
           : this.serviceName,
       customUrl: data.customUrl.present ? data.customUrl.value : this.customUrl,
+      apiUrl: data.apiUrl.present ? data.apiUrl.value : this.apiUrl,
       isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -1678,6 +2841,7 @@ class AppPortConfigData extends DataClass
           ..write('protocol: $protocol, ')
           ..write('serviceName: $serviceName, ')
           ..write('customUrl: $customUrl, ')
+          ..write('apiUrl: $apiUrl, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -1694,6 +2858,7 @@ class AppPortConfigData extends DataClass
     protocol,
     serviceName,
     customUrl,
+    apiUrl,
     isPrimary,
     isEnabled,
     createdAt,
@@ -1709,6 +2874,7 @@ class AppPortConfigData extends DataClass
           other.protocol == this.protocol &&
           other.serviceName == this.serviceName &&
           other.customUrl == this.customUrl &&
+          other.apiUrl == this.apiUrl &&
           other.isPrimary == this.isPrimary &&
           other.isEnabled == this.isEnabled &&
           other.createdAt == this.createdAt &&
@@ -1722,6 +2888,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
   final Value<String> protocol;
   final Value<String?> serviceName;
   final Value<String?> customUrl;
+  final Value<String?> apiUrl;
   final Value<bool> isPrimary;
   final Value<bool> isEnabled;
   final Value<DateTime> createdAt;
@@ -1733,6 +2900,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     this.protocol = const Value.absent(),
     this.serviceName = const Value.absent(),
     this.customUrl = const Value.absent(),
+    this.apiUrl = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1745,6 +2913,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     this.protocol = const Value.absent(),
     this.serviceName = const Value.absent(),
     this.customUrl = const Value.absent(),
+    this.apiUrl = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1758,6 +2927,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     Expression<String>? protocol,
     Expression<String>? serviceName,
     Expression<String>? customUrl,
+    Expression<String>? apiUrl,
     Expression<bool>? isPrimary,
     Expression<bool>? isEnabled,
     Expression<DateTime>? createdAt,
@@ -1770,6 +2940,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
       if (protocol != null) 'protocol': protocol,
       if (serviceName != null) 'service_name': serviceName,
       if (customUrl != null) 'custom_url': customUrl,
+      if (apiUrl != null) 'api_url': apiUrl,
       if (isPrimary != null) 'is_primary': isPrimary,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (createdAt != null) 'created_at': createdAt,
@@ -1784,6 +2955,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     Value<String>? protocol,
     Value<String?>? serviceName,
     Value<String?>? customUrl,
+    Value<String?>? apiUrl,
     Value<bool>? isPrimary,
     Value<bool>? isEnabled,
     Value<DateTime>? createdAt,
@@ -1796,6 +2968,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
       protocol: protocol ?? this.protocol,
       serviceName: serviceName ?? this.serviceName,
       customUrl: customUrl ?? this.customUrl,
+      apiUrl: apiUrl ?? this.apiUrl,
       isPrimary: isPrimary ?? this.isPrimary,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
@@ -1824,6 +2997,9 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     if (customUrl.present) {
       map['custom_url'] = Variable<String>(customUrl.value);
     }
+    if (apiUrl.present) {
+      map['api_url'] = Variable<String>(apiUrl.value);
+    }
     if (isPrimary.present) {
       map['is_primary'] = Variable<bool>(isPrimary.value);
     }
@@ -1848,6 +3024,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
           ..write('protocol: $protocol, ')
           ..write('serviceName: $serviceName, ')
           ..write('customUrl: $customUrl, ')
+          ..write('apiUrl: $apiUrl, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -1896,6 +3073,7 @@ typedef $$NasServersTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String host,
+      Value<String> username,
       Value<String?> localUrl,
       Value<String> trustedWifiSsids,
       Value<int?> port,
@@ -1911,6 +3089,7 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> host,
+      Value<String> username,
       Value<String?> localUrl,
       Value<String> trustedWifiSsids,
       Value<int?> port,
@@ -1966,6 +3145,11 @@ class $$NasServersTableFilterComposer
 
   ColumnFilters<String> get host => $composableBuilder(
     column: $table.host,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get username => $composableBuilder(
+    column: $table.username,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2059,6 +3243,11 @@ class $$NasServersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get username => $composableBuilder(
+    column: $table.username,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get localUrl => $composableBuilder(
     column: $table.localUrl,
     builder: (column) => ColumnOrderings(column),
@@ -2117,6 +3306,9 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<String> get host =>
       $composableBuilder(column: $table.host, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
 
   GeneratedColumn<String> get localUrl =>
       $composableBuilder(column: $table.localUrl, builder: (column) => column);
@@ -2205,6 +3397,7 @@ class $$NasServersTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> host = const Value.absent(),
+                Value<String> username = const Value.absent(),
                 Value<String?> localUrl = const Value.absent(),
                 Value<String> trustedWifiSsids = const Value.absent(),
                 Value<int?> port = const Value.absent(),
@@ -2218,6 +3411,7 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                username: username,
                 localUrl: localUrl,
                 trustedWifiSsids: trustedWifiSsids,
                 port: port,
@@ -2233,6 +3427,7 @@ class $$NasServersTableTableManager
                 required String id,
                 required String name,
                 required String host,
+                Value<String> username = const Value.absent(),
                 Value<String?> localUrl = const Value.absent(),
                 Value<String> trustedWifiSsids = const Value.absent(),
                 Value<int?> port = const Value.absent(),
@@ -2246,6 +3441,7 @@ class $$NasServersTableTableManager
                 id: id,
                 name: name,
                 host: host,
+                username: username,
                 localUrl: localUrl,
                 trustedWifiSsids: trustedWifiSsids,
                 port: port,
@@ -2323,6 +3519,27 @@ typedef $$AppConfigsTableCreateCompanionBuilder =
       Value<bool> isFavorite,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<String?> title,
+      Value<String?> description,
+      Value<bool?> installed,
+      Value<bool?> healthy,
+      Value<String?> healthyError,
+      Value<String?> version,
+      Value<String?> appVersion,
+      Value<String?> humanVersion,
+      Value<String?> categories,
+      Value<String?> home,
+      Value<String?> tags,
+      Value<bool?> recommended,
+      Value<String?> catalog,
+      Value<String?> train,
+      Value<DateTime?> lastApiUpdate,
+      Value<String?> screenshots,
+      Value<String?> sources,
+      Value<String?> appReadme,
+      Value<String?> maintainersJson,
+      Value<String?> upgradeInfoJson,
+      Value<String?> usedPortsJson,
     });
 typedef $$AppConfigsTableUpdateCompanionBuilder =
     AppConfigsCompanion Function({
@@ -2335,6 +3552,27 @@ typedef $$AppConfigsTableUpdateCompanionBuilder =
       Value<bool> isFavorite,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<String?> title,
+      Value<String?> description,
+      Value<bool?> installed,
+      Value<bool?> healthy,
+      Value<String?> healthyError,
+      Value<String?> version,
+      Value<String?> appVersion,
+      Value<String?> humanVersion,
+      Value<String?> categories,
+      Value<String?> home,
+      Value<String?> tags,
+      Value<bool?> recommended,
+      Value<String?> catalog,
+      Value<String?> train,
+      Value<DateTime?> lastApiUpdate,
+      Value<String?> screenshots,
+      Value<String?> sources,
+      Value<String?> appReadme,
+      Value<String?> maintainersJson,
+      Value<String?> upgradeInfoJson,
+      Value<String?> usedPortsJson,
     });
 
 final class $$AppConfigsTableReferences
@@ -2428,6 +3666,111 @@ class $$AppConfigsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get installed => $composableBuilder(
+    column: $table.installed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get healthy => $composableBuilder(
+    column: $table.healthy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get healthyError => $composableBuilder(
+    column: $table.healthyError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appVersion => $composableBuilder(
+    column: $table.appVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get humanVersion => $composableBuilder(
+    column: $table.humanVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get home => $composableBuilder(
+    column: $table.home,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get recommended => $composableBuilder(
+    column: $table.recommended,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get catalog => $composableBuilder(
+    column: $table.catalog,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get train => $composableBuilder(
+    column: $table.train,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastApiUpdate => $composableBuilder(
+    column: $table.lastApiUpdate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sources => $composableBuilder(
+    column: $table.sources,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appReadme => $composableBuilder(
+    column: $table.appReadme,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2529,6 +3872,111 @@ class $$AppConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get installed => $composableBuilder(
+    column: $table.installed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get healthy => $composableBuilder(
+    column: $table.healthy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get healthyError => $composableBuilder(
+    column: $table.healthyError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appVersion => $composableBuilder(
+    column: $table.appVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get humanVersion => $composableBuilder(
+    column: $table.humanVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get home => $composableBuilder(
+    column: $table.home,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get recommended => $composableBuilder(
+    column: $table.recommended,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get catalog => $composableBuilder(
+    column: $table.catalog,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get train => $composableBuilder(
+    column: $table.train,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastApiUpdate => $composableBuilder(
+    column: $table.lastApiUpdate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sources => $composableBuilder(
+    column: $table.sources,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appReadme => $composableBuilder(
+    column: $table.appReadme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$NasServersTableOrderingComposer get serverId {
     final $$NasServersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2589,6 +4037,91 @@ class $$AppConfigsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get installed =>
+      $composableBuilder(column: $table.installed, builder: (column) => column);
+
+  GeneratedColumn<bool> get healthy =>
+      $composableBuilder(column: $table.healthy, builder: (column) => column);
+
+  GeneratedColumn<String> get healthyError => $composableBuilder(
+    column: $table.healthyError,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get appVersion => $composableBuilder(
+    column: $table.appVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get humanVersion => $composableBuilder(
+    column: $table.humanVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get categories => $composableBuilder(
+    column: $table.categories,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get home =>
+      $composableBuilder(column: $table.home, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<bool> get recommended => $composableBuilder(
+    column: $table.recommended,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get catalog =>
+      $composableBuilder(column: $table.catalog, builder: (column) => column);
+
+  GeneratedColumn<String> get train =>
+      $composableBuilder(column: $table.train, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastApiUpdate => $composableBuilder(
+    column: $table.lastApiUpdate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sources =>
+      $composableBuilder(column: $table.sources, builder: (column) => column);
+
+  GeneratedColumn<String> get appReadme =>
+      $composableBuilder(column: $table.appReadme, builder: (column) => column);
+
+  GeneratedColumn<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
+    builder: (column) => column,
+  );
 
   $$NasServersTableAnnotationComposer get serverId {
     final $$NasServersTableAnnotationComposer composer = $composerBuilder(
@@ -2676,6 +4209,27 @@ class $$AppConfigsTableTableManager
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<bool?> installed = const Value.absent(),
+                Value<bool?> healthy = const Value.absent(),
+                Value<String?> healthyError = const Value.absent(),
+                Value<String?> version = const Value.absent(),
+                Value<String?> appVersion = const Value.absent(),
+                Value<String?> humanVersion = const Value.absent(),
+                Value<String?> categories = const Value.absent(),
+                Value<String?> home = const Value.absent(),
+                Value<String?> tags = const Value.absent(),
+                Value<bool?> recommended = const Value.absent(),
+                Value<String?> catalog = const Value.absent(),
+                Value<String?> train = const Value.absent(),
+                Value<DateTime?> lastApiUpdate = const Value.absent(),
+                Value<String?> screenshots = const Value.absent(),
+                Value<String?> sources = const Value.absent(),
+                Value<String?> appReadme = const Value.absent(),
+                Value<String?> maintainersJson = const Value.absent(),
+                Value<String?> upgradeInfoJson = const Value.absent(),
+                Value<String?> usedPortsJson = const Value.absent(),
               }) => AppConfigsCompanion(
                 id: id,
                 serverId: serverId,
@@ -2686,6 +4240,27 @@ class $$AppConfigsTableTableManager
                 isFavorite: isFavorite,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                title: title,
+                description: description,
+                installed: installed,
+                healthy: healthy,
+                healthyError: healthyError,
+                version: version,
+                appVersion: appVersion,
+                humanVersion: humanVersion,
+                categories: categories,
+                home: home,
+                tags: tags,
+                recommended: recommended,
+                catalog: catalog,
+                train: train,
+                lastApiUpdate: lastApiUpdate,
+                screenshots: screenshots,
+                sources: sources,
+                appReadme: appReadme,
+                maintainersJson: maintainersJson,
+                upgradeInfoJson: upgradeInfoJson,
+                usedPortsJson: usedPortsJson,
               ),
           createCompanionCallback:
               ({
@@ -2698,6 +4273,27 @@ class $$AppConfigsTableTableManager
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<bool?> installed = const Value.absent(),
+                Value<bool?> healthy = const Value.absent(),
+                Value<String?> healthyError = const Value.absent(),
+                Value<String?> version = const Value.absent(),
+                Value<String?> appVersion = const Value.absent(),
+                Value<String?> humanVersion = const Value.absent(),
+                Value<String?> categories = const Value.absent(),
+                Value<String?> home = const Value.absent(),
+                Value<String?> tags = const Value.absent(),
+                Value<bool?> recommended = const Value.absent(),
+                Value<String?> catalog = const Value.absent(),
+                Value<String?> train = const Value.absent(),
+                Value<DateTime?> lastApiUpdate = const Value.absent(),
+                Value<String?> screenshots = const Value.absent(),
+                Value<String?> sources = const Value.absent(),
+                Value<String?> appReadme = const Value.absent(),
+                Value<String?> maintainersJson = const Value.absent(),
+                Value<String?> upgradeInfoJson = const Value.absent(),
+                Value<String?> usedPortsJson = const Value.absent(),
               }) => AppConfigsCompanion.insert(
                 id: id,
                 serverId: serverId,
@@ -2708,6 +4304,27 @@ class $$AppConfigsTableTableManager
                 isFavorite: isFavorite,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                title: title,
+                description: description,
+                installed: installed,
+                healthy: healthy,
+                healthyError: healthyError,
+                version: version,
+                appVersion: appVersion,
+                humanVersion: humanVersion,
+                categories: categories,
+                home: home,
+                tags: tags,
+                recommended: recommended,
+                catalog: catalog,
+                train: train,
+                lastApiUpdate: lastApiUpdate,
+                screenshots: screenshots,
+                sources: sources,
+                appReadme: appReadme,
+                maintainersJson: maintainersJson,
+                upgradeInfoJson: upgradeInfoJson,
+                usedPortsJson: usedPortsJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2810,6 +4427,7 @@ typedef $$AppPortConfigsTableCreateCompanionBuilder =
       Value<String> protocol,
       Value<String?> serviceName,
       Value<String?> customUrl,
+      Value<String?> apiUrl,
       Value<bool> isPrimary,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
@@ -2823,6 +4441,7 @@ typedef $$AppPortConfigsTableUpdateCompanionBuilder =
       Value<String> protocol,
       Value<String?> serviceName,
       Value<String?> customUrl,
+      Value<String?> apiUrl,
       Value<bool> isPrimary,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
@@ -2889,6 +4508,11 @@ class $$AppPortConfigsTableFilterComposer
 
   ColumnFilters<String> get customUrl => $composableBuilder(
     column: $table.customUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2970,6 +4594,11 @@ class $$AppPortConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isPrimary => $composableBuilder(
     column: $table.isPrimary,
     builder: (column) => ColumnOrderings(column),
@@ -3041,6 +4670,9 @@ class $$AppPortConfigsTableAnnotationComposer
 
   GeneratedColumn<String> get customUrl =>
       $composableBuilder(column: $table.customUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get apiUrl =>
+      $composableBuilder(column: $table.apiUrl, builder: (column) => column);
 
   GeneratedColumn<bool> get isPrimary =>
       $composableBuilder(column: $table.isPrimary, builder: (column) => column);
@@ -3114,6 +4746,7 @@ class $$AppPortConfigsTableTableManager
                 Value<String> protocol = const Value.absent(),
                 Value<String?> serviceName = const Value.absent(),
                 Value<String?> customUrl = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -3125,6 +4758,7 @@ class $$AppPortConfigsTableTableManager
                 protocol: protocol,
                 serviceName: serviceName,
                 customUrl: customUrl,
+                apiUrl: apiUrl,
                 isPrimary: isPrimary,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
@@ -3138,6 +4772,7 @@ class $$AppPortConfigsTableTableManager
                 Value<String> protocol = const Value.absent(),
                 Value<String?> serviceName = const Value.absent(),
                 Value<String?> customUrl = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -3149,6 +4784,7 @@ class $$AppPortConfigsTableTableManager
                 protocol: protocol,
                 serviceName: serviceName,
                 customUrl: customUrl,
+                apiUrl: apiUrl,
                 isPrimary: isPrimary,
                 isEnabled: isEnabled,
                 createdAt: createdAt,

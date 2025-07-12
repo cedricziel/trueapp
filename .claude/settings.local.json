@@ -17,13 +17,12 @@
       "Bash(grep:*)",
       "Bash(dart format:*)",
       "Bash(gh repo view:*)",
-      "Bash(gh repo view:*)",
       "Bash(gh label:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue create:*)",
       "Bash(dart analyze:*)",
       "Bash(find:*)",
-      "Bash(gh label:*)"
+      "Bash(flutter build:*)"
     ],
     "deny": []
   }

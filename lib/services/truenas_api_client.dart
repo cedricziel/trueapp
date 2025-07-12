@@ -3,16 +3,16 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/server_health.dart';
-import 'package:truenas_manager/models/file_item.dart';
-import 'package:truenas_manager/models/user_info.dart';
-import 'package:truenas_manager/models/connection_error.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/models/system_stats.dart';
-import 'package:truenas_manager/services/network_service.dart';
-import 'package:truenas_manager/services/api_client_interface.dart';
-import 'package:truenas_manager/providers/connection_status_provider.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/file_item.dart';
+import 'package:truehub/models/user_info.dart';
+import 'package:truehub/models/connection_error.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/system_stats.dart';
+import 'package:truehub/services/network_service.dart';
+import 'package:truehub/services/api_client_interface.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 
 class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;

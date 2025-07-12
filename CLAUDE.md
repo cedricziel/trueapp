@@ -63,3 +63,17 @@ When implementing new features, follow the existing patterns and ensure compatib
 ## Development Philosophy
 - We want to use best-practices like coding against interfaces, dependency injection etc whenever we can and it's our responsibility to gradually modernize the parts of the app we touch
 - We want to build smaller, more manageable components when new functionality is added, and consider refactoring chunks into smaller components when we touch them
+- We want to code against interfaces so testing is easier and abstractions for other platforms are easier
+- Flutter embraces reactivity - being reactive to state-changes with patterns of streaming is what we want to do
+
+## Test Development Guidelines
+- When writing or changing tests, ensure they are following SOLID principles - even if it means we need new interfaces or refactorings
+
+## Testing Goals
+- We aim for 80% coverage
+
+## Dart Language Notes
+- We want to make use of dart's ability to trim down files with part of
+
+## Utilities
+- We want to create shared test utilities that work in many contexts

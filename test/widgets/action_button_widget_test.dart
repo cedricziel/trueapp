@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truenas_manager/widgets/action_button_widget.dart';
+import 'package:truehub/widgets/action_button_widget.dart';
 
 void main() {
   group('ActionButtonWidget', () {

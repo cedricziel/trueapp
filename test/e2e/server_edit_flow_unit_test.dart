@@ -1,8 +1,9 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/database.dart';
 
 void main() {
   late AppDatabase database;
@@ -11,7 +12,9 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(database);
+    serverProvider = ServerProvider(
+      TestProviders.createMockUnifiedServerService(),
+    );
 
     // STEP 1: Start with a registered server
     testServer = NasServer.create(
@@ -26,7 +29,7 @@ void main() {
       allowUntrustedCertificates: false,
     );
 
-    await serverProvider.addServer(testServer);
+    await serverProvider.addServer(testServer, 'password');
   });
 
   tearDown(() async {
@@ -235,7 +238,7 @@ void main() {
         username: 'admin2',
         password: 'password2',
       );
-      await serverProvider.addServer(server2);
+      await serverProvider.addServer(server2, 'password2');
 
       // Select first server and update it
       serverProvider.selectServer(testServer);

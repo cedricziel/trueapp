@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/app_config.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
+import 'package:truehub/models/app_config.dart';
+import 'package:truehub/providers/app_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppConfigurationScreen extends StatefulWidget {
@@ -16,6 +16,7 @@ class AppConfigurationScreen extends StatefulWidget {
 
 class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
   late TextEditingController _displayNameController;
+  late TextEditingController _primaryUrlController;
   late AppConfig _currentConfig;
 
   @override
@@ -25,11 +26,15 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
     _displayNameController = TextEditingController(
       text: _currentConfig.displayName ?? _currentConfig.appName,
     );
+    _primaryUrlController = TextEditingController(
+      text: _currentConfig.primaryPort?.customUrl ?? '',
+    );
   }
 
   @override
   void dispose() {
     _displayNameController.dispose();
+    _primaryUrlController.dispose();
     super.dispose();
   }
 
@@ -85,6 +90,16 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
               setState(() {
                 _currentConfig = _currentConfig.copyWith(isEnabled: value);
               });
+            },
+          ),
+        ),
+        CupertinoFormRow(
+          prefix: const Text('Primary URL'),
+          child: CupertinoTextFormFieldRow(
+            controller: _primaryUrlController,
+            placeholder: 'https://example.com:8080',
+            onChanged: (value) {
+              _updatePrimaryCustomUrl(value.isEmpty ? null : value);
             },
           ),
         ),
@@ -282,18 +297,47 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
     }
   }
 
-  Future<void> _saveConfiguration() async {
-    final provider = context.read<AppConfigProvider>();
+  void _updatePrimaryCustomUrl(String? customUrl) {
+    setState(() {
+      final ports = List<AppPortConfig>.from(_currentConfig.ports);
 
-    await provider.updateAppConfig(_currentConfig);
-
-    for (final port in _currentConfig.ports) {
-      if (port.id != null) {
-        await provider.updatePortConfig(_currentConfig.id!, port);
+      if (ports.isEmpty) {
+        // Create a new primary port if none exist
+        if (customUrl != null) {
+          final newPort = AppPortConfig(
+            portNumber: 80, // Default port
+            protocol: 'http',
+            serviceName: 'Web Interface',
+            customUrl: customUrl,
+            isPrimary: true,
+            isEnabled: true,
+          );
+          ports.add(newPort);
+        }
       } else {
-        await provider.addPortConfig(_currentConfig.id!, port);
+        // Find the primary port or use the first one
+        var primaryPortIndex = ports.indexWhere((port) => port.isPrimary);
+        if (primaryPortIndex == -1) {
+          primaryPortIndex = 0;
+          // Make the first port primary
+          ports[0] = ports[0].copyWith(isPrimary: true);
+        }
+
+        // Update the primary port's custom URL
+        ports[primaryPortIndex] = ports[primaryPortIndex].copyWith(
+          customUrl: customUrl,
+        );
       }
-    }
+
+      _currentConfig = _currentConfig.copyWith(ports: ports);
+    });
+  }
+
+  Future<void> _saveConfiguration() async {
+    final provider = context.read<AppProvider>();
+
+    // AppProvider handles both config and ports together
+    await provider.updateAppConfig(_currentConfig);
 
     if (mounted) {
       Navigator.of(context).pop();

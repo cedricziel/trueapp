@@ -1,13 +1,14 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/screens/edit_server_screen.dart';
-import 'package:truenas_manager/screens/server_detail_screen.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/screens/edit_server_screen.dart';
+import 'package:truehub/screens/server_detail_screen.dart';
+import 'package:truehub/services/database.dart';
 
 void main() {
   late AppDatabase database;
@@ -16,7 +17,9 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(database);
+    serverProvider = ServerProvider(
+      TestProviders.createMockUnifiedServerService(),
+    );
 
     // Create and register a test server
     testServer = NasServer.create(
@@ -31,7 +34,7 @@ void main() {
       allowUntrustedCertificates: false,
     );
 
-    await serverProvider.addServer(testServer);
+    await serverProvider.addServer(testServer, 'password');
     serverProvider.selectServer(testServer); // Select the server for editing
   });
 
@@ -60,7 +63,11 @@ void main() {
             providers: [
               Provider<AppDatabase>.value(value: database),
               ChangeNotifierProvider.value(value: serverProvider),
-              ChangeNotifierProvider(create: (_) => PoolProvider()),
+              ChangeNotifierProvider(
+                create: (_) => PoolProvider(
+                  TestProviders.createMockUnifiedServerService(),
+                ),
+              ),
             ],
             child: CupertinoApp(
               home: ServerDetailScreen(server: serverProvider.selectedServer!),
@@ -177,7 +184,11 @@ void main() {
             providers: [
               Provider<AppDatabase>.value(value: database),
               ChangeNotifierProvider.value(value: serverProvider),
-              ChangeNotifierProvider(create: (_) => PoolProvider()),
+              ChangeNotifierProvider(
+                create: (_) => PoolProvider(
+                  TestProviders.createMockUnifiedServerService(),
+                ),
+              ),
             ],
             child: CupertinoApp(
               home: EditServerScreen(server: serverProvider.selectedServer!),

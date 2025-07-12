@@ -1,11 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
-import 'package:truenas_manager/widgets/app_icon.dart';
-import 'package:truenas_manager/screens/app_detail_screen.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/widgets/app_icon.dart';
+import 'package:truehub/screens/app_detail_screen.dart';
 
 class AppCardWidget extends StatelessWidget {
   final App app;
@@ -62,14 +61,12 @@ class AppCardWidget extends StatelessWidget {
                 ),
                 // Favorite toggle for installed apps
                 if (app.installed) ...[
-                  Consumer<AppConfigProvider>(
-                    builder: (context, appConfigProvider, child) {
-                      final isFavorite = appConfigProvider.isAppFavorite(
-                        app.name,
-                      );
+                  Consumer<AppProvider>(
+                    builder: (context, appProvider, child) {
+                      final isFavorite = appProvider.isAppFavorite(app.name);
                       return GestureDetector(
                         onTap: () async {
-                          await appConfigProvider.setAppFavorite(
+                          await appProvider.setAppFavorite(
                             app.name,
                             !isFavorite,
                           );

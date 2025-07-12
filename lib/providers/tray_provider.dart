@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/services/tray_service.dart';
-import 'package:truenas_manager/services/window_manager.dart';
-import 'package:truenas_manager/models/app_config.dart';
+import 'package:truehub/services/tray_service.dart';
+import 'package:truehub/services/window_manager.dart';
+import 'package:truehub/models/app_config.dart';
 
 class TrayProvider with ChangeNotifier {
   final TrayService _trayService = TrayService();

@@ -2,42 +2,54 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/providers/dataset_provider.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
-import 'package:truenas_manager/providers/system_stats_provider.dart';
-import 'package:truenas_manager/providers/connection_status_provider.dart';
-import 'package:truenas_manager/providers/tray_provider.dart';
-import 'package:truenas_manager/screens/home_screen.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
-import 'package:truenas_manager/services/window_manager.dart';
-import 'package:truenas_manager/models/app_config.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/tray_provider.dart';
+import 'package:truehub/screens/home_screen.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/window_manager.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/models/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final database = AppDatabase();
   final connectionStatusProvider = ConnectionStatusProvider();
+  final unifiedServerService = await UnifiedServerService.createForProduction();
 
-  // Set up the connection status provider for API client manager
+  // Initialize services
   ApiClientManager.setConnectionStatusProvider(connectionStatusProvider);
 
   runApp(
     MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: database),
+        Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
-        ChangeNotifierProvider(create: (context) => ServerProvider(database)),
-        ChangeNotifierProvider(create: (context) => PoolProvider()),
-        ChangeNotifierProvider(create: (context) => DatasetProvider()),
-        ChangeNotifierProvider(create: (context) => AppProvider()),
         ChangeNotifierProvider(
-          create: (context) => AppConfigProvider(database: database),
+          create: (context) => ServerProvider(unifiedServerService),
         ),
-        ChangeNotifierProvider(create: (context) => SystemStatsProvider()),
+        ChangeNotifierProvider(
+          create: (context) => PoolProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => DatasetProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => AppProvider(
+            database: database,
+            serverService: unifiedServerService,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SystemStatsProvider(unifiedServerService),
+        ),
         ChangeNotifierProvider(create: (context) => TrayProvider()),
       ],
       child: const TrueNASManagerApp(),
@@ -70,11 +82,9 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
 
       serverProvider.addListener(_updateTrayStatus);
       appProvider.addListener(_updateTrayStatus);
-      appConfigProvider.addListener(_updateTrayStatus);
     }
   }
 
@@ -107,7 +117,7 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
 
     final trayProvider = context.read<TrayProvider>();
     final serverProvider = context.read<ServerProvider>();
-    final appConfigProvider = context.read<AppConfigProvider>();
+    final appProvider = context.read<AppProvider>();
 
     int totalServers = serverProvider.servers.length;
     int connectedServers = serverProvider.servers
@@ -124,10 +134,10 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       alerts.add(serverProvider.healthError!);
     }
 
-    // Get apps with portals for the current server
+    // Get apps with portals from the unified AppProvider
     List<AppConfig> appsWithPortals = [];
     try {
-      appsWithPortals = await appConfigProvider.getAppsWithPortals();
+      appsWithPortals = appProvider.getAppsWithPortals();
       if (kDebugMode) {
         print('Tray: Found ${appsWithPortals.length} apps with portals');
         for (final app in appsWithPortals) {
@@ -154,11 +164,9 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
 
       serverProvider.removeListener(_updateTrayStatus);
       appProvider.removeListener(_updateTrayStatus);
-      appConfigProvider.removeListener(_updateTrayStatus);
     }
     super.dispose();
   }

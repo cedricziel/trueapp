@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/screens/add_server_screen.dart';
-import 'package:truenas_manager/screens/server_detail_screen.dart';
-import 'package:truenas_manager/screens/settings_screen.dart';
-import 'package:truenas_manager/widgets/server_list_tile.dart';
-import 'package:truenas_manager/widgets/session_indicator_widget.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/add_server_screen.dart';
+import 'package:truehub/screens/server_detail_screen.dart';
+import 'package:truehub/screens/settings_screen.dart';
+import 'package:truehub/widgets/server_list_tile.dart';
+import 'package:truehub/widgets/session_indicator_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

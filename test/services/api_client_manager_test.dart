@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/truenas_api_client.dart';
 
 void main() {
   group('ApiClientManager', () {

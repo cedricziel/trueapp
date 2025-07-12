@@ -1,16 +1,17 @@
+import '../helpers/mock_server_sync_service.dart';
 import 'dart:async';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/screens/home_screen.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/models/server_health.dart';
-import 'package:truenas_manager/models/user_info.dart';
-import 'package:truenas_manager/models/connection_error.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/home_screen.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/user_info.dart';
+import 'package:truehub/models/connection_error.dart';
 
 // Mock providers that don't make network calls
 class MockServerProvider extends ChangeNotifier implements ServerProvider {
@@ -33,7 +34,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   NasServer? get selectedServer => _selectedServer;
 
   @override
-  Future<void> addServer(NasServer server) async {
+  Future<void> addServer(NasServer server, String password) async {
     await _database.insertServer(server);
     _servers.add(server);
     notifyListeners();
@@ -46,7 +47,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   }
 
   @override
-  Future<void> updateServer(NasServer server) async {
+  Future<void> updateServer(NasServer server, {String? password}) async {
     await _database.updateServer(server);
     final index = _servers.indexWhere((s) => s.id == server.id);
     if (index != -1) {
@@ -86,7 +87,7 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
 
   // Additional required methods
   @override
-  Future<void> loadServers() async {
+  Future<void> loadServersAndAutoSelect() async {
     _servers.clear();
     _servers.addAll(await _database.getAllServers());
     notifyListeners();
@@ -135,18 +136,13 @@ class MockServerProvider extends ChangeNotifier implements ServerProvider {
   @override
   Future<void> setDefaultServer(String serverId) async {
     await _database.setDefaultServer(serverId);
-    await loadServers();
+    await loadServersAndAutoSelect();
   }
 
   @override
   Future<void> clearDefaultServer() async {
     await _database.clearDefaultServer();
-    await loadServers();
-  }
-
-  @override
-  Future<void> loadServersAndAutoSelect() async {
-    await loadServers();
+    await loadServersAndAutoSelect();
   }
 
   @override
@@ -237,8 +233,10 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(database);
-    poolProvider = PoolProvider();
+    serverProvider = ServerProvider(
+      TestProviders.createMockUnifiedServerService(),
+    );
+    poolProvider = PoolProvider(TestProviders.createMockUnifiedServerService());
 
     // Create and register a test server
     testServer = NasServer.create(
@@ -253,8 +251,9 @@ void main() {
       allowUntrustedCertificates: false,
     );
 
-    await serverProvider.addServer(testServer);
-    await serverProvider.loadServers(); // Make sure servers are loaded
+    await serverProvider.addServer(testServer, 'password');
+    await serverProvider
+        .loadServersAndAutoSelect(); // Make sure servers are loaded
   });
 
   tearDown(() async {

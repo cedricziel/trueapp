@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/server_health.dart';
-import 'package:truenas_manager/models/file_item.dart';
-import 'package:truenas_manager/models/user_info.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/models/system_stats.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/file_item.dart';
+import 'package:truehub/models/user_info.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/system_stats.dart';
 
 /// Interface for TrueNAS API clients to enable dependency injection and testing
 abstract class ApiClientInterface {

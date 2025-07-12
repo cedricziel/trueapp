@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/system_stats.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/system_stats.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/providers/server_provider.dart';
 
 class SystemStatsProvider extends ChangeNotifier {
+  final UnifiedServerService _serverService;
   TrueNasApiClient? _apiClient;
   String? _currentServerId;
   SystemStats? _currentStats;
@@ -13,6 +16,8 @@ class SystemStatsProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSubscribed = false;
   StreamSubscription<SystemStats>? _statsSubscription;
+
+  SystemStatsProvider(this._serverService);
 
   SystemStats? get currentStats => _currentStats;
   String? get error => _error;
@@ -33,7 +38,21 @@ class SystemStatsProvider extends ChangeNotifier {
     _currentServerId = server.id;
 
     try {
-      _apiClient = await ApiClientManager.getClient(server);
+      // Load credentials for the server
+      final serverWithCredentials = await ServerProvider.loadServerCredentials(
+        server,
+        _serverService,
+      );
+
+      if (serverWithCredentials != null) {
+        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+      } else {
+        if (kDebugMode) {
+          print(
+            'SystemStatsProvider: No credentials available for server ${server.id}',
+          );
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         print('SystemStatsProvider: Failed to get API client: $e');

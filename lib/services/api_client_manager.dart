@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/providers/connection_status_provider.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 
 class ApiClientManager {
   static final Map<String, TrueNasApiClient> _clients = {};
@@ -17,6 +17,12 @@ class ApiClientManager {
 
   static Future<TrueNasApiClient?> getClient(NasServer server) async {
     final serverId = server.id;
+
+    if (kDebugMode) {
+      print(
+        'ApiClientManager: getClient called for ${server.name} - username: "${server.username}"',
+      );
+    }
 
     if (_clients.containsKey(serverId)) {
       _refCounts[serverId] = (_refCounts[serverId] ?? 0) + 1;
@@ -114,13 +120,36 @@ class ApiClientManager {
   static Future<void> closeClient(String serverId) async {
     if (kDebugMode) {
       print('ApiClientManager: Force closing client for server $serverId');
+      print('  - Had cached client: ${_clients.containsKey(serverId)}');
+      print('  - Ref count was: ${_refCounts[serverId]}');
     }
 
     final client = _clients.remove(serverId);
     _refCounts.remove(serverId);
     _connectionCompleters.remove(serverId);
 
-    await client?.close();
+    if (client != null) {
+      try {
+        await client.close();
+        if (kDebugMode) {
+          print(
+            'ApiClientManager: Successfully closed client for server $serverId',
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print(
+            'ApiClientManager: Error closing client for server $serverId: $e',
+          );
+        }
+      }
+    } else {
+      if (kDebugMode) {
+        print(
+          'ApiClientManager: No client found to close for server $serverId',
+        );
+      }
+    }
   }
 
   static Future<void> closeAllClients() async {
@@ -154,5 +183,26 @@ class ApiClientManager {
 
   static Map<String, int> getRefCounts() {
     return Map.from(_refCounts);
+  }
+
+  /// Force recreation of a client by closing any existing one and creating a fresh one
+  /// This ensures no cached state affects the new client
+  static Future<TrueNasApiClient?> forceRecreateClient(NasServer server) async {
+    final serverId = server.id;
+
+    if (kDebugMode) {
+      print(
+        'ApiClientManager: Force recreating client for server ${server.name}',
+      );
+    }
+
+    // First, forcefully close any existing client
+    await closeClient(serverId);
+
+    // Wait a brief moment to ensure cleanup is complete
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Now create a fresh client
+    return await getClient(server);
   }
 }

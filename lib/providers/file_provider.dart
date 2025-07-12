@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/file_item.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/file_item.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_manager.dart';
 
 class FileProvider extends ChangeNotifier {
   TrueNasApiClient? _apiClient;

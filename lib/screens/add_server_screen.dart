@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/services/network_service.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/network_service.dart';
 
 class AddServerScreen extends StatefulWidget {
   const AddServerScreen({super.key});
@@ -163,14 +164,47 @@ class _AddServerScreenState extends State<AddServerScreen> {
           .read<ServerProvider>()
           .validateServerCredentials(server);
       setState(() {
-        _connectionTestResult = isValid
-            ? 'Connection successful!'
-            : 'Invalid credentials or connection failed';
+        if (isValid) {
+          _connectionTestResult = '✅ Connection successful!';
+        } else {
+          _connectionTestResult =
+              '❌ Authentication failed. Check username/password and server settings.';
+        }
         _isTestingConnection = false;
       });
     } catch (e) {
       setState(() {
-        _connectionTestResult = 'Connection failed: ${e.toString()}';
+        String errorMessage = '❌ Connection failed: ';
+
+        // Provide more specific error messages
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('timeout') || errorStr.contains('deadline')) {
+          errorMessage += 'Request timed out. Check host and port.';
+        } else if (errorStr.contains('network') ||
+            errorStr.contains('unreachable')) {
+          errorMessage +=
+              'Network unreachable. Check host and internet connection.';
+        } else if (errorStr.contains('certificate') ||
+            errorStr.contains('ssl') ||
+            errorStr.contains('tls')) {
+          errorMessage +=
+              'SSL/TLS error. Try enabling "Allow Untrusted Certificates".';
+        } else if (errorStr.contains('refused') ||
+            errorStr.contains('connection')) {
+          errorMessage +=
+              'Connection refused. Check host, port, and HTTPS setting.';
+        } else if (errorStr.contains('unauthorized') ||
+            errorStr.contains('401')) {
+          errorMessage += 'Invalid username or password.';
+        } else if (errorStr.contains('forbidden') || errorStr.contains('403')) {
+          errorMessage += 'Access forbidden. Check user permissions.';
+        } else if (errorStr.contains('not found') || errorStr.contains('404')) {
+          errorMessage += 'Server not found. Check host and HTTPS setting.';
+        } else {
+          errorMessage += e.toString();
+        }
+
+        _connectionTestResult = errorMessage;
         _isTestingConnection = false;
       });
     }
@@ -195,7 +229,10 @@ class _AddServerScreenState extends State<AddServerScreen> {
       allowUntrustedCertificates: _allowUntrustedCertificates,
     );
 
-    await context.read<ServerProvider>().addServer(server);
+    await context.read<ServerProvider>().addServer(
+      server,
+      _passwordController.text,
+    );
     if (mounted) {
       Navigator.pop(
         context,
@@ -221,202 +258,213 @@ class _AddServerScreenState extends State<AddServerScreen> {
         ),
       ),
       child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            CupertinoFormSection(
-              header: const Text('SERVER DETAILS'),
-              children: [
-                CupertinoTextFormFieldRow(
-                  controller: _nameController,
-                  placeholder: 'My TrueNAS Server',
-                  prefix: const Text('Name'),
-                  onChanged: (_) => setState(() {}),
-                ),
-                CupertinoTextFormFieldRow(
-                  controller: _hostController,
-                  placeholder: '192.168.1.100',
-                  prefix: const Text('Host'),
-                  keyboardType: TextInputType.url,
-                  onChanged: (_) => setState(() {}),
-                ),
-                CupertinoTextFormFieldRow(
-                  controller: _portController,
-                  placeholder: 'Default port (443 for HTTPS, 80 for HTTP)',
-                  prefix: const Text('Port'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CupertinoFormSection(
-              header: const Text('LOCAL NETWORK (OPTIONAL)'),
-              children: [
-                CupertinoTextFormFieldRow(
-                  controller: _localUrlController,
-                  placeholder: 'http://192.168.1.100:80',
-                  prefix: const Text('Local URL'),
-                  keyboardType: TextInputType.url,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CupertinoFormSection(
-              header: const Text('TRUSTED WI-FI NETWORKS'),
-              children: [
-                // Current Wi-Fi suggestion
-                if (_currentWifiSsid != null &&
-                    !_trustedWifiSsids.contains(_currentWifiSsid!))
-                  CupertinoFormRow(
-                    prefix: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Current Network'),
-                        Text(
-                          _currentWifiSsid!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: CupertinoColors.systemGrey,
+        child: AutofillGroup(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              CupertinoFormSection(
+                header: const Text('SERVER DETAILS'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    controller: _nameController,
+                    placeholder: 'My TrueNAS Server',
+                    prefix: const Text('Name'),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  CupertinoTextFormFieldRow(
+                    controller: _hostController,
+                    placeholder: '192.168.1.100',
+                    prefix: const Text('Host'),
+                    keyboardType: TextInputType.url,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  CupertinoTextFormFieldRow(
+                    controller: _portController,
+                    placeholder: 'Default port (443 for HTTPS, 80 for HTTP)',
+                    prefix: const Text('Port'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CupertinoFormSection(
+                header: const Text('LOCAL NETWORK (OPTIONAL)'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    controller: _localUrlController,
+                    placeholder: 'http://192.168.1.100:80',
+                    prefix: const Text('Local URL'),
+                    keyboardType: TextInputType.url,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CupertinoFormSection(
+                header: const Text('TRUSTED WI-FI NETWORKS'),
+                children: [
+                  // Current Wi-Fi suggestion
+                  if (_currentWifiSsid != null &&
+                      !_trustedWifiSsids.contains(_currentWifiSsid!))
+                    CupertinoFormRow(
+                      prefix: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Current Network'),
+                          Text(
+                            _currentWifiSsid!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: CupertinoColors.systemGrey,
+                            ),
                           ),
+                        ],
+                      ),
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _addCurrentWifiSsid,
+                        child: const Text('Add Current'),
+                      ),
+                    ),
+                  if (_currentWifiSsid == null && !_isLoadingCurrentSsid)
+                    CupertinoFormRow(
+                      prefix: const Text('Current Network'),
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _loadCurrentWifiSsid,
+                        child: const Text('Detect'),
+                      ),
+                    ),
+                  if (_isLoadingCurrentSsid)
+                    const CupertinoFormRow(
+                      prefix: Text('Current Network'),
+                      child: CupertinoActivityIndicator(),
+                    ),
+                  CupertinoFormRow(
+                    prefix: const Text('Add SSID'),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CupertinoTextField(
+                            controller: _wifiSsidController,
+                            placeholder: 'Wi-Fi network name',
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: _addWifiSsid,
+                          child: const Text('Add'),
                         ),
                       ],
                     ),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: _addCurrentWifiSsid,
-                      child: const Text('Add Current'),
+                  ),
+                  ..._trustedWifiSsids.map(
+                    (ssid) => CupertinoFormRow(
+                      prefix: Text(ssid),
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () => _removeWifiSsid(ssid),
+                        child: const Text('Remove'),
+                      ),
                     ),
                   ),
-                if (_currentWifiSsid == null && !_isLoadingCurrentSsid)
+                ],
+              ),
+              const SizedBox(height: 16),
+              CupertinoFormSection(
+                header: const Text('AUTHENTICATION'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    controller: _usernameController,
+                    placeholder: 'admin',
+                    prefix: const Text('Username'),
+                    autocorrect: false,
+                    keyboardType: TextInputType.text,
+                    autofillHints: const [AutofillHints.username],
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  CupertinoTextFormFieldRow(
+                    controller: _passwordController,
+                    placeholder: 'Password',
+                    prefix: const Text('Password'),
+                    obscureText: true,
+                    autocorrect: false,
+                    autofillHints: const [AutofillHints.password],
+                    onChanged: (_) => setState(() {}),
+                    onEditingComplete: () {
+                      // Trigger save password prompt on iOS
+                      TextInput.finishAutofillContext();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CupertinoFormSection(
+                children: [
                   CupertinoFormRow(
-                    prefix: const Text('Current Network'),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: _loadCurrentWifiSsid,
-                      child: const Text('Detect'),
+                    prefix: const Text('Use HTTPS'),
+                    child: CupertinoSwitch(
+                      value: _useHttps,
+                      onChanged: (value) {
+                        setState(() {
+                          _useHttps = value;
+                          // Clear port to use default
+                          _portController.clear();
+                        });
+                      },
                     ),
                   ),
-                if (_isLoadingCurrentSsid)
-                  const CupertinoFormRow(
-                    prefix: Text('Current Network'),
-                    child: CupertinoActivityIndicator(),
+                  CupertinoFormRow(
+                    prefix: const Text('Allow Untrusted Certificates'),
+                    child: CupertinoSwitch(
+                      value: _allowUntrustedCertificates,
+                      onChanged: (value) {
+                        setState(() {
+                          _allowUntrustedCertificates = value;
+                        });
+                      },
+                    ),
                   ),
-                CupertinoFormRow(
-                  prefix: const Text('Add SSID'),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: CupertinoTextField(
-                          controller: _wifiSsidController,
-                          placeholder: 'Wi-Fi network name',
-                          onChanged: (_) => setState(() {}),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CupertinoFormSection(
+                header: const Text('CONNECTION TEST'),
+                children: [
+                  CupertinoFormRow(
+                    prefix: const Text('Test Connection'),
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      onPressed: _isValid && !_isTestingConnection
+                          ? _testConnection
+                          : null,
+                      child: _isTestingConnection
+                          ? const CupertinoActivityIndicator()
+                          : const Text('Test'),
+                    ),
+                  ),
+                  if (_connectionTestResult != null)
+                    CupertinoFormRow(
+                      prefix: const Text('Result'),
+                      child: Text(
+                        _connectionTestResult!,
+                        style: TextStyle(
+                          color:
+                              _connectionTestResult!.startsWith(
+                                'Connection successful',
+                              )
+                              ? CupertinoColors.systemGreen
+                              : CupertinoColors.systemRed,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: _addWifiSsid,
-                        child: const Text('Add'),
-                      ),
-                    ],
-                  ),
-                ),
-                ..._trustedWifiSsids.map(
-                  (ssid) => CupertinoFormRow(
-                    prefix: Text(ssid),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () => _removeWifiSsid(ssid),
-                      child: const Text('Remove'),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CupertinoFormSection(
-              header: const Text('AUTHENTICATION'),
-              children: [
-                CupertinoTextFormFieldRow(
-                  controller: _usernameController,
-                  placeholder: 'admin',
-                  prefix: const Text('Username'),
-                  onChanged: (_) => setState(() {}),
-                ),
-                CupertinoTextFormFieldRow(
-                  controller: _passwordController,
-                  placeholder: 'Password',
-                  prefix: const Text('Password'),
-                  obscureText: true,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CupertinoFormSection(
-              children: [
-                CupertinoFormRow(
-                  prefix: const Text('Use HTTPS'),
-                  child: CupertinoSwitch(
-                    value: _useHttps,
-                    onChanged: (value) {
-                      setState(() {
-                        _useHttps = value;
-                        // Clear port to use default
-                        _portController.clear();
-                      });
-                    },
-                  ),
-                ),
-                CupertinoFormRow(
-                  prefix: const Text('Allow Untrusted Certificates'),
-                  child: CupertinoSwitch(
-                    value: _allowUntrustedCertificates,
-                    onChanged: (value) {
-                      setState(() {
-                        _allowUntrustedCertificates = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            CupertinoFormSection(
-              header: const Text('CONNECTION TEST'),
-              children: [
-                CupertinoFormRow(
-                  prefix: const Text('Test Connection'),
-                  child: CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    onPressed: _isValid && !_isTestingConnection
-                        ? _testConnection
-                        : null,
-                    child: _isTestingConnection
-                        ? const CupertinoActivityIndicator()
-                        : const Text('Test'),
-                  ),
-                ),
-                if (_connectionTestResult != null)
-                  CupertinoFormRow(
-                    prefix: const Text('Result'),
-                    child: Text(
-                      _connectionTestResult!,
-                      style: TextStyle(
-                        color:
-                            _connectionTestResult!.startsWith(
-                              'Connection successful',
-                            )
-                            ? CupertinoColors.systemGreen
-                            : CupertinoColors.systemRed,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

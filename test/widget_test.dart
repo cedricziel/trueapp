@@ -1,3 +1,4 @@
+import 'helpers/mock_server_sync_service.dart';
 // This is a basic Flutter widget test.
 //
 // To perform an interaction with a widget in your test, use the WidgetTester
@@ -8,9 +9,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/main.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/main.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/database.dart';
 
 void main() {
   late AppDatabase database;
@@ -31,7 +32,10 @@ void main() {
       MultiProvider(
         providers: [
           Provider<AppDatabase>.value(value: database),
-          ChangeNotifierProvider(create: (context) => ServerProvider(database)),
+          ChangeNotifierProvider(
+            create: (context) =>
+                ServerProvider(TestProviders.createMockUnifiedServerService()),
+          ),
         ],
         child: const TrueNASManagerApp(),
       ),
