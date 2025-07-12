@@ -3,14 +3,14 @@ import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/screens/home_screen.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/models/server_health.dart';
-import 'package:truenas_manager/models/user_info.dart';
-import 'package:truenas_manager/models/connection_error.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/home_screen.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/user_info.dart';
+import 'package:truehub/models/connection_error.dart';
 
 // Mock providers that don't make network calls
 class MockServerProvider extends ChangeNotifier implements ServerProvider {

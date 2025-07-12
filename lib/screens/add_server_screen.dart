@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/services/network_service.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/network_service.dart';
 
 class AddServerScreen extends StatefulWidget {
   const AddServerScreen({super.key});

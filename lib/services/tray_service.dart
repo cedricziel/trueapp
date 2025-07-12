@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:truenas_manager/models/app_config.dart';
+import 'package:truehub/models/app_config.dart';
 
 class TrayService with TrayListener {
   static final TrayService _instance = TrayService._internal();

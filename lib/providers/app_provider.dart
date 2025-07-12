@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/connection_error.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/models/app_config.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/connection_error.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/app_config.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/database.dart';
 
 class AppProvider extends ChangeNotifier {
   final AppDatabase _database;

@@ -8,9 +8,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/main.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/main.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/database.dart';
 
 void main() {
   late AppDatabase database;

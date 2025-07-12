@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/connection_status_provider.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 
 class ConnectionStatusWidget extends StatelessWidget {
   final String serverId;

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart' as models;
-import 'package:truenas_manager/models/app_config.dart' as app_models;
-import 'package:truenas_manager/services/secure_storage_service.dart';
+import 'package:truehub/models/nas_server.dart' as models;
+import 'package:truehub/models/app_config.dart' as app_models;
+import 'package:truehub/services/secure_storage_service.dart';
 
 part 'database.g.dart';
 
@@ -424,7 +424,7 @@ class AppDatabase extends _$AppDatabase {
     String serverId,
   ) async {
     final query = '''
-      SELECT 
+      SELECT
         ac.*,
         apc.id as port_id,
         apc.port_number,

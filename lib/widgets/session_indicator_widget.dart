@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/services/authentication_session_service.dart';
+import 'package:truehub/services/authentication_session_service.dart';
 
 class SessionIndicatorWidget extends StatefulWidget {
   const SessionIndicatorWidget({super.key});

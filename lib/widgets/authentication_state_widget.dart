@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
+import 'package:truehub/providers/server_provider.dart';
 
 class AuthenticationStateWidget extends StatelessWidget {
   final Widget child;

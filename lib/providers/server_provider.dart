@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart' as models;
-import 'package:truenas_manager/models/server_health.dart';
-import 'package:truenas_manager/models/user_info.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/services/api_client_manager.dart';
-import 'package:truenas_manager/services/secure_storage_service.dart';
-import 'package:truenas_manager/services/credential_migration_service.dart';
+import 'package:truehub/models/nas_server.dart' as models;
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/user_info.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/secure_storage_service.dart';
+import 'package:truehub/services/credential_migration_service.dart';
 
 enum AuthenticationState {
   none,

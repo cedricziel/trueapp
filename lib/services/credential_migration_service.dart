@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/services/secure_storage_service.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/services/secure_storage_service.dart';
 
 class CredentialMigrationService {
   static const String migrationCompletedKey = 'credential_migration_completed';

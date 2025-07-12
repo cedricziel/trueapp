@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truenas_manager/models/nas_server.dart' as models;
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/models/nas_server.dart' as models;
+import 'package:truehub/services/database.dart';
 import 'package:drift/native.dart';
 
 void main() {

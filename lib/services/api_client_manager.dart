@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/services/truenas_api_client.dart';
-import 'package:truenas_manager/providers/connection_status_provider.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 
 class ApiClientManager {
   static final Map<String, TrueNasApiClient> _clients = {};

@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/models/app_config.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/widgets/app_icon.dart';
-import 'package:truenas_manager/screens/app_configuration_screen.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/app_config.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/widgets/app_icon.dart';
+import 'package:truehub/screens/app_configuration_screen.dart';
 
 class AppDetailScreen extends StatefulWidget {
   final App app;

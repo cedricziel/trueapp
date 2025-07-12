@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/models/app.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/widgets/app_card_widget.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/widgets/app_card_widget.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;

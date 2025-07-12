@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/providers/tray_provider.dart';
-import 'package:truenas_manager/services/database.dart';
-import 'package:truenas_manager/services/authentication_session_service.dart';
-import 'package:truenas_manager/services/secure_storage_service.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/tray_provider.dart';
+import 'package:truehub/services/database.dart';
+import 'package:truehub/services/authentication_session_service.dart';
+import 'package:truehub/services/secure_storage_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;

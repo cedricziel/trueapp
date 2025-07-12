@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:truenas_manager/models/app.dart';
+import 'package:truehub/models/app.dart';
 
 class AppIcon extends StatelessWidget {
   final App app;

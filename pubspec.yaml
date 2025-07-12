@@ -1,4 +1,4 @@
-name: truenas_manager
+name: truehub
 description: "A Flutter app to manage TrueNAS servers."
 license: AGPL-3.0
 # The following line prevents the package from being accidentally published to

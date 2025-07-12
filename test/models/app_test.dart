@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truenas_manager/models/app.dart';
+import 'package:truehub/models/app.dart';
 
 void main() {
   group('App Model Tests', () {

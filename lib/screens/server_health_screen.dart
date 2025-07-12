@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:truenas_manager/models/nas_server.dart';
+import 'package:truehub/models/nas_server.dart';
 
 class ServerHealthScreen extends StatelessWidget {
   final NasServer server;

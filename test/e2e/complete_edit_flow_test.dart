@@ -2,11 +2,11 @@ import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/nas_server.dart';
-import 'package:truenas_manager/providers/pool_provider.dart';
-import 'package:truenas_manager/providers/server_provider.dart';
-import 'package:truenas_manager/screens/home_screen.dart';
-import 'package:truenas_manager/services/database.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/home_screen.dart';
+import 'package:truehub/services/database.dart';
 
 void main() {
   late AppDatabase database;

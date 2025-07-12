@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:truenas_manager/models/app_config.dart';
-import 'package:truenas_manager/providers/app_provider.dart';
+import 'package:truehub/models/app_config.dart';
+import 'package:truehub/providers/app_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppConfigurationScreen extends StatefulWidget {
