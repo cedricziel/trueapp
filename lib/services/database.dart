@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:truenas_manager/models/nas_server.dart' as models;
+import 'package:truenas_manager/models/app_config.dart' as app_models;
 import 'package:truenas_manager/services/secure_storage_service.dart';
 
 part 'database.g.dart';
@@ -38,6 +39,23 @@ class AppConfigs extends Table {
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  // Basic app metadata for offline access
+  TextColumn get title => text().nullable()();
+  TextColumn get description => text().nullable()();
+  BoolColumn get installed => boolean().nullable()();
+  BoolColumn get healthy => boolean().nullable()();
+  TextColumn get healthyError => text().nullable()();
+  TextColumn get version => text().nullable()();
+  TextColumn get appVersion => text().nullable()();
+  TextColumn get humanVersion => text().nullable()();
+  TextColumn get categories => text().nullable()(); // JSON encoded list
+  TextColumn get home => text().nullable()();
+  TextColumn get tags => text().nullable()(); // JSON encoded list
+  BoolColumn get recommended => boolean().nullable()();
+  TextColumn get catalog => text().nullable()();
+  TextColumn get train => text().nullable()();
+  DateTimeColumn get lastApiUpdate => dateTime().nullable()();
 }
 
 @DataClassName('AppPortConfigData')
@@ -63,7 +81,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,6 +101,23 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.addColumn(appConfigs, appConfigs.isFavorite);
+      }
+      if (from < 6) {
+        await m.addColumn(appConfigs, appConfigs.title);
+        await m.addColumn(appConfigs, appConfigs.description);
+        await m.addColumn(appConfigs, appConfigs.installed);
+        await m.addColumn(appConfigs, appConfigs.healthy);
+        await m.addColumn(appConfigs, appConfigs.healthyError);
+        await m.addColumn(appConfigs, appConfigs.version);
+        await m.addColumn(appConfigs, appConfigs.appVersion);
+        await m.addColumn(appConfigs, appConfigs.humanVersion);
+        await m.addColumn(appConfigs, appConfigs.categories);
+        await m.addColumn(appConfigs, appConfigs.home);
+        await m.addColumn(appConfigs, appConfigs.tags);
+        await m.addColumn(appConfigs, appConfigs.recommended);
+        await m.addColumn(appConfigs, appConfigs.catalog);
+        await m.addColumn(appConfigs, appConfigs.train);
+        await m.addColumn(appConfigs, appConfigs.lastApiUpdate);
       }
     },
   );
@@ -424,5 +459,175 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> isAppFavorite(String serverId, String appName) async {
     final appConfig = await getAppConfig(serverId, appName);
     return appConfig?.isFavorite ?? false;
+  }
+
+  // Helper methods to convert between AppConfigData and AppConfig models
+  app_models.AppConfig mapToAppConfig(
+    AppConfigData data,
+    List<app_models.AppPortConfig> ports,
+  ) {
+    return app_models.AppConfig(
+      id: data.id,
+      serverId: data.serverId,
+      appName: data.appName,
+      displayName: data.displayName,
+      iconUrl: data.iconUrl,
+      isEnabled: data.isEnabled,
+      isFavorite: data.isFavorite,
+      ports: ports,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      title: data.title,
+      description: data.description,
+      installed: data.installed,
+      healthy: data.healthy,
+      healthyError: data.healthyError,
+      version: data.version,
+      appVersion: data.appVersion,
+      humanVersion: data.humanVersion,
+      categories: data.categories != null
+          ? (jsonDecode(data.categories!) as List).cast<String>()
+          : null,
+      home: data.home,
+      tags: data.tags != null
+          ? (jsonDecode(data.tags!) as List).cast<String>()
+          : null,
+      recommended: data.recommended,
+      catalog: data.catalog,
+      train: data.train,
+      lastApiUpdate: data.lastApiUpdate,
+    );
+  }
+
+  AppConfigsCompanion appConfigToCompanion(app_models.AppConfig config) {
+    return AppConfigsCompanion(
+      id: config.id != null ? Value(config.id!) : const Value.absent(),
+      serverId: Value(config.serverId),
+      appName: Value(config.appName),
+      displayName: Value(config.displayName),
+      iconUrl: Value(config.iconUrl),
+      isEnabled: Value(config.isEnabled),
+      isFavorite: Value(config.isFavorite),
+      createdAt: config.createdAt != null
+          ? Value(config.createdAt!)
+          : const Value.absent(),
+      updatedAt: Value(config.updatedAt ?? DateTime.now()),
+      title: Value(config.title),
+      description: Value(config.description),
+      installed: Value(config.installed),
+      healthy: Value(config.healthy),
+      healthyError: Value(config.healthyError),
+      version: Value(config.version),
+      appVersion: Value(config.appVersion),
+      humanVersion: Value(config.humanVersion),
+      categories: Value(
+        config.categories != null ? jsonEncode(config.categories) : null,
+      ),
+      home: Value(config.home),
+      tags: Value(config.tags != null ? jsonEncode(config.tags) : null),
+      recommended: Value(config.recommended),
+      catalog: Value(config.catalog),
+      train: Value(config.train),
+      lastApiUpdate: Value(config.lastApiUpdate),
+    );
+  }
+
+  app_models.AppPortConfig mapToAppPortConfig(AppPortConfigData data) {
+    return app_models.AppPortConfig(
+      id: data.id,
+      portNumber: data.portNumber,
+      protocol: data.protocol,
+      serviceName: data.serviceName,
+      customUrl: data.customUrl,
+      isPrimary: data.isPrimary,
+      isEnabled: data.isEnabled,
+    );
+  }
+
+  AppPortConfigsCompanion appPortConfigToCompanion(
+    app_models.AppPortConfig config,
+    int appConfigId,
+  ) {
+    return AppPortConfigsCompanion(
+      id: config.id != null ? Value(config.id!) : const Value.absent(),
+      appConfigId: Value(appConfigId),
+      portNumber: Value(config.portNumber),
+      protocol: Value(config.protocol),
+      serviceName: Value(config.serviceName),
+      customUrl: Value(config.customUrl),
+      isPrimary: Value(config.isPrimary),
+      isEnabled: Value(config.isEnabled),
+      createdAt: const Value.absent(),
+      updatedAt: Value(DateTime.now()),
+    );
+  }
+
+  // Enhanced methods to work with full AppConfig models
+  Future<app_models.AppConfig?> getFullAppConfig(
+    String serverId,
+    String appName,
+  ) async {
+    final configData = await getAppConfig(serverId, appName);
+    if (configData == null) return null;
+
+    final portData = await getAppPortConfigs(configData.id);
+    final ports = portData.map(mapToAppPortConfig).toList();
+
+    return mapToAppConfig(configData, ports);
+  }
+
+  Future<List<app_models.AppConfig>> getFullAppConfigs(String serverId) async {
+    final configsData = await getAppConfigs(serverId);
+    final configs = <app_models.AppConfig>[];
+
+    for (final configData in configsData) {
+      final portData = await getAppPortConfigs(configData.id);
+      final ports = portData.map(mapToAppPortConfig).toList();
+      configs.add(mapToAppConfig(configData, ports));
+    }
+
+    return configs;
+  }
+
+  Future<int> insertFullAppConfig(app_models.AppConfig config) async {
+    return await transaction(() async {
+      final configId = await insertAppConfig(appConfigToCompanion(config));
+
+      for (final port in config.ports) {
+        await insertAppPortConfig(appPortConfigToCompanion(port, configId));
+      }
+
+      return configId;
+    });
+  }
+
+  Future<void> updateFullAppConfig(app_models.AppConfig config) async {
+    if (config.id == null) {
+      throw ArgumentError('AppConfig must have an ID to be updated');
+    }
+
+    await transaction(() async {
+      await updateAppConfig(config.id!, appConfigToCompanion(config));
+
+      // Delete existing port configs and recreate them
+      await (delete(
+        appPortConfigs,
+      )..where((tbl) => tbl.appConfigId.equals(config.id!))).go();
+
+      for (final port in config.ports) {
+        await insertAppPortConfig(appPortConfigToCompanion(port, config.id!));
+      }
+    });
+  }
+
+  Future<void> upsertAppConfig(app_models.AppConfig config) async {
+    final existing = await getAppConfig(config.serverId, config.appName);
+
+    if (existing == null) {
+      await insertFullAppConfig(config);
+    } else {
+      final updatedConfig = config.copyWith(id: existing.id);
+      await updateFullAppConfig(updatedConfig);
+    }
   }
 }

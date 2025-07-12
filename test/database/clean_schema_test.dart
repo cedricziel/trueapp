@@ -4,12 +4,12 @@ import 'package:truenas_manager/services/database.dart';
 import 'package:drift/native.dart';
 
 void main() {
-  group('Clean Schema v5 Tests', () {
-    test('should create database with schema v5 and nullable ports', () async {
+  group('Clean Schema v6 Tests', () {
+    test('should create database with schema v6 and app metadata', () async {
       final database = AppDatabase.forTesting(NativeDatabase.memory());
 
-      // Verify schema version is 5 (includes favorites feature)
-      expect(database.schemaVersion, 5);
+      // Verify schema version is 6 (includes app metadata for offline access)
+      expect(database.schemaVersion, 6);
 
       // Test inserting server with null port
       final serverWithoutPort = models.NasServer.create(

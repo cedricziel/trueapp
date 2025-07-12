@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/nas_server.dart';
 import 'package:truenas_manager/models/app.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
 import 'package:truenas_manager/widgets/app_card_widget.dart';
-import 'package:truenas_manager/screens/app_management_screen.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -28,10 +26,7 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
       await appProvider.setApiClient(widget.server);
-      appProvider.setAppConfigProvider(appConfigProvider);
-      await appConfigProvider.setServer(widget.server.id);
       await appProvider.loadApps();
     });
   }
@@ -52,30 +47,12 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
           child: const Icon(CupertinoIcons.back),
           onPressed: () => Navigator.pop(context),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.settings),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (context) =>
-                        AppManagementScreen(server: widget.server),
-                  ),
-                );
-              },
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.refresh),
-              onPressed: () {
-                context.read<AppProvider>().refreshApps();
-              },
-            ),
-          ],
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.refresh),
+          onPressed: () {
+            context.read<AppProvider>().refreshApps();
+          },
         ),
       ),
       child: SafeArea(
@@ -171,8 +148,8 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
             const SizedBox(height: 16),
             // Apps list
             Expanded(
-              child: Consumer2<AppProvider, AppConfigProvider>(
-                builder: (context, appProvider, appConfigProvider, child) {
+              child: Consumer<AppProvider>(
+                builder: (context, appProvider, child) {
                   if (appProvider.isLoading) {
                     return const Center(child: CupertinoActivityIndicator());
                   }
@@ -211,27 +188,23 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
 
     switch (_selectedSegment) {
       case 0: // Installed
-        apps = appProvider.installedApps;
+        apps = appProvider.apps.where((app) => app.installed).toList();
         break;
       case 1: // Available
-        apps = appProvider.availableApps;
+        apps = appProvider.apps.where((app) => !app.installed).toList();
         break;
       case 2: // Favorites
-        final appConfigProvider = context.read<AppConfigProvider>();
-        final favoriteAppNames = appConfigProvider.favoriteAppConfigs
-            .map((config) => config.appName)
-            .toSet();
         apps = appProvider.apps
-            .where((app) => favoriteAppNames.contains(app.name))
+            .where((app) => appProvider.isAppFavorite(app.name))
             .toList();
         break;
       case 3: // Updates Available
-        apps = appProvider.installedApps
+        apps = appProvider.apps
             .where((app) => app.upgradeInfo?.upgradeAvailable == true)
             .toList();
         break;
       default:
-        apps = appProvider.installedApps;
+        apps = appProvider.apps.where((app) => app.installed).toList();
     }
 
     // Apply search filter

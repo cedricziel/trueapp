@@ -33,7 +33,9 @@ void main() async {
         ChangeNotifierProvider(create: (context) => ServerProvider(database)),
         ChangeNotifierProvider(create: (context) => PoolProvider()),
         ChangeNotifierProvider(create: (context) => DatasetProvider()),
-        ChangeNotifierProvider(create: (context) => AppProvider()),
+        ChangeNotifierProvider(
+          create: (context) => AppProvider(database: database),
+        ),
         ChangeNotifierProvider(
           create: (context) => AppConfigProvider(database: database),
         ),
@@ -70,11 +72,9 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
 
       serverProvider.addListener(_updateTrayStatus);
       appProvider.addListener(_updateTrayStatus);
-      appConfigProvider.addListener(_updateTrayStatus);
     }
   }
 
@@ -107,7 +107,7 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
 
     final trayProvider = context.read<TrayProvider>();
     final serverProvider = context.read<ServerProvider>();
-    final appConfigProvider = context.read<AppConfigProvider>();
+    final appProvider = context.read<AppProvider>();
 
     int totalServers = serverProvider.servers.length;
     int connectedServers = serverProvider.servers
@@ -124,10 +124,10 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       alerts.add(serverProvider.healthError!);
     }
 
-    // Get apps with portals for the current server
+    // Get apps with portals from the unified AppProvider
     List<AppConfig> appsWithPortals = [];
     try {
-      appsWithPortals = await appConfigProvider.getAppsWithPortals();
+      appsWithPortals = appProvider.getAppsWithPortals();
       if (kDebugMode) {
         print('Tray: Found ${appsWithPortals.length} apps with portals');
         for (final app in appsWithPortals) {
@@ -154,11 +154,9 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       final serverProvider = context.read<ServerProvider>();
       final appProvider = context.read<AppProvider>();
-      final appConfigProvider = context.read<AppConfigProvider>();
 
       serverProvider.removeListener(_updateTrayStatus);
       appProvider.removeListener(_updateTrayStatus);
-      appConfigProvider.removeListener(_updateTrayStatus);
     }
     super.dispose();
   }

@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import 'package:truenas_manager/models/app.dart';
+import 'package:truenas_manager/models/app_config.dart';
+import 'package:truenas_manager/providers/app_provider.dart';
 import 'package:truenas_manager/widgets/app_icon.dart';
+import 'package:truenas_manager/screens/app_configuration_screen.dart';
 
 class AppDetailScreen extends StatefulWidget {
   final App app;
@@ -534,11 +538,35 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
   }
 
   void _showAppActions() {
+    final appProvider = context.read<AppProvider>();
+    final appConfig = appProvider.getAppConfig(widget.app.name);
+
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
         title: Text(widget.app.effectiveDisplayName),
         actions: [
+          // Edit Configuration for installed apps
+          if (widget.app.installed)
+            CupertinoActionSheetAction(
+              child: const Text('Edit Configuration'),
+              onPressed: () {
+                Navigator.pop(context);
+                _navigateToAppConfiguration(appConfig);
+              },
+            ),
+          // Toggle Favorite
+          CupertinoActionSheetAction(
+            child: Text(
+              appProvider.isAppFavorite(widget.app.name)
+                  ? 'Remove from Favorites'
+                  : 'Add to Favorites',
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _toggleFavorite(appProvider);
+            },
+          ),
           CupertinoActionSheetAction(
             child: Text(widget.app.installed ? 'Manage App' : 'Install App'),
             onPressed: () {
@@ -574,6 +602,43 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           child: const Text('Cancel'),
           onPressed: () => Navigator.pop(context),
         ),
+      ),
+    );
+  }
+
+  void _navigateToAppConfiguration(AppConfig? appConfig) {
+    if (appConfig != null) {
+      Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => AppConfigurationScreen(appConfig: appConfig),
+        ),
+      );
+    } else {
+      // Show error or create new config
+      _showError(
+        'App configuration not found. Please try refreshing the app list.',
+      );
+    }
+  }
+
+  void _toggleFavorite(AppProvider appProvider) {
+    final isFavorite = appProvider.isAppFavorite(widget.app.name);
+    appProvider.setAppFavorite(widget.app.name, !isFavorite);
+  }
+
+  void _showError(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }
