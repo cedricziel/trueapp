@@ -972,6 +972,72 @@ class $AppConfigsTable extends AppConfigs
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _screenshotsMeta = const VerificationMeta(
+    'screenshots',
+  );
+  @override
+  late final GeneratedColumn<String> screenshots = GeneratedColumn<String>(
+    'screenshots',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourcesMeta = const VerificationMeta(
+    'sources',
+  );
+  @override
+  late final GeneratedColumn<String> sources = GeneratedColumn<String>(
+    'sources',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _appReadmeMeta = const VerificationMeta(
+    'appReadme',
+  );
+  @override
+  late final GeneratedColumn<String> appReadme = GeneratedColumn<String>(
+    'app_readme',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maintainersJsonMeta = const VerificationMeta(
+    'maintainersJson',
+  );
+  @override
+  late final GeneratedColumn<String> maintainersJson = GeneratedColumn<String>(
+    'maintainers_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _upgradeInfoJsonMeta = const VerificationMeta(
+    'upgradeInfoJson',
+  );
+  @override
+  late final GeneratedColumn<String> upgradeInfoJson = GeneratedColumn<String>(
+    'upgrade_info_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _usedPortsJsonMeta = const VerificationMeta(
+    'usedPortsJson',
+  );
+  @override
+  late final GeneratedColumn<String> usedPortsJson = GeneratedColumn<String>(
+    'used_ports_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -998,6 +1064,12 @@ class $AppConfigsTable extends AppConfigs
     catalog,
     train,
     lastApiUpdate,
+    screenshots,
+    sources,
+    appReadme,
+    maintainersJson,
+    upgradeInfoJson,
+    usedPortsJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1174,6 +1246,54 @@ class $AppConfigsTable extends AppConfigs
         ),
       );
     }
+    if (data.containsKey('screenshots')) {
+      context.handle(
+        _screenshotsMeta,
+        screenshots.isAcceptableOrUnknown(
+          data['screenshots']!,
+          _screenshotsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sources')) {
+      context.handle(
+        _sourcesMeta,
+        sources.isAcceptableOrUnknown(data['sources']!, _sourcesMeta),
+      );
+    }
+    if (data.containsKey('app_readme')) {
+      context.handle(
+        _appReadmeMeta,
+        appReadme.isAcceptableOrUnknown(data['app_readme']!, _appReadmeMeta),
+      );
+    }
+    if (data.containsKey('maintainers_json')) {
+      context.handle(
+        _maintainersJsonMeta,
+        maintainersJson.isAcceptableOrUnknown(
+          data['maintainers_json']!,
+          _maintainersJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('upgrade_info_json')) {
+      context.handle(
+        _upgradeInfoJsonMeta,
+        upgradeInfoJson.isAcceptableOrUnknown(
+          data['upgrade_info_json']!,
+          _upgradeInfoJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('used_ports_json')) {
+      context.handle(
+        _usedPortsJsonMeta,
+        usedPortsJson.isAcceptableOrUnknown(
+          data['used_ports_json']!,
+          _usedPortsJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1279,6 +1399,30 @@ class $AppConfigsTable extends AppConfigs
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_api_update'],
       ),
+      screenshots: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}screenshots'],
+      ),
+      sources: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sources'],
+      ),
+      appReadme: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_readme'],
+      ),
+      maintainersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}maintainers_json'],
+      ),
+      upgradeInfoJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}upgrade_info_json'],
+      ),
+      usedPortsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}used_ports_json'],
+      ),
     );
   }
 
@@ -1313,6 +1457,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
   final String? catalog;
   final String? train;
   final DateTime? lastApiUpdate;
+  final String? screenshots;
+  final String? sources;
+  final String? appReadme;
+  final String? maintainersJson;
+  final String? upgradeInfoJson;
+  final String? usedPortsJson;
   const AppConfigData({
     required this.id,
     required this.serverId,
@@ -1338,6 +1488,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     this.catalog,
     this.train,
     this.lastApiUpdate,
+    this.screenshots,
+    this.sources,
+    this.appReadme,
+    this.maintainersJson,
+    this.upgradeInfoJson,
+    this.usedPortsJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1400,6 +1556,24 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     if (!nullToAbsent || lastApiUpdate != null) {
       map['last_api_update'] = Variable<DateTime>(lastApiUpdate);
     }
+    if (!nullToAbsent || screenshots != null) {
+      map['screenshots'] = Variable<String>(screenshots);
+    }
+    if (!nullToAbsent || sources != null) {
+      map['sources'] = Variable<String>(sources);
+    }
+    if (!nullToAbsent || appReadme != null) {
+      map['app_readme'] = Variable<String>(appReadme);
+    }
+    if (!nullToAbsent || maintainersJson != null) {
+      map['maintainers_json'] = Variable<String>(maintainersJson);
+    }
+    if (!nullToAbsent || upgradeInfoJson != null) {
+      map['upgrade_info_json'] = Variable<String>(upgradeInfoJson);
+    }
+    if (!nullToAbsent || usedPortsJson != null) {
+      map['used_ports_json'] = Variable<String>(usedPortsJson);
+    }
     return map;
   }
 
@@ -1459,6 +1633,24 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       lastApiUpdate: lastApiUpdate == null && nullToAbsent
           ? const Value.absent()
           : Value(lastApiUpdate),
+      screenshots: screenshots == null && nullToAbsent
+          ? const Value.absent()
+          : Value(screenshots),
+      sources: sources == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sources),
+      appReadme: appReadme == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appReadme),
+      maintainersJson: maintainersJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maintainersJson),
+      upgradeInfoJson: upgradeInfoJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(upgradeInfoJson),
+      usedPortsJson: usedPortsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(usedPortsJson),
     );
   }
 
@@ -1492,6 +1684,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       catalog: serializer.fromJson<String?>(json['catalog']),
       train: serializer.fromJson<String?>(json['train']),
       lastApiUpdate: serializer.fromJson<DateTime?>(json['lastApiUpdate']),
+      screenshots: serializer.fromJson<String?>(json['screenshots']),
+      sources: serializer.fromJson<String?>(json['sources']),
+      appReadme: serializer.fromJson<String?>(json['appReadme']),
+      maintainersJson: serializer.fromJson<String?>(json['maintainersJson']),
+      upgradeInfoJson: serializer.fromJson<String?>(json['upgradeInfoJson']),
+      usedPortsJson: serializer.fromJson<String?>(json['usedPortsJson']),
     );
   }
   @override
@@ -1522,6 +1720,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       'catalog': serializer.toJson<String?>(catalog),
       'train': serializer.toJson<String?>(train),
       'lastApiUpdate': serializer.toJson<DateTime?>(lastApiUpdate),
+      'screenshots': serializer.toJson<String?>(screenshots),
+      'sources': serializer.toJson<String?>(sources),
+      'appReadme': serializer.toJson<String?>(appReadme),
+      'maintainersJson': serializer.toJson<String?>(maintainersJson),
+      'upgradeInfoJson': serializer.toJson<String?>(upgradeInfoJson),
+      'usedPortsJson': serializer.toJson<String?>(usedPortsJson),
     };
   }
 
@@ -1550,6 +1754,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     Value<String?> catalog = const Value.absent(),
     Value<String?> train = const Value.absent(),
     Value<DateTime?> lastApiUpdate = const Value.absent(),
+    Value<String?> screenshots = const Value.absent(),
+    Value<String?> sources = const Value.absent(),
+    Value<String?> appReadme = const Value.absent(),
+    Value<String?> maintainersJson = const Value.absent(),
+    Value<String?> upgradeInfoJson = const Value.absent(),
+    Value<String?> usedPortsJson = const Value.absent(),
   }) => AppConfigData(
     id: id ?? this.id,
     serverId: serverId ?? this.serverId,
@@ -1577,6 +1787,18 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     lastApiUpdate: lastApiUpdate.present
         ? lastApiUpdate.value
         : this.lastApiUpdate,
+    screenshots: screenshots.present ? screenshots.value : this.screenshots,
+    sources: sources.present ? sources.value : this.sources,
+    appReadme: appReadme.present ? appReadme.value : this.appReadme,
+    maintainersJson: maintainersJson.present
+        ? maintainersJson.value
+        : this.maintainersJson,
+    upgradeInfoJson: upgradeInfoJson.present
+        ? upgradeInfoJson.value
+        : this.upgradeInfoJson,
+    usedPortsJson: usedPortsJson.present
+        ? usedPortsJson.value
+        : this.usedPortsJson,
   );
   AppConfigData copyWithCompanion(AppConfigsCompanion data) {
     return AppConfigData(
@@ -1622,6 +1844,20 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       lastApiUpdate: data.lastApiUpdate.present
           ? data.lastApiUpdate.value
           : this.lastApiUpdate,
+      screenshots: data.screenshots.present
+          ? data.screenshots.value
+          : this.screenshots,
+      sources: data.sources.present ? data.sources.value : this.sources,
+      appReadme: data.appReadme.present ? data.appReadme.value : this.appReadme,
+      maintainersJson: data.maintainersJson.present
+          ? data.maintainersJson.value
+          : this.maintainersJson,
+      upgradeInfoJson: data.upgradeInfoJson.present
+          ? data.upgradeInfoJson.value
+          : this.upgradeInfoJson,
+      usedPortsJson: data.usedPortsJson.present
+          ? data.usedPortsJson.value
+          : this.usedPortsJson,
     );
   }
 
@@ -1651,7 +1887,13 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           ..write('recommended: $recommended, ')
           ..write('catalog: $catalog, ')
           ..write('train: $train, ')
-          ..write('lastApiUpdate: $lastApiUpdate')
+          ..write('lastApiUpdate: $lastApiUpdate, ')
+          ..write('screenshots: $screenshots, ')
+          ..write('sources: $sources, ')
+          ..write('appReadme: $appReadme, ')
+          ..write('maintainersJson: $maintainersJson, ')
+          ..write('upgradeInfoJson: $upgradeInfoJson, ')
+          ..write('usedPortsJson: $usedPortsJson')
           ..write(')'))
         .toString();
   }
@@ -1682,6 +1924,12 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     catalog,
     train,
     lastApiUpdate,
+    screenshots,
+    sources,
+    appReadme,
+    maintainersJson,
+    upgradeInfoJson,
+    usedPortsJson,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1710,7 +1958,13 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           other.recommended == this.recommended &&
           other.catalog == this.catalog &&
           other.train == this.train &&
-          other.lastApiUpdate == this.lastApiUpdate);
+          other.lastApiUpdate == this.lastApiUpdate &&
+          other.screenshots == this.screenshots &&
+          other.sources == this.sources &&
+          other.appReadme == this.appReadme &&
+          other.maintainersJson == this.maintainersJson &&
+          other.upgradeInfoJson == this.upgradeInfoJson &&
+          other.usedPortsJson == this.usedPortsJson);
 }
 
 class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
@@ -1738,6 +1992,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
   final Value<String?> catalog;
   final Value<String?> train;
   final Value<DateTime?> lastApiUpdate;
+  final Value<String?> screenshots;
+  final Value<String?> sources;
+  final Value<String?> appReadme;
+  final Value<String?> maintainersJson;
+  final Value<String?> upgradeInfoJson;
+  final Value<String?> usedPortsJson;
   const AppConfigsCompanion({
     this.id = const Value.absent(),
     this.serverId = const Value.absent(),
@@ -1763,6 +2023,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.catalog = const Value.absent(),
     this.train = const Value.absent(),
     this.lastApiUpdate = const Value.absent(),
+    this.screenshots = const Value.absent(),
+    this.sources = const Value.absent(),
+    this.appReadme = const Value.absent(),
+    this.maintainersJson = const Value.absent(),
+    this.upgradeInfoJson = const Value.absent(),
+    this.usedPortsJson = const Value.absent(),
   });
   AppConfigsCompanion.insert({
     this.id = const Value.absent(),
@@ -1789,6 +2055,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.catalog = const Value.absent(),
     this.train = const Value.absent(),
     this.lastApiUpdate = const Value.absent(),
+    this.screenshots = const Value.absent(),
+    this.sources = const Value.absent(),
+    this.appReadme = const Value.absent(),
+    this.maintainersJson = const Value.absent(),
+    this.upgradeInfoJson = const Value.absent(),
+    this.usedPortsJson = const Value.absent(),
   }) : serverId = Value(serverId),
        appName = Value(appName);
   static Insertable<AppConfigData> custom({
@@ -1816,6 +2088,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Expression<String>? catalog,
     Expression<String>? train,
     Expression<DateTime>? lastApiUpdate,
+    Expression<String>? screenshots,
+    Expression<String>? sources,
+    Expression<String>? appReadme,
+    Expression<String>? maintainersJson,
+    Expression<String>? upgradeInfoJson,
+    Expression<String>? usedPortsJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1842,6 +2120,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       if (catalog != null) 'catalog': catalog,
       if (train != null) 'train': train,
       if (lastApiUpdate != null) 'last_api_update': lastApiUpdate,
+      if (screenshots != null) 'screenshots': screenshots,
+      if (sources != null) 'sources': sources,
+      if (appReadme != null) 'app_readme': appReadme,
+      if (maintainersJson != null) 'maintainers_json': maintainersJson,
+      if (upgradeInfoJson != null) 'upgrade_info_json': upgradeInfoJson,
+      if (usedPortsJson != null) 'used_ports_json': usedPortsJson,
     });
   }
 
@@ -1870,6 +2154,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Value<String?>? catalog,
     Value<String?>? train,
     Value<DateTime?>? lastApiUpdate,
+    Value<String?>? screenshots,
+    Value<String?>? sources,
+    Value<String?>? appReadme,
+    Value<String?>? maintainersJson,
+    Value<String?>? upgradeInfoJson,
+    Value<String?>? usedPortsJson,
   }) {
     return AppConfigsCompanion(
       id: id ?? this.id,
@@ -1896,6 +2186,12 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       catalog: catalog ?? this.catalog,
       train: train ?? this.train,
       lastApiUpdate: lastApiUpdate ?? this.lastApiUpdate,
+      screenshots: screenshots ?? this.screenshots,
+      sources: sources ?? this.sources,
+      appReadme: appReadme ?? this.appReadme,
+      maintainersJson: maintainersJson ?? this.maintainersJson,
+      upgradeInfoJson: upgradeInfoJson ?? this.upgradeInfoJson,
+      usedPortsJson: usedPortsJson ?? this.usedPortsJson,
     );
   }
 
@@ -1974,6 +2270,24 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     if (lastApiUpdate.present) {
       map['last_api_update'] = Variable<DateTime>(lastApiUpdate.value);
     }
+    if (screenshots.present) {
+      map['screenshots'] = Variable<String>(screenshots.value);
+    }
+    if (sources.present) {
+      map['sources'] = Variable<String>(sources.value);
+    }
+    if (appReadme.present) {
+      map['app_readme'] = Variable<String>(appReadme.value);
+    }
+    if (maintainersJson.present) {
+      map['maintainers_json'] = Variable<String>(maintainersJson.value);
+    }
+    if (upgradeInfoJson.present) {
+      map['upgrade_info_json'] = Variable<String>(upgradeInfoJson.value);
+    }
+    if (usedPortsJson.present) {
+      map['used_ports_json'] = Variable<String>(usedPortsJson.value);
+    }
     return map;
   }
 
@@ -2003,7 +2317,13 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
           ..write('recommended: $recommended, ')
           ..write('catalog: $catalog, ')
           ..write('train: $train, ')
-          ..write('lastApiUpdate: $lastApiUpdate')
+          ..write('lastApiUpdate: $lastApiUpdate, ')
+          ..write('screenshots: $screenshots, ')
+          ..write('sources: $sources, ')
+          ..write('appReadme: $appReadme, ')
+          ..write('maintainersJson: $maintainersJson, ')
+          ..write('upgradeInfoJson: $upgradeInfoJson, ')
+          ..write('usedPortsJson: $usedPortsJson')
           ..write(')'))
         .toString();
   }
@@ -2087,6 +2407,15 @@ class $AppPortConfigsTable extends AppPortConfigs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _apiUrlMeta = const VerificationMeta('apiUrl');
+  @override
+  late final GeneratedColumn<String> apiUrl = GeneratedColumn<String>(
+    'api_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isPrimaryMeta = const VerificationMeta(
     'isPrimary',
   );
@@ -2149,6 +2478,7 @@ class $AppPortConfigsTable extends AppPortConfigs
     protocol,
     serviceName,
     customUrl,
+    apiUrl,
     isPrimary,
     isEnabled,
     createdAt,
@@ -2209,6 +2539,12 @@ class $AppPortConfigsTable extends AppPortConfigs
         customUrl.isAcceptableOrUnknown(data['custom_url']!, _customUrlMeta),
       );
     }
+    if (data.containsKey('api_url')) {
+      context.handle(
+        _apiUrlMeta,
+        apiUrl.isAcceptableOrUnknown(data['api_url']!, _apiUrlMeta),
+      );
+    }
     if (data.containsKey('is_primary')) {
       context.handle(
         _isPrimaryMeta,
@@ -2266,6 +2602,10 @@ class $AppPortConfigsTable extends AppPortConfigs
         DriftSqlType.string,
         data['${effectivePrefix}custom_url'],
       ),
+      apiUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_url'],
+      ),
       isPrimary: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_primary'],
@@ -2299,6 +2639,7 @@ class AppPortConfigData extends DataClass
   final String protocol;
   final String? serviceName;
   final String? customUrl;
+  final String? apiUrl;
   final bool isPrimary;
   final bool isEnabled;
   final DateTime createdAt;
@@ -2310,6 +2651,7 @@ class AppPortConfigData extends DataClass
     required this.protocol,
     this.serviceName,
     this.customUrl,
+    this.apiUrl,
     required this.isPrimary,
     required this.isEnabled,
     required this.createdAt,
@@ -2327,6 +2669,9 @@ class AppPortConfigData extends DataClass
     }
     if (!nullToAbsent || customUrl != null) {
       map['custom_url'] = Variable<String>(customUrl);
+    }
+    if (!nullToAbsent || apiUrl != null) {
+      map['api_url'] = Variable<String>(apiUrl);
     }
     map['is_primary'] = Variable<bool>(isPrimary);
     map['is_enabled'] = Variable<bool>(isEnabled);
@@ -2347,6 +2692,9 @@ class AppPortConfigData extends DataClass
       customUrl: customUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(customUrl),
+      apiUrl: apiUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(apiUrl),
       isPrimary: Value(isPrimary),
       isEnabled: Value(isEnabled),
       createdAt: Value(createdAt),
@@ -2366,6 +2714,7 @@ class AppPortConfigData extends DataClass
       protocol: serializer.fromJson<String>(json['protocol']),
       serviceName: serializer.fromJson<String?>(json['serviceName']),
       customUrl: serializer.fromJson<String?>(json['customUrl']),
+      apiUrl: serializer.fromJson<String?>(json['apiUrl']),
       isPrimary: serializer.fromJson<bool>(json['isPrimary']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2382,6 +2731,7 @@ class AppPortConfigData extends DataClass
       'protocol': serializer.toJson<String>(protocol),
       'serviceName': serializer.toJson<String?>(serviceName),
       'customUrl': serializer.toJson<String?>(customUrl),
+      'apiUrl': serializer.toJson<String?>(apiUrl),
       'isPrimary': serializer.toJson<bool>(isPrimary),
       'isEnabled': serializer.toJson<bool>(isEnabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2396,6 +2746,7 @@ class AppPortConfigData extends DataClass
     String? protocol,
     Value<String?> serviceName = const Value.absent(),
     Value<String?> customUrl = const Value.absent(),
+    Value<String?> apiUrl = const Value.absent(),
     bool? isPrimary,
     bool? isEnabled,
     DateTime? createdAt,
@@ -2407,6 +2758,7 @@ class AppPortConfigData extends DataClass
     protocol: protocol ?? this.protocol,
     serviceName: serviceName.present ? serviceName.value : this.serviceName,
     customUrl: customUrl.present ? customUrl.value : this.customUrl,
+    apiUrl: apiUrl.present ? apiUrl.value : this.apiUrl,
     isPrimary: isPrimary ?? this.isPrimary,
     isEnabled: isEnabled ?? this.isEnabled,
     createdAt: createdAt ?? this.createdAt,
@@ -2426,6 +2778,7 @@ class AppPortConfigData extends DataClass
           ? data.serviceName.value
           : this.serviceName,
       customUrl: data.customUrl.present ? data.customUrl.value : this.customUrl,
+      apiUrl: data.apiUrl.present ? data.apiUrl.value : this.apiUrl,
       isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2442,6 +2795,7 @@ class AppPortConfigData extends DataClass
           ..write('protocol: $protocol, ')
           ..write('serviceName: $serviceName, ')
           ..write('customUrl: $customUrl, ')
+          ..write('apiUrl: $apiUrl, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -2458,6 +2812,7 @@ class AppPortConfigData extends DataClass
     protocol,
     serviceName,
     customUrl,
+    apiUrl,
     isPrimary,
     isEnabled,
     createdAt,
@@ -2473,6 +2828,7 @@ class AppPortConfigData extends DataClass
           other.protocol == this.protocol &&
           other.serviceName == this.serviceName &&
           other.customUrl == this.customUrl &&
+          other.apiUrl == this.apiUrl &&
           other.isPrimary == this.isPrimary &&
           other.isEnabled == this.isEnabled &&
           other.createdAt == this.createdAt &&
@@ -2486,6 +2842,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
   final Value<String> protocol;
   final Value<String?> serviceName;
   final Value<String?> customUrl;
+  final Value<String?> apiUrl;
   final Value<bool> isPrimary;
   final Value<bool> isEnabled;
   final Value<DateTime> createdAt;
@@ -2497,6 +2854,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     this.protocol = const Value.absent(),
     this.serviceName = const Value.absent(),
     this.customUrl = const Value.absent(),
+    this.apiUrl = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2509,6 +2867,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     this.protocol = const Value.absent(),
     this.serviceName = const Value.absent(),
     this.customUrl = const Value.absent(),
+    this.apiUrl = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.isEnabled = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2522,6 +2881,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     Expression<String>? protocol,
     Expression<String>? serviceName,
     Expression<String>? customUrl,
+    Expression<String>? apiUrl,
     Expression<bool>? isPrimary,
     Expression<bool>? isEnabled,
     Expression<DateTime>? createdAt,
@@ -2534,6 +2894,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
       if (protocol != null) 'protocol': protocol,
       if (serviceName != null) 'service_name': serviceName,
       if (customUrl != null) 'custom_url': customUrl,
+      if (apiUrl != null) 'api_url': apiUrl,
       if (isPrimary != null) 'is_primary': isPrimary,
       if (isEnabled != null) 'is_enabled': isEnabled,
       if (createdAt != null) 'created_at': createdAt,
@@ -2548,6 +2909,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     Value<String>? protocol,
     Value<String?>? serviceName,
     Value<String?>? customUrl,
+    Value<String?>? apiUrl,
     Value<bool>? isPrimary,
     Value<bool>? isEnabled,
     Value<DateTime>? createdAt,
@@ -2560,6 +2922,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
       protocol: protocol ?? this.protocol,
       serviceName: serviceName ?? this.serviceName,
       customUrl: customUrl ?? this.customUrl,
+      apiUrl: apiUrl ?? this.apiUrl,
       isPrimary: isPrimary ?? this.isPrimary,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
@@ -2588,6 +2951,9 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
     if (customUrl.present) {
       map['custom_url'] = Variable<String>(customUrl.value);
     }
+    if (apiUrl.present) {
+      map['api_url'] = Variable<String>(apiUrl.value);
+    }
     if (isPrimary.present) {
       map['is_primary'] = Variable<bool>(isPrimary.value);
     }
@@ -2612,6 +2978,7 @@ class AppPortConfigsCompanion extends UpdateCompanion<AppPortConfigData> {
           ..write('protocol: $protocol, ')
           ..write('serviceName: $serviceName, ')
           ..write('customUrl: $customUrl, ')
+          ..write('apiUrl: $apiUrl, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('isEnabled: $isEnabled, ')
           ..write('createdAt: $createdAt, ')
@@ -3102,6 +3469,12 @@ typedef $$AppConfigsTableCreateCompanionBuilder =
       Value<String?> catalog,
       Value<String?> train,
       Value<DateTime?> lastApiUpdate,
+      Value<String?> screenshots,
+      Value<String?> sources,
+      Value<String?> appReadme,
+      Value<String?> maintainersJson,
+      Value<String?> upgradeInfoJson,
+      Value<String?> usedPortsJson,
     });
 typedef $$AppConfigsTableUpdateCompanionBuilder =
     AppConfigsCompanion Function({
@@ -3129,6 +3502,12 @@ typedef $$AppConfigsTableUpdateCompanionBuilder =
       Value<String?> catalog,
       Value<String?> train,
       Value<DateTime?> lastApiUpdate,
+      Value<String?> screenshots,
+      Value<String?> sources,
+      Value<String?> appReadme,
+      Value<String?> maintainersJson,
+      Value<String?> upgradeInfoJson,
+      Value<String?> usedPortsJson,
     });
 
 final class $$AppConfigsTableReferences
@@ -3297,6 +3676,36 @@ class $$AppConfigsTableFilterComposer
 
   ColumnFilters<DateTime> get lastApiUpdate => $composableBuilder(
     column: $table.lastApiUpdate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sources => $composableBuilder(
+    column: $table.sources,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appReadme => $composableBuilder(
+    column: $table.appReadme,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3473,6 +3882,36 @@ class $$AppConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sources => $composableBuilder(
+    column: $table.sources,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appReadme => $composableBuilder(
+    column: $table.appReadme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$NasServersTableOrderingComposer get serverId {
     final $$NasServersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3593,6 +4032,32 @@ class $$AppConfigsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get screenshots => $composableBuilder(
+    column: $table.screenshots,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sources =>
+      $composableBuilder(column: $table.sources, builder: (column) => column);
+
+  GeneratedColumn<String> get appReadme =>
+      $composableBuilder(column: $table.appReadme, builder: (column) => column);
+
+  GeneratedColumn<String> get maintainersJson => $composableBuilder(
+    column: $table.maintainersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get upgradeInfoJson => $composableBuilder(
+    column: $table.upgradeInfoJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get usedPortsJson => $composableBuilder(
+    column: $table.usedPortsJson,
+    builder: (column) => column,
+  );
+
   $$NasServersTableAnnotationComposer get serverId {
     final $$NasServersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3694,6 +4159,12 @@ class $$AppConfigsTableTableManager
                 Value<String?> catalog = const Value.absent(),
                 Value<String?> train = const Value.absent(),
                 Value<DateTime?> lastApiUpdate = const Value.absent(),
+                Value<String?> screenshots = const Value.absent(),
+                Value<String?> sources = const Value.absent(),
+                Value<String?> appReadme = const Value.absent(),
+                Value<String?> maintainersJson = const Value.absent(),
+                Value<String?> upgradeInfoJson = const Value.absent(),
+                Value<String?> usedPortsJson = const Value.absent(),
               }) => AppConfigsCompanion(
                 id: id,
                 serverId: serverId,
@@ -3719,6 +4190,12 @@ class $$AppConfigsTableTableManager
                 catalog: catalog,
                 train: train,
                 lastApiUpdate: lastApiUpdate,
+                screenshots: screenshots,
+                sources: sources,
+                appReadme: appReadme,
+                maintainersJson: maintainersJson,
+                upgradeInfoJson: upgradeInfoJson,
+                usedPortsJson: usedPortsJson,
               ),
           createCompanionCallback:
               ({
@@ -3746,6 +4223,12 @@ class $$AppConfigsTableTableManager
                 Value<String?> catalog = const Value.absent(),
                 Value<String?> train = const Value.absent(),
                 Value<DateTime?> lastApiUpdate = const Value.absent(),
+                Value<String?> screenshots = const Value.absent(),
+                Value<String?> sources = const Value.absent(),
+                Value<String?> appReadme = const Value.absent(),
+                Value<String?> maintainersJson = const Value.absent(),
+                Value<String?> upgradeInfoJson = const Value.absent(),
+                Value<String?> usedPortsJson = const Value.absent(),
               }) => AppConfigsCompanion.insert(
                 id: id,
                 serverId: serverId,
@@ -3771,6 +4254,12 @@ class $$AppConfigsTableTableManager
                 catalog: catalog,
                 train: train,
                 lastApiUpdate: lastApiUpdate,
+                screenshots: screenshots,
+                sources: sources,
+                appReadme: appReadme,
+                maintainersJson: maintainersJson,
+                upgradeInfoJson: upgradeInfoJson,
+                usedPortsJson: usedPortsJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3873,6 +4362,7 @@ typedef $$AppPortConfigsTableCreateCompanionBuilder =
       Value<String> protocol,
       Value<String?> serviceName,
       Value<String?> customUrl,
+      Value<String?> apiUrl,
       Value<bool> isPrimary,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
@@ -3886,6 +4376,7 @@ typedef $$AppPortConfigsTableUpdateCompanionBuilder =
       Value<String> protocol,
       Value<String?> serviceName,
       Value<String?> customUrl,
+      Value<String?> apiUrl,
       Value<bool> isPrimary,
       Value<bool> isEnabled,
       Value<DateTime> createdAt,
@@ -3952,6 +4443,11 @@ class $$AppPortConfigsTableFilterComposer
 
   ColumnFilters<String> get customUrl => $composableBuilder(
     column: $table.customUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4033,6 +4529,11 @@ class $$AppPortConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isPrimary => $composableBuilder(
     column: $table.isPrimary,
     builder: (column) => ColumnOrderings(column),
@@ -4104,6 +4605,9 @@ class $$AppPortConfigsTableAnnotationComposer
 
   GeneratedColumn<String> get customUrl =>
       $composableBuilder(column: $table.customUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get apiUrl =>
+      $composableBuilder(column: $table.apiUrl, builder: (column) => column);
 
   GeneratedColumn<bool> get isPrimary =>
       $composableBuilder(column: $table.isPrimary, builder: (column) => column);
@@ -4177,6 +4681,7 @@ class $$AppPortConfigsTableTableManager
                 Value<String> protocol = const Value.absent(),
                 Value<String?> serviceName = const Value.absent(),
                 Value<String?> customUrl = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4188,6 +4693,7 @@ class $$AppPortConfigsTableTableManager
                 protocol: protocol,
                 serviceName: serviceName,
                 customUrl: customUrl,
+                apiUrl: apiUrl,
                 isPrimary: isPrimary,
                 isEnabled: isEnabled,
                 createdAt: createdAt,
@@ -4201,6 +4707,7 @@ class $$AppPortConfigsTableTableManager
                 Value<String> protocol = const Value.absent(),
                 Value<String?> serviceName = const Value.absent(),
                 Value<String?> customUrl = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4212,6 +4719,7 @@ class $$AppPortConfigsTableTableManager
                 protocol: protocol,
                 serviceName: serviceName,
                 customUrl: customUrl,
+                apiUrl: apiUrl,
                 isPrimary: isPrimary,
                 isEnabled: isEnabled,
                 createdAt: createdAt,

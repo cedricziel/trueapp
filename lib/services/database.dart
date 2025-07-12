@@ -56,6 +56,17 @@ class AppConfigs extends Table {
   TextColumn get catalog => text().nullable()();
   TextColumn get train => text().nullable()();
   DateTimeColumn get lastApiUpdate => dateTime().nullable()();
+
+  // Complete app metadata for full offline access
+  TextColumn get screenshots => text().nullable()(); // JSON encoded list
+  TextColumn get sources => text().nullable()(); // JSON encoded list
+  TextColumn get appReadme => text().nullable()();
+  TextColumn get maintainersJson =>
+      text().nullable()(); // JSON encoded maintainers
+  TextColumn get upgradeInfoJson =>
+      text().nullable()(); // JSON encoded upgrade info
+  TextColumn get usedPortsJson =>
+      text().nullable()(); // JSON encoded used ports
 }
 
 @DataClassName('AppPortConfigData')
@@ -67,6 +78,7 @@ class AppPortConfigs extends Table {
   TextColumn get protocol => text().withDefault(const Constant('http'))();
   TextColumn get serviceName => text().nullable()();
   TextColumn get customUrl => text().nullable()();
+  TextColumn get apiUrl => text().nullable()(); // URL from TrueNAS API portals
   BoolColumn get isPrimary => boolean().withDefault(const Constant(false))();
   BoolColumn get isEnabled => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -81,7 +93,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,6 +130,24 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(appConfigs, appConfigs.catalog);
         await m.addColumn(appConfigs, appConfigs.train);
         await m.addColumn(appConfigs, appConfigs.lastApiUpdate);
+      }
+      if (from < 7) {
+        await m.addColumn(appConfigs, appConfigs.screenshots);
+        await m.addColumn(appConfigs, appConfigs.sources);
+        await m.addColumn(appConfigs, appConfigs.appReadme);
+        await m.addColumn(appConfigs, appConfigs.maintainersJson);
+        await m.addColumn(appConfigs, appConfigs.upgradeInfoJson);
+        await m.addColumn(appConfigs, appConfigs.usedPortsJson);
+      }
+      if (from < 8) {
+        // Clear out incorrectly set customUrl values from API portals
+        // Only user-defined URLs should have customUrl set
+        await customUpdate(
+          'UPDATE app_port_configs SET custom_url = NULL WHERE custom_url IS NOT NULL',
+        );
+      }
+      if (from < 9) {
+        await m.addColumn(appPortConfigs, appPortConfigs.apiUrl);
       }
     },
   );
@@ -496,6 +526,16 @@ class AppDatabase extends _$AppDatabase {
       catalog: data.catalog,
       train: data.train,
       lastApiUpdate: data.lastApiUpdate,
+      screenshots: data.screenshots != null
+          ? (jsonDecode(data.screenshots!) as List).cast<String>()
+          : null,
+      sources: data.sources != null
+          ? (jsonDecode(data.sources!) as List).cast<String>()
+          : null,
+      appReadme: data.appReadme,
+      maintainersJson: data.maintainersJson,
+      upgradeInfoJson: data.upgradeInfoJson,
+      usedPortsJson: data.usedPortsJson,
     );
   }
 
@@ -529,6 +569,16 @@ class AppDatabase extends _$AppDatabase {
       catalog: Value(config.catalog),
       train: Value(config.train),
       lastApiUpdate: Value(config.lastApiUpdate),
+      screenshots: Value(
+        config.screenshots != null ? jsonEncode(config.screenshots) : null,
+      ),
+      sources: Value(
+        config.sources != null ? jsonEncode(config.sources) : null,
+      ),
+      appReadme: Value(config.appReadme),
+      maintainersJson: Value(config.maintainersJson),
+      upgradeInfoJson: Value(config.upgradeInfoJson),
+      usedPortsJson: Value(config.usedPortsJson),
     );
   }
 
@@ -539,6 +589,7 @@ class AppDatabase extends _$AppDatabase {
       protocol: data.protocol,
       serviceName: data.serviceName,
       customUrl: data.customUrl,
+      apiUrl: data.apiUrl,
       isPrimary: data.isPrimary,
       isEnabled: data.isEnabled,
     );
@@ -555,6 +606,7 @@ class AppDatabase extends _$AppDatabase {
       protocol: Value(config.protocol),
       serviceName: Value(config.serviceName),
       customUrl: Value(config.customUrl),
+      apiUrl: Value(config.apiUrl),
       isPrimary: Value(config.isPrimary),
       isEnabled: Value(config.isEnabled),
       createdAt: const Value.absent(),

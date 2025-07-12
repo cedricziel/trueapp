@@ -6,7 +6,6 @@ import 'package:truenas_manager/providers/server_provider.dart';
 import 'package:truenas_manager/providers/pool_provider.dart';
 import 'package:truenas_manager/providers/dataset_provider.dart';
 import 'package:truenas_manager/providers/app_provider.dart';
-import 'package:truenas_manager/providers/app_config_provider.dart';
 import 'package:truenas_manager/providers/system_stats_provider.dart';
 import 'package:truenas_manager/providers/connection_status_provider.dart';
 import 'package:truenas_manager/providers/tray_provider.dart';
@@ -35,9 +34,6 @@ void main() async {
         ChangeNotifierProvider(create: (context) => DatasetProvider()),
         ChangeNotifierProvider(
           create: (context) => AppProvider(database: database),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => AppConfigProvider(database: database),
         ),
         ChangeNotifierProvider(create: (context) => SystemStatsProvider()),
         ChangeNotifierProvider(create: (context) => TrayProvider()),

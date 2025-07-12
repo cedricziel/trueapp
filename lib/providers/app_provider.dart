@@ -13,6 +13,7 @@ class AppProvider extends ChangeNotifier {
   final AppDatabase _database;
   TrueNasApiClient? _apiClient;
   String? _currentServerId;
+  NasServer? _currentServer;
   List<AppConfig> _appConfigs = [];
   List<String> _categories = [];
   bool _isLoading = false;
@@ -47,6 +48,7 @@ class AppProvider extends ChangeNotifier {
     }
 
     _currentServerId = server?.id;
+    _currentServer = server;
     _apiClient = null;
     _appConfigs = [];
     _categories = [];
@@ -75,6 +77,7 @@ class AppProvider extends ChangeNotifier {
     }
 
     _currentServerId = server.id;
+    _currentServer = server;
     _appConfigs = [];
     _categories = [];
     _connectionError = null;
@@ -429,7 +432,9 @@ class AppProvider extends ChangeNotifier {
               portNumber: Value(uri.port),
               protocol: Value(uri.scheme),
               serviceName: Value(portal.key),
-              customUrl: Value(portal.value),
+              apiUrl: Value(
+                portal.value,
+              ), // Store API URL separately from custom URL
               isPrimary: Value(!hasPrimary), // First port becomes primary
             ),
           );
@@ -457,31 +462,62 @@ class AppProvider extends ChangeNotifier {
       categories: config.categories ?? [],
       home: config.home,
       tags: config.tags ?? [],
-      screenshots: [],
-      sources: [],
-      appReadme: null,
-      maintainers: [],
+      screenshots: config.screenshots ?? [],
+      sources: config.sources ?? [],
+      appReadme: config.appReadme,
+      maintainers: config.maintainers,
       lastUpdate: config.lastApiUpdate,
       recommended: config.recommended ?? false,
       catalog: config.catalog ?? '',
       train: config.train ?? '',
       resourceUsage: resourceUsage, // Include real-time resource usage
-      upgradeInfo: null,
-      usedPorts: [],
+      upgradeInfo: config.upgradeInfo,
+      usedPorts: config.usedPorts,
       portals: _buildPortalsFromConfig(config),
       customDisplayName: config.displayName,
       customIconUrl: config.iconUrl,
-      primaryCustomUrl: config.primaryPort?.effectiveUrl,
+      primaryCustomUrl: config.primaryPort?.customUrl != null
+          ? _interpolateUrl(config.primaryPort!.customUrl!)
+          : null,
     );
+  }
+
+  String _interpolateUrl(String url) {
+    if (_currentServer == null) return url;
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+
+    // Replace localhost with actual server host
+    String host = uri.host;
+    if (host == 'localhost' || host == '127.0.0.1') {
+      host = _currentServer!.host;
+    }
+
+    // Replace tcp protocol with http/https based on server config
+    String scheme = uri.scheme;
+    if (scheme == 'tcp') {
+      scheme = _currentServer!.useHttps ? 'https' : 'http';
+    }
+
+    // Reconstruct the URL with proper host and protocol
+    return Uri(
+      scheme: scheme,
+      host: host,
+      port: uri.port,
+      path: uri.path,
+      query: uri.query.isEmpty ? null : uri.query,
+      fragment: uri.fragment.isEmpty ? null : uri.fragment,
+    ).toString();
   }
 
   Map<String, String> _buildPortalsFromConfig(AppConfig config) {
     final portals = <String, String>{};
     for (final port in config.enabledPorts) {
-      if (port.customUrl != null) {
-        portals[port.serviceName ?? 'Port ${port.portNumber}'] =
-            port.customUrl!;
-      }
+      // Include all enabled ports - prioritize custom URL, then API URL, then default
+      final rawUrl = port.effectiveUrl;
+      final interpolatedUrl = _interpolateUrl(rawUrl);
+      portals[port.serviceName ?? 'Port ${port.portNumber}'] = interpolatedUrl;
     }
     return portals;
   }
@@ -511,13 +547,16 @@ class AppProvider extends ChangeNotifier {
 
   String? getPrimaryUrl(String appName) {
     final config = getAppConfig(appName);
-    return config?.primaryPort?.effectiveUrl;
+    final url = config?.primaryPort?.effectiveUrl;
+    return url != null ? _interpolateUrl(url) : null;
   }
 
   List<String> getAppUrls(String appName) {
     final config = getAppConfig(appName);
     if (config == null) return [];
-    return config.enabledPorts.map((port) => port.effectiveUrl).toList();
+    return config.enabledPorts
+        .map((port) => _interpolateUrl(port.effectiveUrl))
+        .toList();
   }
 
   bool isAppFavorite(String appName) {

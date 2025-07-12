@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:equatable/equatable.dart';
 import 'app.dart';
 
@@ -7,6 +8,7 @@ class AppPortConfig extends Equatable {
   final String protocol;
   final String? serviceName;
   final String? customUrl;
+  final String? apiUrl; // URL from TrueNAS API portals
   final bool isPrimary;
   final bool isEnabled;
 
@@ -16,12 +18,13 @@ class AppPortConfig extends Equatable {
     this.protocol = 'http',
     this.serviceName,
     this.customUrl,
+    this.apiUrl,
     this.isPrimary = false,
     this.isEnabled = true,
   });
 
   String get defaultUrl => '$protocol://localhost:$portNumber';
-  String get effectiveUrl => customUrl ?? defaultUrl;
+  String get effectiveUrl => customUrl ?? apiUrl ?? defaultUrl;
   String get displayName => serviceName ?? 'Port $portNumber';
 
   AppPortConfig copyWith({
@@ -30,6 +33,7 @@ class AppPortConfig extends Equatable {
     String? protocol,
     String? serviceName,
     String? customUrl,
+    String? apiUrl,
     bool? isPrimary,
     bool? isEnabled,
   }) {
@@ -39,6 +43,7 @@ class AppPortConfig extends Equatable {
       protocol: protocol ?? this.protocol,
       serviceName: serviceName ?? this.serviceName,
       customUrl: customUrl ?? this.customUrl,
+      apiUrl: apiUrl ?? this.apiUrl,
       isPrimary: isPrimary ?? this.isPrimary,
       isEnabled: isEnabled ?? this.isEnabled,
     );
@@ -51,6 +56,7 @@ class AppPortConfig extends Equatable {
     protocol,
     serviceName,
     customUrl,
+    apiUrl,
     isPrimary,
     isEnabled,
   ];
@@ -85,6 +91,14 @@ class AppConfig extends Equatable {
   final String? train;
   final DateTime? lastApiUpdate;
 
+  // Complete app metadata for full offline access
+  final List<String>? screenshots;
+  final List<String>? sources;
+  final String? appReadme;
+  final String? maintainersJson; // JSON encoded maintainers
+  final String? upgradeInfoJson; // JSON encoded upgrade info
+  final String? usedPortsJson; // JSON encoded used ports
+
   const AppConfig({
     this.id,
     required this.serverId,
@@ -111,6 +125,12 @@ class AppConfig extends Equatable {
     this.catalog,
     this.train,
     this.lastApiUpdate,
+    this.screenshots,
+    this.sources,
+    this.appReadme,
+    this.maintainersJson,
+    this.upgradeInfoJson,
+    this.usedPortsJson,
   });
 
   String get effectiveDisplayName => displayName ?? title ?? appName;
@@ -124,6 +144,36 @@ class AppConfig extends Equatable {
 
   List<AppPortConfig> get enabledPorts =>
       ports.where((port) => port.isEnabled).toList();
+
+  // Helper getters to decode JSON fields
+  List<AppMaintainer> get maintainers {
+    if (maintainersJson == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(maintainersJson!);
+      return list.map((json) => AppMaintainer.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  AppUpgradeInfo? get upgradeInfo {
+    if (upgradeInfoJson == null) return null;
+    try {
+      return AppUpgradeInfo.fromJson(jsonDecode(upgradeInfoJson!));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<AppPortInfo> get usedPorts {
+    if (usedPortsJson == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(usedPortsJson!);
+      return list.map((json) => AppPortInfo.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
 
   factory AppConfig.fromApp({
     required String serverId,
@@ -157,6 +207,18 @@ class AppConfig extends Equatable {
       catalog: app.catalog,
       train: app.train,
       lastApiUpdate: DateTime.now(),
+      screenshots: app.screenshots,
+      sources: app.sources,
+      appReadme: app.appReadme,
+      maintainersJson: app.maintainers.isNotEmpty
+          ? jsonEncode(app.maintainers.map((m) => m.toJson()).toList())
+          : null,
+      upgradeInfoJson: app.upgradeInfo != null
+          ? jsonEncode(app.upgradeInfo!.toJson())
+          : null,
+      usedPortsJson: app.usedPorts.isNotEmpty
+          ? jsonEncode(app.usedPorts.map((p) => p.toJson()).toList())
+          : null,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -179,6 +241,18 @@ class AppConfig extends Equatable {
       catalog: app.catalog,
       train: app.train,
       lastApiUpdate: DateTime.now(),
+      screenshots: app.screenshots,
+      sources: app.sources,
+      appReadme: app.appReadme,
+      maintainersJson: app.maintainers.isNotEmpty
+          ? jsonEncode(app.maintainers.map((m) => m.toJson()).toList())
+          : null,
+      upgradeInfoJson: app.upgradeInfo != null
+          ? jsonEncode(app.upgradeInfo!.toJson())
+          : null,
+      usedPortsJson: app.usedPorts.isNotEmpty
+          ? jsonEncode(app.usedPorts.map((p) => p.toJson()).toList())
+          : null,
       updatedAt: DateTime.now(),
     );
   }
@@ -209,6 +283,12 @@ class AppConfig extends Equatable {
     String? catalog,
     String? train,
     DateTime? lastApiUpdate,
+    List<String>? screenshots,
+    List<String>? sources,
+    String? appReadme,
+    String? maintainersJson,
+    String? upgradeInfoJson,
+    String? usedPortsJson,
   }) {
     return AppConfig(
       id: id ?? this.id,
@@ -236,6 +316,12 @@ class AppConfig extends Equatable {
       catalog: catalog ?? this.catalog,
       train: train ?? this.train,
       lastApiUpdate: lastApiUpdate ?? this.lastApiUpdate,
+      screenshots: screenshots ?? this.screenshots,
+      sources: sources ?? this.sources,
+      appReadme: appReadme ?? this.appReadme,
+      maintainersJson: maintainersJson ?? this.maintainersJson,
+      upgradeInfoJson: upgradeInfoJson ?? this.upgradeInfoJson,
+      usedPortsJson: usedPortsJson ?? this.usedPortsJson,
     );
   }
 
@@ -266,5 +352,11 @@ class AppConfig extends Equatable {
     catalog,
     train,
     lastApiUpdate,
+    screenshots,
+    sources,
+    appReadme,
+    maintainersJson,
+    upgradeInfoJson,
+    usedPortsJson,
   ];
 }
