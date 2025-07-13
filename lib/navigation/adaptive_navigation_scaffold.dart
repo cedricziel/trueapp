@@ -80,11 +80,13 @@ class _AdaptiveNavigationScaffoldState
   }
 
   Widget _buildSidebarNavigation() {
-    return CupertinoSidebar(
-      selectedIndex: _selectedIndex,
-      onDestinationSelected: _onDestinationSelected,
+    return Row(
       children: [
-        ...navigationDestinations,
+        CupertinoSidebar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onDestinationSelected,
+          children: navigationDestinations,
+        ),
         Expanded(
           child: Container(
             decoration: const BoxDecoration(

@@ -102,7 +102,11 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               padding: EdgeInsets.zero,
               child: const Icon(CupertinoIcons.back),
               onPressed: () {
-                context.go('/servers');
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/servers');
+                }
               },
             ),
             trailing: CupertinoButton(

@@ -29,10 +29,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _authSubscription = serverProvider.authenticationStream.listen((
         authStatus,
       ) {
+        // Only auto-navigate to server detail if there's only one server
+        // This maintains the expected behavior for single-server setups
+        // while allowing multiple servers to be shown in the list
         if (mounted &&
             authStatus.isAuthenticated &&
-            authStatus.server != null) {
-          // Only navigate when successfully authenticated
+            authStatus.server != null &&
+            serverProvider.servers.length == 1) {
           context.go(
             '/server/${authStatus.server!.id}',
             extra: authStatus.server,
@@ -40,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
 
-      // Load servers and attempt auto-selection
+      // Load servers but don't auto-select for multi-server scenarios
       serverProvider.loadServersAndAutoSelect();
     });
   }
