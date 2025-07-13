@@ -109,54 +109,58 @@ void main() {
       expect(finalServer?.port, null);
     });
 
-    test('should notify listeners when server is updated', () async {
-      // This test was hanging when running with other tests due to authentication
-      // triggering during updateServer. Simplified to test the core functionality.
+    test(
+      'should notify listeners when server is updated',
+      () async {
+        // This test was hanging when running with other tests due to authentication
+        // triggering during updateServer. Simplified to test the core functionality.
 
-      int notificationCount = 0;
+        int notificationCount = 0;
 
-      // Add a listener that counts notifications
-      void countingListener() {
-        notificationCount++;
-      }
+        // Add a listener that counts notifications
+        void countingListener() {
+          notificationCount++;
+        }
 
-      serverProvider.addListener(countingListener);
+        serverProvider.addListener(countingListener);
 
-      try {
-        // Create a test server directly in database
-        final testServer = models.NasServer.create(
-          name: 'Listener Test Server',
-          host: 'listener.test.com',
-          port: 443,
-          username: 'admin',
-          password: 'password',
-          useHttps: true,
-        );
+        try {
+          // Create a test server directly in database
+          final testServer = models.NasServer.create(
+            name: 'Listener Test Server',
+            host: 'listener.test.com',
+            port: 443,
+            username: 'admin',
+            password: 'password',
+            useHttps: true,
+          );
 
-        await database.insertServer(testServer);
+          await database.insertServer(testServer);
 
-        // Select the server first to avoid authentication during update
-        serverProvider.selectServer(testServer);
+          // Select the server first to avoid authentication during update
+          serverProvider.selectServer(testServer);
 
-        // Reset counter after selection
-        notificationCount = 0;
+          // Reset counter after selection
+          notificationCount = 0;
 
-        // Update the server - this should trigger listener notification
-        final updatedServer = testServer.copyWith(
-          name: 'Updated Listener Server',
-        );
-        await serverProvider.updateServer(updatedServer);
+          // Update the server - this should trigger listener notification
+          final updatedServer = testServer.copyWith(
+            name: 'Updated Listener Server',
+          );
+          await serverProvider.updateServer(updatedServer);
 
-        // Verify listeners were notified at least once
-        expect(
-          notificationCount,
-          greaterThan(0),
-          reason: 'Listener should be notified when server is updated',
-        );
-      } finally {
-        // Always clean up listener
-        serverProvider.removeListener(countingListener);
-      }
-    });
+          // Verify listeners were notified at least once
+          expect(
+            notificationCount,
+            greaterThan(0),
+            reason: 'Listener should be notified when server is updated',
+          );
+        } finally {
+          // Always clean up listener
+          serverProvider.removeListener(countingListener);
+        }
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
   });
 }
