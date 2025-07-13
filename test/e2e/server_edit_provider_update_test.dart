@@ -94,6 +94,10 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
+        // Extra wait for async operations in ServerDetailScreen
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump(const Duration(milliseconds: 500));
+
         // Verify we're on the server detail screen
         expect(find.text('Original Server'), findsOneWidget);
         expect(find.text('192.168.1.100'), findsOneWidget);

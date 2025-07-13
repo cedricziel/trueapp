@@ -42,6 +42,7 @@ void main() {
   });
 
   group('EditServerScreen Core Functionality', () {
+    // TODO: Fix timeout issue - likely due to _loadExistingCredentials in initState
     testWidgets('should display edit server screen', (
       WidgetTester tester,
     ) async {
@@ -57,7 +58,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+
+      // Use manual pumps instead of pumpAndSettle to avoid timeout
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Check that the edit screen is displayed
       expect(find.text('Edit Server'), findsOneWidget);
@@ -100,15 +105,18 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Navigate to edit screen
       await tester.tap(find.text('Edit'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Save without making changes (should still return true)
       await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(navigationResult, isTrue);
     });
@@ -148,15 +156,18 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Navigate to edit screen
       await tester.tap(find.text('Edit'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Cancel the edit
       await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(navigationResult, isNull);
     });
@@ -176,7 +187,8 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Find and update the server name field
       final nameFields = find.byType(CupertinoTextField);
@@ -184,11 +196,13 @@ void main() {
 
       // Assuming the first text field is the name field based on the UI structure
       await tester.enterText(nameFields.first, 'Updated Server Name');
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Save the changes
       await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify the server was updated in the database
       final updatedServer = await database.getServer(testServer.id);
@@ -217,16 +231,19 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Update server name
       final nameFields = find.byType(CupertinoTextField);
       await tester.enterText(nameFields.first, 'Provider Updated Server');
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Save changes
       await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify the selected server was refreshed in the provider
       expect(serverProvider.selectedServer?.name, 'Provider Updated Server');

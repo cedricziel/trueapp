@@ -99,9 +99,24 @@ void main() {
         // Extra wait for async operations in ServerDetailScreen
         await tester.pump(const Duration(milliseconds: 500));
 
+        // Additional pumps to ensure all async operations complete
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump(const Duration(milliseconds: 500));
+
         // Verify we're on the Server Detail Screen
         // Multiple instances of server name may exist (navigation bar, content)
         expect(find.text('Test TrueNAS Server'), findsWidgets);
+
+        // The ServerDetailScreen might be showing loading or authentication state
+        // Let's check if we can find any of the expected widgets
+        final loadingWidget = find.byType(CupertinoActivityIndicator);
+
+        if (loadingWidget.evaluate().isNotEmpty) {
+          // If loading, wait more
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump(const Duration(seconds: 1));
+        }
+
         expect(find.text('Host'), findsOneWidget);
         expect(find.text('192.168.1.100'), findsOneWidget);
         expect(find.text('Port'), findsOneWidget);

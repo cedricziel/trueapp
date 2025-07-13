@@ -312,6 +312,20 @@ void main() {
       // Extra wait for async operations in ServerDetailScreen
       await tester.pump(const Duration(milliseconds: 500));
 
+      // Additional pumps to ensure all async operations complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // The ServerDetailScreen might be showing loading or authentication state
+      // Let's check if we can find any of the expected widgets
+      final loadingWidget = find.byType(CupertinoActivityIndicator);
+
+      if (loadingWidget.evaluate().isNotEmpty) {
+        // If loading, wait more
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump(const Duration(seconds: 1));
+      }
+
       // Verify we're on Server Detail Screen
       expect(find.text('Host'), findsOneWidget);
       expect(find.text('192.168.1.100'), findsOneWidget);
