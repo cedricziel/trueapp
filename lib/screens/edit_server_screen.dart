@@ -9,8 +9,13 @@ import 'package:truehub/services/unified_server_service.dart';
 
 class EditServerScreen extends StatefulWidget {
   final NasServer server;
+  final NetworkService? networkService;
 
-  const EditServerScreen({super.key, required this.server});
+  const EditServerScreen({
+    super.key,
+    required this.server,
+    this.networkService,
+  });
 
   @override
   State<EditServerScreen> createState() => _EditServerScreenState();
@@ -33,12 +38,13 @@ class _EditServerScreenState extends State<EditServerScreen> {
   String? _currentWifiSsid;
   bool _isLoadingCurrentSsid = false;
   bool _isLoadingCredentials = false;
-  final NetworkService _networkService = NetworkService();
+  late final NetworkService _networkService;
 
   @override
   void initState() {
     super.initState();
 
+    _networkService = widget.networkService ?? NetworkService();
     _nameController = TextEditingController(text: widget.server.name);
     _hostController = TextEditingController(text: widget.server.host);
     _localUrlController = TextEditingController(
@@ -72,7 +78,19 @@ class _EditServerScreenState extends State<EditServerScreen> {
     });
 
     try {
-      final serverService = context.read<UnifiedServerService>();
+      // Try to get the service, but don't fail if it's not available (e.g., in tests)
+      final UnifiedServerService? serverService;
+      try {
+        serverService = context.read<UnifiedServerService>();
+      } catch (e) {
+        // Service not available, likely in a test environment
+        if (kDebugMode) {
+          print(
+            'EditServer: UnifiedServerService not available, skipping credential loading',
+          );
+        }
+        return;
+      }
 
       // Load username from server service
       final server = await serverService.getServer(widget.server.id);

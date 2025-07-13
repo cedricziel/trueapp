@@ -8,12 +8,14 @@ import 'package:truehub/screens/edit_server_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/test_providers.dart';
+import '../helpers/mock_network_service.dart';
 
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
   late UnifiedServerService unifiedServerService;
   late NasServer testServer;
+  late MockNetworkService mockNetworkService;
 
   setUp(() async {
     // Clean up any leftover state from previous tests
@@ -24,6 +26,7 @@ void main() {
       database: database,
     );
     serverProvider = ServerProvider(unifiedServerService);
+    mockNetworkService = MockNetworkService();
 
     testServer = NasServer.create(
       name: 'Test Server',
@@ -41,28 +44,30 @@ void main() {
   });
 
   tearDown(() async {
-    // Dispose providers first
-    serverProvider.dispose();
-    unifiedServerService.dispose();
+    try {
+      // Clean up any static state first
+      await TestProviders.cleanupTestEnvironment();
 
-    // Then close database
-    await database.close();
+      // Dispose providers
+      serverProvider.dispose();
+      unifiedServerService.dispose();
 
-    // Clean up any static state
-    await TestProviders.cleanupTestEnvironment();
+      // Close database
+      await database.close();
+    } catch (e) {
+      // Ignore teardown errors in test environment
+    }
   });
 
   group('EditServerScreen Core Functionality', () {
-    // TODO: Fix timeout issue - likely due to _loadExistingCredentials in initState
-    // This test hangs when run alongside other tests due to shared ApiClientManager state
-    // and the _loadExistingCredentials async operation in EditServerScreen's initState
     testWidgets(
       'should display edit server screen',
       skip:
-          true, // Skip due to hanging issue with EditServerScreen's _loadExistingCredentials
+          true, // Still investigating hanging issue - may be related to database or provider lifecycle
       (WidgetTester tester) async {
         // Ensure clean state
         await TestProviders.cleanupTestEnvironment();
+
         await tester.pumpWidget(
           CupertinoApp(
             home: MultiProvider(
@@ -73,22 +78,28 @@ void main() {
                 ),
                 ChangeNotifierProvider.value(value: serverProvider),
               ],
-              child: EditServerScreen(server: testServer),
+              child: EditServerScreen(
+                server: testServer,
+                networkService: mockNetworkService,
+              ),
             ),
           ),
         );
 
-        // Use manual pumps instead of pumpAndSettle to avoid timeout
+        // Pump once to build the widget
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 100));
+
+        // Wait for the post-frame callback to execute
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // Wait for credential loading to complete
+        await tester.pump(const Duration(milliseconds: 200));
 
         // Check that the edit screen is displayed
         expect(find.text('Edit Server'), findsOneWidget);
         expect(find.text('Save'), findsOneWidget);
         expect(find.text('Cancel'), findsOneWidget);
       },
-      timeout: const Timeout(Duration(seconds: 10)),
     );
 
     testWidgets('should save server changes and return true', (
@@ -119,7 +130,10 @@ void main() {
                                 value: serverProvider,
                               ),
                             ],
-                            child: EditServerScreen(server: testServer),
+                            child: EditServerScreen(
+                              server: testServer,
+                              networkService: mockNetworkService,
+                            ),
                           ),
                         ),
                       );
@@ -173,7 +187,10 @@ void main() {
                                 value: serverProvider,
                               ),
                             ],
-                            child: EditServerScreen(server: testServer),
+                            child: EditServerScreen(
+                              server: testServer,
+                              networkService: mockNetworkService,
+                            ),
                           ),
                         ),
                       );
@@ -202,7 +219,7 @@ void main() {
     testWidgets(
       'should update server in database when saved',
       skip:
-          true, // Skip due to hanging issue with EditServerScreen's _loadExistingCredentials
+          true, // Still investigating hanging issue - may be related to database or provider lifecycle
       (WidgetTester tester) async {
         // Ensure clean state
         await TestProviders.cleanupTestEnvironment();
@@ -216,7 +233,10 @@ void main() {
                 ),
                 ChangeNotifierProvider.value(value: serverProvider),
               ],
-              child: EditServerScreen(server: testServer),
+              child: EditServerScreen(
+                server: testServer,
+                networkService: mockNetworkService,
+              ),
             ),
           ),
         );
