@@ -17,6 +17,7 @@ class AdaptiveNavigationScaffold extends StatefulWidget {
 class _AdaptiveNavigationScaffoldState
     extends State<AdaptiveNavigationScaffold> {
   int _selectedIndex = 0;
+  bool _isSidebarExpanded = true;
 
   static const double _breakpoint = 768.0;
 
@@ -92,35 +93,62 @@ class _AdaptiveNavigationScaffoldState
 
   Widget _buildSidebarNavigation() {
     return CupertinoPageScaffold(
-      child: Row(
+      child: Stack(
         children: [
-          CupertinoSidebar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: _onDestinationSelected,
-            navigationBar: const SidebarNavigationBar(
-              title: Text('TrueNAS Manager'),
-            ),
-            children: const [
-              // Main Navigation - index 0
-              SidebarDestination(
-                icon: Icon(CupertinoIcons.house),
-                label: Text('Servers'),
+          Row(
+            children: [
+              // Collapsible sidebar wrapper
+              CupertinoSidebarCollapsible(
+                isExpanded: _isSidebarExpanded,
+                child: CupertinoSidebar(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _onDestinationSelected,
+                  navigationBar: const SidebarNavigationBar(
+                    title: Text('TrueNAS Manager'),
+                  ),
+                  children: const [
+                    // Main Navigation - index 0
+                    SidebarDestination(
+                      icon: Icon(CupertinoIcons.house),
+                      label: Text('Servers'),
+                    ),
+                    // Settings - index 1
+                    SidebarDestination(
+                      icon: Icon(CupertinoIcons.settings),
+                      label: Text('Settings'),
+                    ),
+                  ],
+                ),
               ),
-              // Settings - index 1
-              SidebarDestination(
-                icon: Icon(CupertinoIcons.settings),
-                label: Text('Settings'),
+              Expanded(
+                child: CupertinoTabTransitionBuilder(
+                  child: Container(
+                    key: ValueKey(_selectedIndex),
+                    decoration: const BoxDecoration(
+                      color: CupertinoColors.systemGroupedBackground,
+                    ),
+                    child: widget.child,
+                  ),
+                ),
               ),
             ],
           ),
-          Expanded(
-            child: CupertinoTabTransitionBuilder(
-              child: Container(
-                key: ValueKey(_selectedIndex),
-                decoration: const BoxDecoration(
-                  color: CupertinoColors.systemGroupedBackground,
+          // Sidebar toggle button
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  setState(() {
+                    _isSidebarExpanded = !_isSidebarExpanded;
+                  });
+                },
+                child: Icon(
+                  _isSidebarExpanded
+                      ? CupertinoIcons.sidebar_left
+                      : CupertinoIcons.sidebar_right,
                 ),
-                child: widget.child,
               ),
             ),
           ),
