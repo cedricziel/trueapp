@@ -9,7 +9,6 @@ import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:truehub/main.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/dataset_provider.dart';

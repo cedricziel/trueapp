@@ -17,7 +17,9 @@ void main() {
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    unifiedServerService = await TestProviders.createMockUnifiedServerService(database: database);
+    unifiedServerService = await TestProviders.createMockUnifiedServerService(
+      database: database,
+    );
     serverProvider = ServerProvider(unifiedServerService);
 
     testServer = NasServer.create(
