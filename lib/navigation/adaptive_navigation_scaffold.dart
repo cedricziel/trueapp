@@ -31,7 +31,8 @@ class _AdaptiveNavigationScaffoldState
     final String location = GoRouterState.of(context).uri.toString();
     int newIndex = 0;
 
-    if (location.startsWith('/servers')) {
+    if (location.startsWith('/servers') || location.startsWith('/server/')) {
+      // Both server list and server detail should highlight "Servers" in sidebar
       newIndex = 0;
     } else if (location.startsWith('/settings')) {
       newIndex = 1;
@@ -52,7 +53,18 @@ class _AdaptiveNavigationScaffoldState
   }
 
   void _onDestinationSelected(int index) {
-    if (index == _selectedIndex) return;
+    if (index == _selectedIndex) {
+      // If already on the selected destination, navigate to its root
+      switch (index) {
+        case 0:
+          context.go('/servers');
+          break;
+        case 1:
+          context.go('/settings');
+          break;
+      }
+      return;
+    }
 
     setState(() {
       _selectedIndex = index;

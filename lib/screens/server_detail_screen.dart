@@ -98,17 +98,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 ),
               ],
             ),
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.back),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/servers');
-                }
-              },
-            ),
             trailing: CupertinoButton(
               padding: EdgeInsets.zero,
               child: const Icon(CupertinoIcons.ellipsis),
