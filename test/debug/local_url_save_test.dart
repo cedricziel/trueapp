@@ -45,6 +45,7 @@ void main() {
   });
 
   tearDown(() async {
+    unifiedServerService.dispose();
     await database.close();
   });
 
@@ -138,10 +139,9 @@ void main() {
           ('empty string', ''),
         ];
 
-        // ignore: unused_local_variable
         for (final (description, localUrl) in testCases) {
           final server = NasServer.create(
-            name: 'Edge Case Server',
+            name: 'Edge Case Server ($description)',
             host: '192.168.1.100',
             localUrl: localUrl.isNotEmpty ? localUrl : null,
             username: 'admin',
@@ -150,14 +150,22 @@ void main() {
 
           await database.insertServer(server);
 
-          // Read back and verify
+          // Read back and verify - use a simple database call, no provider interaction
           final serverFromDb = await database.getServer(server.id);
-          expect(serverFromDb, isNotNull);
+          expect(serverFromDb, isNotNull, reason: 'Failed for $description');
 
           if (localUrl.isEmpty) {
-            expect(serverFromDb!.localUrl, isNull);
+            expect(
+              serverFromDb!.localUrl,
+              isNull,
+              reason: 'Failed for $description',
+            );
           } else {
-            expect(serverFromDb!.localUrl, localUrl);
+            expect(
+              serverFromDb!.localUrl,
+              localUrl,
+              reason: 'Failed for $description',
+            );
           }
 
           // Clean up
