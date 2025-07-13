@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/providers/server_provider.dart';
@@ -14,8 +16,16 @@ void main() {
     late AppDatabase database;
     late ServerProvider serverProvider;
     late UnifiedServerService unifiedServerService;
+    late Timer timeout;
 
     setUp(() async {
+      timeout = Timer(
+        const Duration(seconds: 10),
+        () => fail(
+          'Test timed out, likely due to hanging database operations or network calls',
+        ),
+      );
+
       // Create a unique database instance for complete isolation
       database = AppDatabase.forTesting(NativeDatabase.memory());
 
@@ -39,6 +49,8 @@ void main() {
 
       // Clear any static state that might interfere with other tests
       await TestProviders.cleanupTestEnvironment();
+
+      timeout.cancel();
     });
 
     test('should refresh selectedServer when server is updated', () async {

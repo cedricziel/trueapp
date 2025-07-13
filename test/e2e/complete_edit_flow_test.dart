@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/screens/home_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -54,8 +57,19 @@ void main() {
           return MultiProvider(
             providers: [
               Provider<AppDatabase>.value(value: database),
+              Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
               ChangeNotifierProvider.value(value: poolProvider),
+              ChangeNotifierProvider(
+                create: (_) => AppProvider(
+                  database: database,
+                  serverService: unifiedServerService,
+                ),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => SystemStatsProvider(unifiedServerService),
+              ),
+              ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
             ],
             child: const CupertinoApp(home: HomeScreen()),
           );
@@ -200,8 +214,19 @@ void main() {
           return MultiProvider(
             providers: [
               Provider<AppDatabase>.value(value: database),
+              Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
               ChangeNotifierProvider.value(value: poolProvider),
+              ChangeNotifierProvider(
+                create: (_) => AppProvider(
+                  database: database,
+                  serverService: unifiedServerService,
+                ),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => SystemStatsProvider(unifiedServerService),
+              ),
+              ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
             ],
             child: const CupertinoApp(home: HomeScreen()),
           );
