@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cupertino_sidebar/cupertino_sidebar.dart';
-import 'package:truehub/navigation/navigation_destinations.dart';
 import 'package:truehub/navigation/compact_navigation.dart';
 
 class AdaptiveNavigationScaffold extends StatefulWidget {
@@ -92,22 +91,41 @@ class _AdaptiveNavigationScaffoldState
   }
 
   Widget _buildSidebarNavigation() {
-    return Row(
-      children: [
-        CupertinoSidebar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onDestinationSelected,
-          children: navigationDestinations,
-        ),
-        Expanded(
-          child: Container(
-            decoration: const BoxDecoration(
-              color: CupertinoColors.systemGroupedBackground,
+    return CupertinoPageScaffold(
+      child: Row(
+        children: [
+          CupertinoSidebar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onDestinationSelected,
+            navigationBar: const SidebarNavigationBar(
+              title: Text('TrueNAS Manager'),
             ),
-            child: widget.child,
+            children: const [
+              // Main Navigation - index 0
+              SidebarDestination(
+                icon: Icon(CupertinoIcons.house),
+                label: Text('Servers'),
+              ),
+              // Settings - index 1
+              SidebarDestination(
+                icon: Icon(CupertinoIcons.settings),
+                label: Text('Settings'),
+              ),
+            ],
           ),
-        ),
-      ],
+          Expanded(
+            child: CupertinoTabTransitionBuilder(
+              child: Container(
+                key: ValueKey(_selectedIndex),
+                decoration: const BoxDecoration(
+                  color: CupertinoColors.systemGroupedBackground,
+                ),
+                child: widget.child,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

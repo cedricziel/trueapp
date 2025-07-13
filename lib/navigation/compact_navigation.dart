@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:truehub/navigation/navigation_destinations.dart';
 
 class CompactNavigation extends StatefulWidget {
   final int selectedIndex;
@@ -36,10 +35,14 @@ class _CompactNavigationState extends State<CompactNavigation> {
   }
 
   String _getCurrentPageTitle() {
-    if (widget.selectedIndex < compactNavigationDestinations.length) {
-      return compactNavigationDestinations[widget.selectedIndex].label;
+    switch (widget.selectedIndex) {
+      case 0:
+        return 'Servers';
+      case 1:
+        return 'Settings';
+      default:
+        return 'TrueNAS Manager';
     }
-    return 'TrueNAS Manager';
   }
 
   void _showNavigationMenu(BuildContext context) {
@@ -47,25 +50,36 @@ class _CompactNavigationState extends State<CompactNavigation> {
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: const Text('Navigate to'),
-        actions: compactNavigationDestinations.asMap().entries.map((entry) {
-          final index = entry.key;
-          final destination = entry.value;
-
-          return CupertinoActionSheetAction(
+        actions: [
+          CupertinoActionSheetAction(
             onPressed: () {
               Navigator.pop(context);
-              widget.onDestinationSelected(index);
+              widget.onDestinationSelected(0);
             },
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(destination.icon),
-                const SizedBox(width: 8),
-                Text(destination.label),
+                Icon(CupertinoIcons.house),
+                SizedBox(width: 8),
+                Text('Servers'),
               ],
             ),
-          );
-        }).toList(),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onDestinationSelected(1);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.settings),
+                SizedBox(width: 8),
+                Text('Settings'),
+              ],
+            ),
+          ),
+        ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
           onPressed: () {
