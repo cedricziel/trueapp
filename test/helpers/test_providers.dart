@@ -52,11 +52,13 @@ class TestProviders {
 
   /// Cleans up all static state that might interfere with test isolation
   static Future<void> cleanupTestEnvironment() async {
-    // Reset the mock API client manager
-    mockApiClientManager.reset();
-
-    // Clear all cached API clients
+    // Clear all cached API clients while mock is still active
     await ApiClientManager.clearAllForTesting();
+
+    // Reset the mock API client manager
+    if (_mockApiClientManager != null) {
+      _mockApiClientManager!.reset();
+    }
 
     // Reset to default implementation for next test
     ApiClientManager.setInstance(null);

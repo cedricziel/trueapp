@@ -13,6 +13,10 @@ void main() {
   late NasServer testServer;
 
   setUp(() async {
+    // Clean up any leftover state and set up test environment
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
+
     // Create a database instance for this test
     database = AppDatabase.forTesting(NativeDatabase.memory());
 
