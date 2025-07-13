@@ -276,9 +276,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Completely recreate the database file to ensure fresh schema
       try {
-        // Get the database instance and close it
-        final database = AppDatabase();
-        await database.close();
+        // Close and dispose the database singleton
+        await AppDatabase.disposeInstance();
 
         // Get the database file path and delete it
         final documentsDir = await getApplicationDocumentsDirectory();
@@ -296,9 +295,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (await shmFile.exists()) await shmFile.delete();
       } catch (e) {
         // Fallback: Drop table method
-        final database = AppDatabase();
+        final database = AppDatabase.instance;
         await database.customStatement('DROP TABLE IF EXISTS nas_servers');
-        await database.close();
+        await AppDatabase.disposeInstance();
       }
 
       // Reload servers in the provider - this will create a fresh database

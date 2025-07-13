@@ -19,7 +19,7 @@ import 'package:truehub/models/app_config.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final database = AppDatabase();
+  final database = AppDatabase.instance;
   final connectionStatusProvider = ConnectionStatusProvider();
   final unifiedServerService = await UnifiedServerService.createForProduction();
 
