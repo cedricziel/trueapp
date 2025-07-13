@@ -1,17 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/native.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
+  late AppDatabase database;
   late ServerProvider serverProvider;
   late UnifiedServerService mockServerService;
   late NasServer testServer;
 
   setUp(() async {
-    // Create a shared mock service instance
-    mockServerService = await TestProviders.createMockUnifiedServerService();
+    // Create a database instance for this test
+    database = AppDatabase.forTesting(NativeDatabase.memory());
+
+    // Create a shared mock service instance with the database
+    mockServerService = await TestProviders.createMockUnifiedServerService(
+      database: database,
+    );
     serverProvider = ServerProvider(mockServerService);
 
     testServer = NasServer.create(
@@ -31,6 +39,7 @@ void main() {
 
   tearDown(() async {
     mockServerService.dispose();
+    await database.close();
   });
 
   group('ServerProvider', () {
@@ -410,22 +419,30 @@ void main() {
     });
 
     test('should properly dispose resources', () async {
-      // Create a new provider to test disposal
-      final testProvider = await TestProviders.createServerProvider();
+      // Create a new database and provider to test disposal
+      final testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+      final testProvider = await TestProviders.createServerProvider(
+        database: testDatabase,
+      );
 
       // Should not throw
       testProvider.dispose();
+      await testDatabase.close();
     });
 
     test('should handle edge cases in auto-selection', () async {
-      // Create empty provider
-      final emptyProvider = await TestProviders.createServerProvider();
+      // Create empty provider with separate database
+      final emptyDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+      final emptyProvider = await TestProviders.createServerProvider(
+        database: emptyDatabase,
+      );
 
       // Auto-select with no servers should not crash
       await emptyProvider.loadServersAndAutoSelect();
       expect(emptyProvider.selectedServer, isNull);
 
       emptyProvider.dispose();
+      await emptyDatabase.close();
     });
   });
 }

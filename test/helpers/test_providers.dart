@@ -1,4 +1,3 @@
-import 'package:drift/native.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
@@ -9,14 +8,14 @@ import 'package:truenas_native_plugins/truenas_native_plugins.dart'
 class TestProviders {
   /// Creates a real UnifiedServerService with SQLite repository and mock keychain
   /// for testing that requires actual database persistence
+  ///
+  /// IMPORTANT: Always provide a database parameter to avoid creating multiple database instances
+  /// which can cause race conditions. Each test should create its own database in setUp().
   static Future<UnifiedServerService> createMockUnifiedServerService({
-    AppDatabase? database,
+    required AppDatabase database,
   }) async {
-    // Use provided database or create a new in-memory one
-    final db = database ?? AppDatabase.forTesting(NativeDatabase.memory());
-
     // Create real service with SQLite repository and mock keychain
-    final sqliteRepository = SqliteServerRepository(db);
+    final sqliteRepository = SqliteServerRepository(database);
     final mockKeychain = MockKeychainService();
     final service = UnifiedServerService(
       repository: sqliteRepository,
@@ -29,7 +28,7 @@ class TestProviders {
 
   /// Creates a ServerProvider with a mock unified server service
   static Future<ServerProvider> createServerProvider({
-    AppDatabase? database,
+    required AppDatabase database,
   }) async {
     final service = await createMockUnifiedServerService(database: database);
     return ServerProvider(service);
