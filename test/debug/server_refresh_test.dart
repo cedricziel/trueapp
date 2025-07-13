@@ -104,30 +104,38 @@ void main() {
     test('should notify listeners when server is updated', () async {
       bool listenerCalled = false;
 
-      // Add a listener to the provider
-      serverProvider.addListener(() {
+      // Create a simple, isolated listener that won't cause side effects
+      void testListener() {
         listenerCalled = true;
-      });
+      }
 
-      // Create and add a server
-      final testServer = models.NasServer.create(
-        name: 'Test Server',
-        host: 'test.example.com',
-        port: 443,
-        username: 'admin',
-        password: 'password',
-        useHttps: true,
-      );
+      // Add a listener to the provider
+      serverProvider.addListener(testListener);
 
-      await database.insertServer(testServer);
-      listenerCalled = false; // Reset flag
+      try {
+        // Create and add a server
+        final testServer = models.NasServer.create(
+          name: 'Test Server',
+          host: 'test.example.com',
+          port: 443,
+          username: 'admin',
+          password: 'password',
+          useHttps: true,
+        );
 
-      // Update the server
-      final updatedServer = testServer.copyWith(name: 'Updated Name');
-      await serverProvider.updateServer(updatedServer);
+        await database.insertServer(testServer);
+        listenerCalled = false; // Reset flag after initial setup
 
-      // Verify listeners were notified
-      expect(listenerCalled, true);
+        // Update the server
+        final updatedServer = testServer.copyWith(name: 'Updated Name');
+        await serverProvider.updateServer(updatedServer);
+
+        // Verify listeners were notified
+        expect(listenerCalled, true);
+      } finally {
+        // Clean up listener to prevent issues
+        serverProvider.removeListener(testListener);
+      }
     });
   });
 }
