@@ -16,6 +16,8 @@ void main() {
   late NasServer testServer;
 
   setUp(() async {
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
     database = AppDatabase.forTesting(NativeDatabase.memory());
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,

@@ -21,12 +21,15 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
+import 'helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
   late UnifiedServerService unifiedServerService;
 
   setUp(() async {
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
     // Create a fresh test database for each test using in-memory SQLite
     database = AppDatabase.forTesting(NativeDatabase.memory());
 

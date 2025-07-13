@@ -16,6 +16,8 @@ void main() {
   late UnifiedServerService unifiedServerService;
 
   setUp(() async {
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
     database = AppDatabase.forTesting(NativeDatabase.memory());
 
     // Create real service with SQLite repository and mock keychain
