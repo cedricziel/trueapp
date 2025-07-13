@@ -1,16 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
-import '../helpers/mock_server_sync_service.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   late ServerProvider serverProvider;
-  late MockUnifiedServerService mockServerService;
+  late UnifiedServerService mockServerService;
   late NasServer testServer;
 
   setUp(() async {
     // Create a shared mock service instance
-    mockServerService = TestProviders.createMockUnifiedServerService();
+    mockServerService = await TestProviders.createMockUnifiedServerService();
     serverProvider = ServerProvider(mockServerService);
 
     testServer = NasServer.create(
@@ -408,9 +409,9 @@ void main() {
       expect(serverProvider.selectedServer, isNotNull);
     });
 
-    test('should properly dispose resources', () {
+    test('should properly dispose resources', () async {
       // Create a new provider to test disposal
-      final testProvider = TestProviders.createServerProvider();
+      final testProvider = await TestProviders.createServerProvider();
 
       // Should not throw
       testProvider.dispose();
@@ -418,7 +419,7 @@ void main() {
 
     test('should handle edge cases in auto-selection', () async {
       // Create empty provider
-      final emptyProvider = TestProviders.createServerProvider();
+      final emptyProvider = await TestProviders.createServerProvider();
 
       // Auto-select with no servers should not crash
       await emptyProvider.loadServersAndAutoSelect();

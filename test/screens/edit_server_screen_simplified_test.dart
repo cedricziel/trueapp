@@ -1,4 +1,3 @@
-import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,17 +6,19 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/edit_server_screen.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
+  late UnifiedServerService unifiedServerService;
   late NasServer testServer;
 
   setUp(() async {
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(
-      TestProviders.createMockUnifiedServerService(),
-    );
+    unifiedServerService = await TestProviders.createMockUnifiedServerService(database: database);
+    serverProvider = ServerProvider(unifiedServerService);
 
     testServer = NasServer.create(
       name: 'Test Server',
