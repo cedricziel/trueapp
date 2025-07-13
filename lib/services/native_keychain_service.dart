@@ -9,7 +9,8 @@ class NativeKeychainService {
   static NativeKeychainService get instance =>
       _instance ??= NativeKeychainService._();
 
-  NativeKeychainService._() : _keychainService = plugins.NativeKeychainService();
+  NativeKeychainService._()
+    : _keychainService = plugins.NativeKeychainService();
 
   /// Store password for server ID in synchronizable keychain
   /// Uses kSecAttrSynchronizable = true for iCloud Keychain sync
@@ -32,12 +33,10 @@ class NativeKeychainService {
       _keychainService.hasPassword(serverId: serverId);
 
   /// Get all server IDs that have passwords stored
-  Future<List<String>> getAllServerIds() =>
-      _keychainService.getAllServerIds();
+  Future<List<String>> getAllServerIds() => _keychainService.getAllServerIds();
 
   /// Delete all passwords (for complete app reset)
-  Future<bool> deleteAllPasswords() =>
-      _keychainService.deleteAllPasswords();
+  Future<bool> deleteAllPasswords() => _keychainService.deleteAllPasswords();
 
   /// Debug method to list all stored server IDs in keychain
   Future<List<String>> debugListStoredServerIds() async {

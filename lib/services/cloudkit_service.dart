@@ -7,17 +7,23 @@ import 'package:truehub/models/server_config_dto.dart';
 class CloudKitService {
   final plugins.CloudKitServiceInterface _cloudKitService;
   late final StreamController<List<ServerConfigDTO>> _serverConfigsController;
-  late final StreamSubscription<List<plugins.ServerConfigDTO>> _pluginSubscription;
+  late final StreamSubscription<List<plugins.ServerConfigDTO>>
+  _pluginSubscription;
 
   static CloudKitService? _instance;
   static CloudKitService get instance => _instance ??= CloudKitService._();
 
   CloudKitService._() : _cloudKitService = plugins.NativeCloudKitService() {
-    _serverConfigsController = StreamController<List<ServerConfigDTO>>.broadcast();
-    
+    _serverConfigsController =
+        StreamController<List<ServerConfigDTO>>.broadcast();
+
     // Convert plugin DTOs to app DTOs
-    _pluginSubscription = _cloudKitService.serverConfigsStream.listen((pluginConfigs) {
-      final appConfigs = pluginConfigs.map((p) => ServerConfigDTO.fromPlugin(p)).toList();
+    _pluginSubscription = _cloudKitService.serverConfigsStream.listen((
+      pluginConfigs,
+    ) {
+      final appConfigs = pluginConfigs
+          .map((p) => ServerConfigDTO.fromPlugin(p))
+          .toList();
       _serverConfigsController.add(appConfigs);
     });
   }

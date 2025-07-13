@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/server_repository_interface.dart';
-import 'package:truenas_native_plugins/truenas_native_plugins.dart' show MockKeychainService;
-import '../helpers/mock_server_sync_service.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show MockKeychainService;
 
 part 'unified_server_service_test_setup.dart';
 part 'unified_server_service_test_core.dart';
@@ -19,27 +19,6 @@ part 'unified_server_service_test_integration.dart';
 /// - Dependency Inversion: Tests depend on abstractions
 void main() {
   group('UnifiedServerService', () {
-    late MockServerRepository mockRepository;
-    late MockKeychainService mockKeychain;
-    late UnifiedServerService service;
-    late NasServer testServer;
-
-    setUp(() {
-      mockRepository = MockServerRepository();
-      mockKeychain = MockKeychainService();
-      service = UnifiedServerService(
-        repository: mockRepository,
-        keychain: mockKeychain,
-      );
-
-      testServer = NasServer.create(
-        name: 'Test Server',
-        host: '192.168.1.100',
-        username: 'admin',
-        password: 'test-password',
-      );
-    });
-
     group('Initialization', _testInitialization);
     group('Server Configuration Management', _testServerConfiguration);
     group('Password Management', _testPasswordManagement);
@@ -65,7 +44,6 @@ class MockServerRepository implements ServerRepositoryInterface {
     return true;
   }
 
-  @override
   bool get isInitialized => _isInitialized;
 
   @override
