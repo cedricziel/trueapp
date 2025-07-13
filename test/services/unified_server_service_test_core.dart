@@ -32,7 +32,7 @@ void _testServerConfiguration() {
     expect(savedServer!.name, equals('Test Server'));
     expect(savedServer.host, equals('192.168.1.100'));
 
-    final savedPassword = await keychain.getPassword(server.id);
+    final savedPassword = await keychain.getPassword(serverId: server.id);
     expect(savedPassword, equals('secure-password'));
   });
 
@@ -75,7 +75,7 @@ void _testServerConfiguration() {
       expect(savedServer.host, equals('192.168.1.200'));
 
       // Password should remain unchanged
-      final password = await keychain.getPassword(originalServer.id);
+      final password = await keychain.getPassword(serverId: originalServer.id);
       expect(password, equals('original-password'));
     },
   );
@@ -112,7 +112,7 @@ void _testServerConfiguration() {
     final deletedServer = await repository.getServer(server.id);
     expect(deletedServer, isNull);
 
-    final deletedPassword = await keychain.getPassword(server.id);
+    final deletedPassword = await keychain.getPassword(serverId: server.id);
     expect(deletedPassword, isNull);
   });
 

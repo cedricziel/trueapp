@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/server_repository_interface.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart' show MockKeychainService;
 import '../helpers/mock_server_sync_service.dart';
 
 part 'unified_server_service_test_setup.dart';
@@ -168,39 +169,5 @@ class MockServerRepository implements ServerRepositoryInterface {
   int get serverCount => _servers.length;
 }
 
-/// Mock keychain service following Single Responsibility Principle
-class MockKeychainService {
-  final Map<String, String> _passwords = {};
-  bool _shouldFailOperations = false;
-
-  Future<bool> storePassword(String serverId, String password) async {
-    if (_shouldFailOperations) return false;
-    _passwords[serverId] = password;
-    return true;
-  }
-
-  Future<String?> getPassword(String serverId) async {
-    if (_shouldFailOperations) return null;
-    return _passwords[serverId];
-  }
-
-  Future<bool> deletePassword(String serverId) async {
-    if (_shouldFailOperations) return false;
-    return _passwords.remove(serverId) != null;
-  }
-
-  // Test helpers
-  void setShouldFailOperations(bool shouldFail) {
-    _shouldFailOperations = shouldFail;
-  }
-
-  void addPassword(String serverId, String password) {
-    _passwords[serverId] = password;
-  }
-
-  int get passwordCount => _passwords.length;
-
-  void clear() {
-    _passwords.clear();
-  }
-}
+// NOTE: MockKeychainService is now imported from truenas_native_plugins package
+// See package imports at the top of the file
