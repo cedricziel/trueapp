@@ -205,4 +205,24 @@ class ApiClientManager {
     // Now create a fresh client
     return await getClient(server);
   }
+
+  /// Clears all cached clients and state. Used for testing only.
+  @visibleForTesting
+  static Future<void> clearAllForTesting() async {
+    if (kDebugMode) {
+      print('ApiClientManager: Clearing all clients for testing');
+    }
+
+    // Close all existing clients
+    final clientIds = List<String>.from(_clients.keys);
+    for (final id in clientIds) {
+      await closeClient(id);
+    }
+
+    // Clear all maps
+    _clients.clear();
+    _refCounts.clear();
+    _connectionCompleters.clear();
+    _connectionStatusProvider = null;
+  }
 }

@@ -2,6 +2,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/api_client_manager.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
 
@@ -32,5 +33,11 @@ class TestProviders {
   }) async {
     final service = await createMockUnifiedServerService(database: database);
     return ServerProvider(service);
+  }
+
+  /// Cleans up all static state that might interfere with test isolation
+  static Future<void> cleanupTestEnvironment() async {
+    // Clear all cached API clients
+    await ApiClientManager.clearAllForTesting();
   }
 }

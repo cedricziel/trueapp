@@ -7,6 +7,7 @@ import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
 import 'package:drift/native.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   group('Server Provider Refresh Test', () {
@@ -15,6 +16,7 @@ void main() {
     late UnifiedServerService unifiedServerService;
 
     setUp(() async {
+      // Create a unique database instance for complete isolation
       database = AppDatabase.forTesting(NativeDatabase.memory());
 
       // Create real service with SQLite repository and mock keychain
@@ -30,9 +32,13 @@ void main() {
     });
 
     tearDown(() async {
-      // Dispose the service before closing the database
+      // Ensure complete cleanup in reverse order of creation
+      serverProvider.dispose();
       unifiedServerService.dispose();
       await database.close();
+
+      // Clear any static state that might interfere with other tests
+      await TestProviders.cleanupTestEnvironment();
     });
 
     test('should refresh selectedServer when server is updated', () async {

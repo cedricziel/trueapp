@@ -7,6 +7,7 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
+import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
@@ -47,6 +48,9 @@ void main() {
   tearDown(() async {
     unifiedServerService.dispose();
     await database.close();
+
+    // Clear any static state that might interfere with other tests
+    await TestProviders.cleanupTestEnvironment();
   });
 
   group('Local URL Save Test', () {

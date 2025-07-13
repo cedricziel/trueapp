@@ -40,6 +40,9 @@ void main() {
   tearDown(() async {
     mockServerService.dispose();
     await database.close();
+
+    // Clear any static state that might interfere with other tests
+    await TestProviders.cleanupTestEnvironment();
   });
 
   group('ServerProvider', () {
