@@ -1,20 +1,32 @@
-import '../helpers/mock_server_sync_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/sqlite_server_repository.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show MockKeychainService;
 import 'package:drift/native.dart';
 
 void main() {
   group('Server Provider Refresh Test', () {
     late AppDatabase database;
     late ServerProvider serverProvider;
+    late UnifiedServerService unifiedServerService;
 
-    setUp(() {
+    setUp(() async {
       database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(
-        TestProviders.createMockUnifiedServerService(),
+
+      // Create real service with SQLite repository and mock keychain
+      final sqliteRepository = SqliteServerRepository(database);
+      final mockKeychain = MockKeychainService();
+      unifiedServerService = UnifiedServerService(
+        repository: sqliteRepository,
+        keychain: mockKeychain,
       );
+      await unifiedServerService.initialize();
+
+      serverProvider = ServerProvider(unifiedServerService);
     });
 
     tearDown(() async {

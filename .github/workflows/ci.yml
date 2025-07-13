@@ -14,18 +14,18 @@ concurrency:
 jobs:
   test:
     runs-on: macos-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.32.4'
+        flutter-version: '3.32.6'
         channel: 'stable'
         cache: true
-    
+
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
@@ -36,28 +36,28 @@ jobs:
         key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: |
           ${{ runner.os }}-flutter-
-    
+
     - name: Get dependencies
       run: flutter pub get
-    
+
     - name: Generate code
       run: dart run build_runner build --delete-conflicting-outputs
-    
+
     - name: Run static analysis
       run: flutter analyze
-    
+
     - name: Check formatting
       run: dart format --set-exit-if-changed .
-    
+
     - name: Run tests
       run: |
         # Run all tests with expanded reporter for better CI output
         flutter test --reporter=expanded \
           --timeout=30s \
           --no-pub
-    
+
     - name: Build iOS (no codesign)
       run: flutter build ios --no-codesign
-    
+
     - name: Build macOS
       run: flutter build macos
