@@ -22,6 +22,9 @@ void main() {
       // Clean up any leftover state first
       await TestProviders.cleanupTestEnvironment();
 
+      // Set up test environment with mocks
+      TestProviders.setupTestEnvironment();
+
       timeout = Timer(
         const Duration(seconds: 10),
         () => fail(
