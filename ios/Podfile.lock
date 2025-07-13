@@ -36,6 +36,8 @@ PODS:
     - sqlite3/math
     - sqlite3/perf-threadsafe
     - sqlite3/rtree
+  - truenas_native_plugins (0.1.0):
+    - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
 
@@ -48,6 +50,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - sqlite3_flutter_libs (from `.symlinks/plugins/sqlite3_flutter_libs/darwin`)
+  - truenas_native_plugins (from `.symlinks/plugins/truenas_native_plugins/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
 SPEC REPOS:
@@ -71,6 +74,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   sqlite3_flutter_libs:
     :path: ".symlinks/plugins/sqlite3_flutter_libs/darwin"
+  truenas_native_plugins:
+    :path: ".symlinks/plugins/truenas_native_plugins/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
@@ -84,6 +89,7 @@ SPEC CHECKSUMS:
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   sqlite3: 3e82a2daae39ba3b41ae6ee84a130494585460fc
   sqlite3_flutter_libs: e7fc8c9ea2200ff3271f08f127842131746b70e2
+  truenas_native_plugins: cfa81d52b63912426cd098e5bf66b214a3f88582
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
 
 PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5

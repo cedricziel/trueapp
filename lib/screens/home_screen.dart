@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:truehub/providers/server_provider.dart';
-import 'package:truehub/screens/add_server_screen.dart';
-import 'package:truehub/screens/server_detail_screen.dart';
-import 'package:truehub/screens/settings_screen.dart';
 import 'package:truehub/widgets/server_list_tile.dart';
 import 'package:truehub/widgets/session_indicator_widget.dart';
 
@@ -35,12 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
             authStatus.isAuthenticated &&
             authStatus.server != null) {
           // Only navigate when successfully authenticated
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) =>
-                  ServerDetailScreen(server: authStatus.server!),
-            ),
+          context.go(
+            '/server/${authStatus.server!.id}',
+            extra: authStatus.server,
           );
         }
       });
@@ -63,29 +58,16 @@ class _HomeScreenState extends State<HomeScreen> {
         middle: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('TrueNAS Manager'),
+            const Text('Servers'),
             const SizedBox(width: 8),
             const SessionIndicatorWidget(),
           ],
-        ),
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.settings),
-          onPressed: () {
-            Navigator.push(
-              context,
-              CupertinoPageRoute(builder: (context) => const SettingsScreen()),
-            );
-          },
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.add),
           onPressed: () {
-            Navigator.push(
-              context,
-              CupertinoPageRoute(builder: (context) => const AddServerScreen()),
-            );
+            context.go('/add-server');
           },
         ),
       ),
@@ -132,13 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () async {
                     await serverProvider.selectServer(server);
                     if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) =>
-                              ServerDetailScreen(server: server),
-                        ),
-                      );
+                      context.go('/server/${server.id}', extra: server);
                     }
                   },
                 );
