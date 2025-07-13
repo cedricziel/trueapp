@@ -30,6 +30,8 @@ void main() {
     });
 
     tearDown(() async {
+      // Dispose the service before closing the database
+      unifiedServerService.dispose();
       await database.close();
     });
 
