@@ -21,6 +21,9 @@ void main() {
     // Clean up any leftover state from previous tests
     await TestProviders.cleanupTestEnvironment();
 
+    // Set up test environment with mocks
+    TestProviders.setupTestEnvironment();
+
     database = AppDatabase.forTesting(NativeDatabase.memory());
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
