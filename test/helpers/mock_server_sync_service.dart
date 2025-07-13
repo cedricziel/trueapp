@@ -14,6 +14,7 @@ class MockUnifiedServerService implements UnifiedServerService {
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
+  @override
   Future<bool> initialize() async {
     return true;
   }

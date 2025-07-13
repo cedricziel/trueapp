@@ -5,11 +5,8 @@ import FlutterMacOS
 class AppDelegate: FlutterAppDelegate {
 
   override func applicationDidFinishLaunching(_ notification: Notification) {
-    let controller: FlutterViewController = mainFlutterWindow?.contentViewController as! FlutterViewController
-    
-    // Register our custom plugins for macOS
-    CloudKitPlugin.register(with: controller.registrar(forPlugin: "CloudKitPlugin"))
-    KeychainPlugin.register(with: controller.registrar(forPlugin: "KeychainPlugin"))
+    // All plugins including truenas_native_plugins are automatically registered
+    // through the GeneratedPluginRegistrant in Flutter
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

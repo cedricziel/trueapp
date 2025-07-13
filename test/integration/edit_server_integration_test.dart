@@ -1,4 +1,3 @@
-import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,17 +7,22 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/edit_server_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
-  late MockUnifiedServerService mockUnifiedServerService;
+  late UnifiedServerService unifiedServerService;
   late NasServer testServer;
 
   setUp(() async {
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    mockUnifiedServerService = TestProviders.createMockUnifiedServerService();
-    serverProvider = ServerProvider(mockUnifiedServerService);
+    unifiedServerService = await TestProviders.createMockUnifiedServerService(
+      database: database,
+    );
+    serverProvider = ServerProvider(unifiedServerService);
 
     testServer = NasServer.create(
       name: 'Integration Test Server',
@@ -51,9 +55,7 @@ void main() {
         return MultiProvider(
           providers: [
             Provider<AppDatabase>.value(value: database),
-            Provider<UnifiedServerService>.value(
-              value: mockUnifiedServerService,
-            ),
+            Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
           child: CupertinoApp(
@@ -208,9 +210,7 @@ void main() {
       expect(editResult, isTrue);
 
       // Verify changes were persisted to mock service
-      final updatedServer = await mockUnifiedServerService.getServer(
-        testServer.id,
-      );
+      final updatedServer = await unifiedServerService.getServer(testServer.id);
       expect(updatedServer, isNotNull);
       expect(updatedServer!.name, 'Updated Integration Server');
       expect(updatedServer.host, '192.168.1.150');
@@ -229,9 +229,7 @@ void main() {
         return MultiProvider(
           providers: [
             Provider<AppDatabase>.value(value: database),
-            Provider<UnifiedServerService>.value(
-              value: mockUnifiedServerService,
-            ),
+            Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
           child: CupertinoApp(
@@ -320,7 +318,7 @@ void main() {
       expect(refreshCount, 0);
 
       // Verify no changes were persisted to mock service
-      final unchangedServer = await mockUnifiedServerService.getServer(
+      final unchangedServer = await unifiedServerService.getServer(
         testServer.id,
       );
       expect(unchangedServer, isNotNull);
@@ -334,9 +332,7 @@ void main() {
         return MultiProvider(
           providers: [
             Provider<AppDatabase>.value(value: database),
-            Provider<UnifiedServerService>.value(
-              value: mockUnifiedServerService,
-            ),
+            Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
           child: CupertinoApp(
@@ -437,9 +433,7 @@ void main() {
       expect(find.text('Port: 8080'), findsOneWidget);
 
       // Verify both changes are persisted in the mock service
-      final finalServer = await mockUnifiedServerService.getServer(
-        testServer.id,
-      );
+      final finalServer = await unifiedServerService.getServer(testServer.id);
       expect(finalServer, isNotNull);
       expect(finalServer!.name, 'First Edit');
       expect(finalServer.port, 8080);

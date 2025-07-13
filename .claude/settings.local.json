@@ -22,7 +22,11 @@
       "Bash(gh issue create:*)",
       "Bash(dart analyze:*)",
       "Bash(find:*)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(git commit:*)",
+      "Bash(gtimeout:*)",
+      "Bash(timeout 30s flutter test:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

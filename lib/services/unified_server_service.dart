@@ -18,13 +18,16 @@ class UnifiedServerService {
 
   bool _isInitialized = false;
   StreamSubscription<List<NasServer>>? _repositorySubscription;
+  final bool _isSingleton;
 
   /// Primary constructor - both production and testing use this
   UnifiedServerService({
     required ServerRepositoryInterface repository,
     required dynamic keychain,
+    bool isSingleton = false,
   }) : _repository = repository,
-       _keychain = keychain;
+       _keychain = keychain,
+       _isSingleton = isSingleton;
 
   /// Factory for production use with platform-appropriate dependencies
   static Future<UnifiedServerService> createForProduction() async {
@@ -36,6 +39,7 @@ class UnifiedServerService {
     _instance = UnifiedServerService(
       repository: repository,
       keychain: keychain,
+      isSingleton: true,
     );
 
     final initialized = await _instance!.initialize();
@@ -240,6 +244,10 @@ class UnifiedServerService {
     await _repositorySubscription?.cancel();
     await _serversController.close();
     await _repository.dispose();
-    _instance = null;
+
+    // Only clear the static instance if this IS the singleton instance
+    if (_isSingleton && _instance == this) {
+      _instance = null;
+    }
   }
 }

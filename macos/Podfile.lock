@@ -36,6 +36,8 @@ PODS:
     - sqlite3/rtree
   - tray_manager (0.0.1):
     - FlutterMacOS
+  - truenas_native_plugins (0.1.0):
+    - FlutterMacOS
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
 
@@ -48,6 +50,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
   - sqlite3_flutter_libs (from `Flutter/ephemeral/.symlinks/plugins/sqlite3_flutter_libs/darwin`)
   - tray_manager (from `Flutter/ephemeral/.symlinks/plugins/tray_manager/macos`)
+  - truenas_native_plugins (from `Flutter/ephemeral/.symlinks/plugins/truenas_native_plugins/macos`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
 SPEC REPOS:
@@ -71,6 +74,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/sqlite3_flutter_libs/darwin
   tray_manager:
     :path: Flutter/ephemeral/.symlinks/plugins/tray_manager/macos
+  truenas_native_plugins:
+    :path: Flutter/ephemeral/.symlinks/plugins/truenas_native_plugins/macos
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
@@ -84,6 +89,7 @@ SPEC CHECKSUMS:
   sqlite3: 3e82a2daae39ba3b41ae6ee84a130494585460fc
   sqlite3_flutter_libs: e7fc8c9ea2200ff3271f08f127842131746b70e2
   tray_manager: a104b5c81b578d83f3c3d0f40a997c8b10810166
+  truenas_native_plugins: a8a4a8df3f75eaeb2f7b9ef30eabe84e405a601c
   url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
 
 PODFILE CHECKSUM: 7eb978b976557c8c1cd717d8185ec483fd090a82

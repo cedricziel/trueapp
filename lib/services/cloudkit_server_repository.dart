@@ -4,13 +4,19 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_config_dto.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/cloudkit_service.dart';
+import 'package:truehub/services/cloudkit_service_interface.dart';
 
 /// CloudKit-based server repository for Apple platforms
 /// Provides automatic sync across devices with offline support
 class CloudKitServerRepository implements ServerRepositoryInterface {
-  final CloudKitService _cloudKit = CloudKitService.instance;
+  final CloudKitServiceInterface _cloudKit;
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
+
+  /// Creates a CloudKit server repository
+  /// [cloudKitService] - Optional CloudKit service instance, defaults to CloudKitService.instance
+  CloudKitServerRepository({CloudKitServiceInterface? cloudKitService})
+    : _cloudKit = cloudKitService ?? CloudKitService.instance;
 
   List<NasServer> _cachedServers = [];
   bool _isInitialized = false;

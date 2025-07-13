@@ -3,20 +3,13 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
-  private var cloudKitPluginInstance: CloudKitPlugin?
   
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // All plugins including truenas_native_plugins are automatically registered
     GeneratedPluginRegistrant.register(with: self)
-    
-    // Register our custom plugins and store CloudKit instance for notifications
-    let controller = window?.rootViewController as! FlutterViewController
-    let cloudKitRegistrar = registrar(forPlugin: "CloudKitPlugin")!
-    CloudKitPlugin.register(with: cloudKitRegistrar)
-    
-    KeychainPlugin.register(with: registrar(forPlugin: "KeychainPlugin")!)
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

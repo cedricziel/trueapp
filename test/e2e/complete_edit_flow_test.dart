@@ -1,4 +1,3 @@
-import '../helpers/mock_server_sync_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,21 +5,30 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/screens/home_screen.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
   late PoolProvider poolProvider;
+  late UnifiedServerService unifiedServerService;
   late NasServer testServer;
 
   setUp(() async {
+    await TestProviders.cleanupTestEnvironment();
+    TestProviders.setupTestEnvironment();
     database = AppDatabase.forTesting(NativeDatabase.memory());
-    serverProvider = ServerProvider(
-      TestProviders.createMockUnifiedServerService(),
+    unifiedServerService = await TestProviders.createMockUnifiedServerService(
+      database: database,
     );
-    poolProvider = PoolProvider(TestProviders.createMockUnifiedServerService());
+    serverProvider = ServerProvider(unifiedServerService);
+    poolProvider = PoolProvider(unifiedServerService);
 
     // Create and register a test server
     testServer = NasServer.create(
@@ -51,8 +59,19 @@ void main() {
           return MultiProvider(
             providers: [
               Provider<AppDatabase>.value(value: database),
+              Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
               ChangeNotifierProvider.value(value: poolProvider),
+              ChangeNotifierProvider(
+                create: (_) => AppProvider(
+                  database: database,
+                  serverService: unifiedServerService,
+                ),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => SystemStatsProvider(unifiedServerService),
+              ),
+              ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
             ],
             child: const CupertinoApp(home: HomeScreen()),
           );
@@ -82,9 +101,24 @@ void main() {
         // Extra wait for async operations in ServerDetailScreen
         await tester.pump(const Duration(milliseconds: 500));
 
+        // Additional pumps to ensure all async operations complete
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump(const Duration(milliseconds: 500));
+
         // Verify we're on the Server Detail Screen
         // Multiple instances of server name may exist (navigation bar, content)
         expect(find.text('Test TrueNAS Server'), findsWidgets);
+
+        // The ServerDetailScreen might be showing loading or authentication state
+        // Let's check if we can find any of the expected widgets
+        final loadingWidget = find.byType(CupertinoActivityIndicator);
+
+        if (loadingWidget.evaluate().isNotEmpty) {
+          // If loading, wait more
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump(const Duration(seconds: 1));
+        }
+
         expect(find.text('Host'), findsOneWidget);
         expect(find.text('192.168.1.100'), findsOneWidget);
         expect(find.text('Port'), findsOneWidget);
@@ -197,8 +231,19 @@ void main() {
           return MultiProvider(
             providers: [
               Provider<AppDatabase>.value(value: database),
+              Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
               ChangeNotifierProvider.value(value: poolProvider),
+              ChangeNotifierProvider(
+                create: (_) => AppProvider(
+                  database: database,
+                  serverService: unifiedServerService,
+                ),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => SystemStatsProvider(unifiedServerService),
+              ),
+              ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
             ],
             child: const CupertinoApp(home: HomeScreen()),
           );

@@ -1,24 +1,62 @@
-import '../helpers/mock_server_sync_service.dart';
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/sqlite_server_repository.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show MockKeychainService;
 import 'package:drift/native.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   group('Server Provider Refresh Test', () {
     late AppDatabase database;
     late ServerProvider serverProvider;
+    late UnifiedServerService unifiedServerService;
+    late Timer timeout;
 
-    setUp(() {
-      database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(
-        TestProviders.createMockUnifiedServerService(),
+    setUp(() async {
+      // Clean up any leftover state first
+      await TestProviders.cleanupTestEnvironment();
+
+      // Set up test environment with mocks
+      TestProviders.setupTestEnvironment();
+
+      timeout = Timer(
+        const Duration(seconds: 10),
+        () => fail(
+          'Test timed out, likely due to hanging database operations or network calls',
+        ),
       );
+
+      // Create a unique database instance for complete isolation
+      database = AppDatabase.forTesting(NativeDatabase.memory());
+
+      // Create real service with SQLite repository and mock keychain
+      final sqliteRepository = SqliteServerRepository(database);
+      final mockKeychain = MockKeychainService();
+      unifiedServerService = UnifiedServerService(
+        repository: sqliteRepository,
+        keychain: mockKeychain,
+      );
+      await unifiedServerService.initialize();
+
+      serverProvider = ServerProvider(unifiedServerService);
     });
 
     tearDown(() async {
+      // Ensure complete cleanup in reverse order of creation
+      serverProvider.dispose();
+      unifiedServerService.dispose();
       await database.close();
+
+      // Clear any static state that might interfere with other tests
+      await TestProviders.cleanupTestEnvironment();
+
+      timeout.cancel();
     });
 
     test('should refresh selectedServer when server is updated', () async {
@@ -51,6 +89,9 @@ void main() {
       // Verify the selectedServer was refreshed with new data
       expect(serverProvider.selectedServer?.name, 'Updated Name');
       expect(serverProvider.selectedServer?.host, 'updated.example.com');
+
+      // Clean up
+      serverProvider.clearSelectedServer();
     });
 
     test('should update server in database correctly', () async {
@@ -89,33 +130,64 @@ void main() {
       expect(finalServer?.port, null);
     });
 
-    test('should notify listeners when server is updated', () async {
-      bool listenerCalled = false;
+    test(
+      'should notify listeners when server is updated',
+      () async {
+        // This test was hanging when running with other tests due to authentication
+        // triggering during updateServer. Simplified to test the core functionality.
 
-      // Add a listener to the provider
-      serverProvider.addListener(() {
-        listenerCalled = true;
-      });
+        int notificationCount = 0;
 
-      // Create and add a server
-      final testServer = models.NasServer.create(
-        name: 'Test Server',
-        host: 'test.example.com',
-        port: 443,
-        username: 'admin',
-        password: 'password',
-        useHttps: true,
-      );
+        // Add a listener that counts notifications
+        void countingListener() {
+          notificationCount++;
+        }
 
-      await database.insertServer(testServer);
-      listenerCalled = false; // Reset flag
+        serverProvider.addListener(countingListener);
 
-      // Update the server
-      final updatedServer = testServer.copyWith(name: 'Updated Name');
-      await serverProvider.updateServer(updatedServer);
+        try {
+          // Create a test server directly in database
+          final testServer = models.NasServer.create(
+            name: 'Listener Test Server',
+            host: 'listener.test.com',
+            port: 443,
+            username: 'admin',
+            password: 'password',
+            useHttps: true,
+          );
 
-      // Verify listeners were notified
-      expect(listenerCalled, true);
-    });
+          await database.insertServer(testServer);
+
+          // Select the server first to avoid authentication during update
+          serverProvider.selectServer(testServer);
+
+          // Reset counter after selection
+          notificationCount = 0;
+
+          // Update the server - this should trigger listener notification
+          final updatedServer = testServer.copyWith(
+            name: 'Updated Listener Server',
+          );
+          await serverProvider.updateServer(updatedServer);
+
+          // Verify listeners were notified at least once
+          expect(
+            notificationCount,
+            greaterThan(0),
+            reason: 'Listener should be notified when server is updated',
+          );
+        } finally {
+          // Always clean up listener
+          serverProvider.removeListener(countingListener);
+
+          // Clear selected server to prevent lingering API clients
+          serverProvider.clearSelectedServer();
+
+          // Ensure API clients are cleaned up
+          await TestProviders.cleanupTestEnvironment();
+        }
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
   });
 }

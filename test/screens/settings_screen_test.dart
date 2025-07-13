@@ -1,22 +1,30 @@
-import '../helpers/mock_server_sync_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/screens/settings_screen.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
 import 'package:drift/native.dart';
+import '../helpers/test_providers.dart';
 
 void main() {
   group('Settings Screen Tests', () {
     late AppDatabase database;
     late ServerProvider serverProvider;
+    late UnifiedServerService unifiedServerService;
+    late TrayProvider trayProvider;
 
-    setUp(() {
+    setUp(() async {
+      await TestProviders.cleanupTestEnvironment();
+      TestProviders.setupTestEnvironment();
       database = AppDatabase.forTesting(NativeDatabase.memory());
-      serverProvider = ServerProvider(
-        TestProviders.createMockUnifiedServerService(),
+      unifiedServerService = await TestProviders.createMockUnifiedServerService(
+        database: database,
       );
+      serverProvider = ServerProvider(unifiedServerService);
+      trayProvider = TrayProvider();
     });
 
     tearDown(() async {
@@ -27,11 +35,12 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        CupertinoApp(
-          home: ChangeNotifierProvider<ServerProvider>.value(
-            value: serverProvider,
-            child: const SettingsScreen(),
-          ),
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ServerProvider>.value(value: serverProvider),
+            ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
+          ],
+          child: const CupertinoApp(home: SettingsScreen()),
         ),
       );
 
@@ -59,11 +68,14 @@ void main() {
       'should show confirmation dialog when clear database is tapped',
       (tester) async {
         await tester.pumpWidget(
-          CupertinoApp(
-            home: ChangeNotifierProvider<ServerProvider>.value(
-              value: serverProvider,
-              child: const SettingsScreen(),
-            ),
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<ServerProvider>.value(
+                value: serverProvider,
+              ),
+              ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
+            ],
+            child: const CupertinoApp(home: SettingsScreen()),
           ),
         );
 
@@ -86,11 +98,12 @@ void main() {
 
     testWidgets('should handle clear database cancellation', (tester) async {
       await tester.pumpWidget(
-        CupertinoApp(
-          home: ChangeNotifierProvider<ServerProvider>.value(
-            value: serverProvider,
-            child: const SettingsScreen(),
-          ),
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ServerProvider>.value(value: serverProvider),
+            ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
+          ],
+          child: const CupertinoApp(home: SettingsScreen()),
         ),
       );
 

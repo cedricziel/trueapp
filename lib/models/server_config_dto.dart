@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart' as plugins;
 
 /// Server configuration data transfer object for CloudKit storage
 /// This contains only non-sensitive server metadata
@@ -146,6 +147,46 @@ class ServerConfigDTO {
       isDefault: server.isDefault,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+    );
+  }
+
+  /// Convert to plugin ServerConfigDTO
+  plugins.ServerConfigDTO toPlugin() {
+    return plugins.ServerConfigDTO(
+      id: id,
+      displayName: displayName,
+      hostName: hostName,
+      userName: userName,
+      useHttps: useHttps,
+      allowUntrustedCertificates: allowUntrustedCertificates,
+      port: port,
+      localUrl: localUrl,
+      trustedWifiSsids: trustedWifiSsids,
+      lastConnected: lastConnected,
+      isActive: isActive,
+      isDefault: isDefault,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  /// Create from plugin ServerConfigDTO
+  factory ServerConfigDTO.fromPlugin(plugins.ServerConfigDTO plugin) {
+    return ServerConfigDTO(
+      id: plugin.id,
+      displayName: plugin.displayName,
+      hostName: plugin.hostName,
+      userName: plugin.userName,
+      useHttps: plugin.useHttps,
+      allowUntrustedCertificates: plugin.allowUntrustedCertificates,
+      port: plugin.port,
+      localUrl: plugin.localUrl,
+      trustedWifiSsids: plugin.trustedWifiSsids,
+      lastConnected: plugin.lastConnected,
+      isActive: plugin.isActive,
+      isDefault: plugin.isDefault,
+      createdAt: plugin.createdAt,
+      updatedAt: plugin.updatedAt,
     );
   }
 }

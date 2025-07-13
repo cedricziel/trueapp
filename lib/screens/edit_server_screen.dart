@@ -9,8 +9,13 @@ import 'package:truehub/services/unified_server_service.dart';
 
 class EditServerScreen extends StatefulWidget {
   final NasServer server;
+  final NetworkService? networkService;
 
-  const EditServerScreen({super.key, required this.server});
+  const EditServerScreen({
+    super.key,
+    required this.server,
+    this.networkService,
+  });
 
   @override
   State<EditServerScreen> createState() => _EditServerScreenState();
@@ -32,12 +37,14 @@ class _EditServerScreenState extends State<EditServerScreen> {
   late List<String> _trustedWifiSsids;
   String? _currentWifiSsid;
   bool _isLoadingCurrentSsid = false;
-  final NetworkService _networkService = NetworkService();
+  bool _isLoadingCredentials = false;
+  late final NetworkService _networkService;
 
   @override
   void initState() {
     super.initState();
 
+    _networkService = widget.networkService ?? NetworkService();
     _nameController = TextEditingController(text: widget.server.name);
     _hostController = TextEditingController(text: widget.server.host);
     _localUrlController = TextEditingController(
@@ -55,17 +62,39 @@ class _EditServerScreenState extends State<EditServerScreen> {
     _isDefault = widget.server.isDefault;
     _trustedWifiSsids = List.from(widget.server.trustedWifiSsids);
 
-    // Load existing password from keychain
-    _loadExistingCredentials();
+    // Schedule credential loading after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadExistingCredentials();
+      }
+    });
   }
 
   Future<void> _loadExistingCredentials() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingCredentials = true;
+    });
+
     try {
-      final serverService = context.read<UnifiedServerService>();
+      // Try to get the service, but don't fail if it's not available (e.g., in tests)
+      final UnifiedServerService? serverService;
+      try {
+        serverService = context.read<UnifiedServerService>();
+      } catch (e) {
+        // Service not available, likely in a test environment
+        if (kDebugMode) {
+          print(
+            'EditServer: UnifiedServerService not available, skipping credential loading',
+          );
+        }
+        return;
+      }
 
       // Load username from server service
       final server = await serverService.getServer(widget.server.id);
-      if (server != null && server.username.isNotEmpty) {
+      if (mounted && server != null && server.username.isNotEmpty) {
         setState(() {
           _usernameController.text = server.username;
         });
@@ -78,7 +107,7 @@ class _EditServerScreenState extends State<EditServerScreen> {
 
       // Load password from keychain
       final password = await serverService.getPassword(widget.server.id);
-      if (password != null) {
+      if (mounted && password != null) {
         setState(() {
           _passwordController.text = password;
         });
@@ -95,6 +124,12 @@ class _EditServerScreenState extends State<EditServerScreen> {
     } catch (e) {
       if (kDebugMode) {
         print('EditServer: Error loading existing credentials: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCredentials = false;
+        });
       }
     }
   }
@@ -121,20 +156,26 @@ class _EditServerScreenState extends State<EditServerScreen> {
   void _addWifiSsid() {
     final ssid = _wifiSsidController.text.trim();
     if (ssid.isNotEmpty && !_trustedWifiSsids.contains(ssid)) {
-      setState(() {
-        _trustedWifiSsids.add(ssid);
-        _wifiSsidController.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _trustedWifiSsids.add(ssid);
+          _wifiSsidController.clear();
+        });
+      }
     }
   }
 
   void _removeWifiSsid(String ssid) {
-    setState(() {
-      _trustedWifiSsids.remove(ssid);
-    });
+    if (mounted) {
+      setState(() {
+        _trustedWifiSsids.remove(ssid);
+      });
+    }
   }
 
   Future<void> _loadCurrentWifiSsid() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoadingCurrentSsid = true;
       _currentWifiSsid = null; // Reset previous result
@@ -142,9 +183,11 @@ class _EditServerScreenState extends State<EditServerScreen> {
 
     try {
       final ssid = await _networkService.getCurrentWifiSsidWithPermission();
-      setState(() {
-        _currentWifiSsid = ssid;
-      });
+      if (mounted) {
+        setState(() {
+          _currentWifiSsid = ssid;
+        });
+      }
 
       // Show feedback if no Wi-Fi was detected
       if (mounted && ssid == null) {
@@ -190,18 +233,22 @@ class _EditServerScreenState extends State<EditServerScreen> {
         );
       }
     } finally {
-      setState(() {
-        _isLoadingCurrentSsid = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingCurrentSsid = false;
+        });
+      }
     }
   }
 
   void _addCurrentWifiSsid() {
     if (_currentWifiSsid != null &&
         !_trustedWifiSsids.contains(_currentWifiSsid!)) {
-      setState(() {
-        _trustedWifiSsids.add(_currentWifiSsid!);
-      });
+      if (mounted) {
+        setState(() {
+          _trustedWifiSsids.add(_currentWifiSsid!);
+        });
+      }
     }
   }
 
@@ -211,12 +258,16 @@ class _EditServerScreenState extends State<EditServerScreen> {
         _hostController.text.isEmpty ||
         _usernameController.text.isEmpty ||
         _passwordController.text.isEmpty) {
-      setState(() {
-        _connectionTestResult =
-            '❌ Please fill in all fields to test connection';
-      });
+      if (mounted) {
+        setState(() {
+          _connectionTestResult =
+              '❌ Please fill in all fields to test connection';
+        });
+      }
       return;
     }
+
+    if (!mounted) return;
 
     setState(() {
       _isTestingConnection = true;
@@ -245,17 +296,21 @@ class _EditServerScreenState extends State<EditServerScreen> {
       final isValid = await context
           .read<ServerProvider>()
           .validateServerCredentials(server);
-      setState(() {
-        _connectionTestResult = isValid
-            ? 'Connection successful!'
-            : 'Invalid credentials or connection failed';
-        _isTestingConnection = false;
-      });
+      if (mounted) {
+        setState(() {
+          _connectionTestResult = isValid
+              ? 'Connection successful!'
+              : 'Invalid credentials or connection failed';
+          _isTestingConnection = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _connectionTestResult = 'Connection failed: ${e.toString()}';
-        _isTestingConnection = false;
-      });
+      if (mounted) {
+        setState(() {
+          _connectionTestResult = 'Connection failed: ${e.toString()}';
+          _isTestingConnection = false;
+        });
+      }
     }
   }
 
@@ -457,7 +512,9 @@ class _EditServerScreenState extends State<EditServerScreen> {
                   ),
                   CupertinoTextFormFieldRow(
                     controller: _passwordController,
-                    placeholder: 'Password',
+                    placeholder: _isLoadingCredentials
+                        ? 'Loading...'
+                        : 'Password',
                     prefix: const Text('Password'),
                     obscureText: true,
                     autofillHints: const [AutofillHints.password],
