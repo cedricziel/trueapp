@@ -19,6 +19,9 @@ void main() {
     late Timer timeout;
 
     setUp(() async {
+      // Clean up any leftover state first
+      await TestProviders.cleanupTestEnvironment();
+
       timeout = Timer(
         const Duration(seconds: 10),
         () => fail(
@@ -83,6 +86,9 @@ void main() {
       // Verify the selectedServer was refreshed with new data
       expect(serverProvider.selectedServer?.name, 'Updated Name');
       expect(serverProvider.selectedServer?.host, 'updated.example.com');
+
+      // Clean up
+      serverProvider.clearSelectedServer();
     });
 
     test('should update server in database correctly', () async {
@@ -170,6 +176,12 @@ void main() {
         } finally {
           // Always clean up listener
           serverProvider.removeListener(countingListener);
+
+          // Clear selected server to prevent lingering API clients
+          serverProvider.clearSelectedServer();
+
+          // Ensure API clients are cleaned up
+          await TestProviders.cleanupTestEnvironment();
         }
       },
       timeout: const Timeout(Duration(seconds: 5)),
