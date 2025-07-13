@@ -1,12 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
+import '../helpers/mock_cloudkit_service_adapter.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('CloudKitServerRepository Unit Tests', () {
     late CloudKitServerRepository repository;
+    late MockCloudKitServiceAdapter mockCloudKitService;
 
     setUp(() {
-      repository = CloudKitServerRepository();
+      mockCloudKitService = MockCloudKitServiceAdapter();
+      repository = CloudKitServerRepository(
+        cloudKitService: mockCloudKitService,
+      );
     });
 
     tearDown(() async {
