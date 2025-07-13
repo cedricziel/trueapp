@@ -133,21 +133,49 @@ class _AdaptiveNavigationScaffoldState
               ),
             ],
           ),
-          // Sidebar toggle button
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () {
-                  setState(() {
-                    _isSidebarExpanded = !_isSidebarExpanded;
-                  });
-                },
-                child: Icon(
-                  _isSidebarExpanded
-                      ? CupertinoIcons.sidebar_left
-                      : CupertinoIcons.sidebar_right,
+          // Sidebar toggle button - positioned to avoid overlap with connection info
+          Positioned(
+            top: 0,
+            left: _isSidebarExpanded
+                ? 280
+                : 10, // Move right when expanded, left when collapsed
+            child: SafeArea(
+              child: Container(
+                margin: const EdgeInsets.only(top: 8),
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    setState(() {
+                      _isSidebarExpanded = !_isSidebarExpanded;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemBackground.withValues(
+                        alpha: 0.9,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: CupertinoColors.separator,
+                        width: 0.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: CupertinoColors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isSidebarExpanded
+                          ? CupertinoIcons.sidebar_left
+                          : CupertinoIcons.sidebar_right,
+                      size: 18,
+                      color: CupertinoColors.activeBlue,
+                    ),
+                  ),
                 ),
               ),
             ),
