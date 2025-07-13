@@ -104,21 +104,23 @@ void main() {
     });
 
     test('should notify listeners when server is updated', () async {
-      bool listenerCalled = false;
+      // This test was hanging when running with other tests due to authentication
+      // triggering during updateServer. Simplified to test the core functionality.
 
-      // Create a simple, isolated listener that won't cause side effects
-      void testListener() {
-        listenerCalled = true;
+      int notificationCount = 0;
+
+      // Add a listener that counts notifications
+      void countingListener() {
+        notificationCount++;
       }
 
-      // Add a listener to the provider
-      serverProvider.addListener(testListener);
+      serverProvider.addListener(countingListener);
 
       try {
-        // Create and add a server
+        // Create a test server directly in database
         final testServer = models.NasServer.create(
-          name: 'Test Server',
-          host: 'test.example.com',
+          name: 'Listener Test Server',
+          host: 'listener.test.com',
           port: 443,
           username: 'admin',
           password: 'password',
@@ -126,17 +128,28 @@ void main() {
         );
 
         await database.insertServer(testServer);
-        listenerCalled = false; // Reset flag after initial setup
 
-        // Update the server
-        final updatedServer = testServer.copyWith(name: 'Updated Name');
+        // Select the server first to avoid authentication during update
+        serverProvider.selectServer(testServer);
+
+        // Reset counter after selection
+        notificationCount = 0;
+
+        // Update the server - this should trigger listener notification
+        final updatedServer = testServer.copyWith(
+          name: 'Updated Listener Server',
+        );
         await serverProvider.updateServer(updatedServer);
 
-        // Verify listeners were notified
-        expect(listenerCalled, true);
+        // Verify listeners were notified at least once
+        expect(
+          notificationCount,
+          greaterThan(0),
+          reason: 'Listener should be notified when server is updated',
+        );
       } finally {
-        // Clean up listener to prevent issues
-        serverProvider.removeListener(testListener);
+        // Always clean up listener
+        serverProvider.removeListener(countingListener);
       }
     });
   });
