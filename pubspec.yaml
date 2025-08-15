@@ -93,7 +93,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   drift_dev: ^2.27.0
-  build_runner: ^2.5.4
+  build_runner: ^2.7.0
   dart_pre_commit: ^5.4.5
 
 # For information on the generic Dart part of this file, see the
