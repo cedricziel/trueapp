@@ -57,7 +57,7 @@ dependencies:
 
   # UI enhancements
   flutter_slidable: ^4.0.0
-  fl_chart: ^1.0.0
+  fl_chart: ^1.1.0
   stream_channel: ^2.1.4
 
   # WebSocket support
