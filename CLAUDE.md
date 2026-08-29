@@ -45,17 +45,23 @@ Repository pattern with drift (SQLite) database:
 
 ### Key Implementation Notes
 1. The app supports multiple TrueNAS server connections stored securely in SQLite
-2. API credentials are stored in the database (consider security implications)
+2. Passwords live in the native Keychain via `NativeKeychainService`, never in the
+   database. Server metadata, including the username, is stored by the repository
+   layer: CloudKit on Apple platforms, SQLite elsewhere
 3. Uses dio for HTTP requests to TrueNAS API
 4. Native platform features through iOS/macOS specific implementations
 
 ## Current Development Status
-According to README.md:
-- ✅ Completed: Basic UI, server management, navigation
-- 🚧 In Progress: Pool management UI, dataset operations
-- 📋 Planned: Snapshot management, user management, system monitoring
+- ✅ Completed: server management, JSON-RPC API client, CloudKit/SQLite repository layer,
+  Keychain + biometrics, pools & datasets, app catalog with live resource usage, file browsing,
+  system stats, macOS tray, `truenas_native_plugins` package
+- 🚧 In Progress: adaptive Cupertino sidebar navigation (#54), splitting large screens into
+  smaller widgets (#35), raising test coverage towards 80%
+- 📋 Planned: alerts & push notifications (#25), job monitor (#26), service management (#27),
+  dashboard widgets (#28), system updates (#29), network interfaces (#30), pool health/scrub (#31),
+  mDNS discovery (#39)
 
-When implementing new features, follow the existing patterns and ensure compatibility with both iOS and macOS platforms.
+See README.md for the user-facing version of this list.
 
 ## Tooling Notes
 - `gtimeout` is used for adding timeouts to bash commands

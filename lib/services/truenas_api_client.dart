@@ -413,11 +413,7 @@ class TrueNasApiClient implements ApiClientInterface {
         print('TrueNAS API: Validating login for user: $username');
       }
       final result = await _client!
-          .sendRequest('auth.login', [
-            username,
-            password,
-            if (otpToken != null) otpToken,
-          ])
+          .sendRequest('auth.login', [username, password, ?otpToken])
           .timeout(const Duration(seconds: 10));
       if (kDebugMode) {
         print('TrueNAS API: Login validation result: $result');

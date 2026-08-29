@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
@@ -48,6 +51,48 @@ class TestProviders {
   static void setupTestEnvironment() {
     // Set the mock API client manager
     ApiClientManager.setInstance(mockApiClientManager);
+  }
+
+  /// Tears down the full test stack in the correct order.
+  ///
+  /// The order matters: static state first, then the provider, then the
+  /// service, and only afterwards the database.
+  ///
+  /// [AppDatabase.close] is guarded by [timeout] on purpose. When a widget test
+  /// fails part way through, drift queries that were started inside the test's
+  /// `FakeAsync` zone can never complete, and `close()` then waits for them
+  /// forever. Without the guard a single failing test wedges every remaining
+  /// test in the same file, which is exactly how a CI run turns into a one-hour
+  /// timeout instead of a readable failure.
+  /// Every notifier the test created itself belongs in [providers]. Injecting
+  /// one with `ChangeNotifierProvider.value` hands the widget tree a borrowed
+  /// reference: the provider does not own it and never disposes it, so the
+  /// test has to. Missing one leaks whatever it holds - a `PoolProvider`, for
+  /// instance, keeps an API client checked out until `dispose` releases it.
+  static Future<void> disposeTestStack({
+    Iterable<ChangeNotifier> providers = const [],
+    UnifiedServerService? service,
+    AppDatabase? database,
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    await _ignoringErrors(cleanupTestEnvironment);
+    for (final provider in providers) {
+      await _ignoringErrors(() async => provider.dispose());
+    }
+    await _ignoringErrors(() async => service?.dispose());
+
+    if (database != null) {
+      await _ignoringErrors(() => database.close().timeout(timeout));
+    }
+  }
+
+  static Future<void> _ignoringErrors(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      // Teardown is best effort: a failure here must never mask the actual
+      // test failure, and must never stop the remaining teardown steps.
+    }
   }
 
   /// Cleans up all static state that might interfere with test isolation

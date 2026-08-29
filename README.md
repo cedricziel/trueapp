@@ -5,10 +5,13 @@ A Flutter application for managing TrueNAS servers from iOS and macOS devices.
 ## Features
 
 - **Multi-Server Management**: Register and manage multiple TrueNAS servers
-- **Secure Storage**: Server credentials are stored locally using encrypted SQLite database
+- **Secure Storage**: Credentials live in the native Keychain (biometric unlock); server metadata syncs via CloudKit on Apple platforms and SQLite elsewhere
 - **Native UI**: Built with Cupertino widgets for native iOS/macOS experience
-- **Server Health Monitoring**: View CPU, memory, disk usage, and temperatures (coming soon)
-- **File Management**: Browse and manage files on your TrueNAS servers (coming soon)
+- **Server Health Monitoring**: View CPU, memory, disk usage and system stats
+- **File Management**: Browse files on your TrueNAS servers
+- **App Management**: Browse installed apps, view live resource usage and edit app configuration
+- **Storage**: Inspect pools and datasets
+- **macOS Menu Bar**: Quick access to servers from the system tray
 
 ## Architecture
 
@@ -33,7 +36,7 @@ The app follows a clean architecture pattern with:
 
 ### Prerequisites
 
-- Flutter SDK (3.8.0 or higher)
+- Flutter SDK 3.32.6 or newer (bundles Dart 3.8.1, which `pubspec.yaml` requires)
 - Xcode (for iOS/macOS development)
 - CocoaPods
 
@@ -70,20 +73,34 @@ lib/
 
 ### Completed
 - ✅ Project setup and architecture
-- ✅ Server management (add, edit, delete)
-- ✅ Local database integration
-- ✅ Basic navigation and UI
+- ✅ Multi-server management (add, edit, delete, default server)
+- ✅ TrueNAS JSON-RPC API client with keepalive (ping/pong)
+- ✅ Repository layer with CloudKit sync on Apple platforms and SQLite elsewhere
+- ✅ Secure credential storage via native Keychain with biometric unlock
+- ✅ Storage pools and dataset browsing
+- ✅ App catalog: list, detail, configuration and live resource usage
+- ✅ File browsing
+- ✅ System stats and server health view
+- ✅ Connection status / network awareness
+- ✅ macOS menu bar (tray) integration
+- ✅ Native plugins extracted into the reusable `truenas_native_plugins` package
 
 ### In Progress
-- 🚧 TrueNAS API integration
-- 🚧 File browsing functionality
-- 🚧 Server health monitoring
+- 🚧 Adaptive Cupertino sidebar navigation ([#54](https://github.com/cedricziel/trueapp/issues/54))
+- 🚧 Breaking large screens into smaller reusable widgets ([#35](https://github.com/cedricziel/trueapp/issues/35))
+- 🚧 Raising test coverage towards the 80% goal
 
 ### Planned
-- 📋 Real-time server metrics
+- 📋 Real-time alerts with push notifications ([#25](https://github.com/cedricziel/trueapp/issues/25))
+- 📋 Job/task monitor with progress tracking ([#26](https://github.com/cedricziel/trueapp/issues/26))
+- 📋 Service management (start/stop/restart) ([#27](https://github.com/cedricziel/trueapp/issues/27))
+- 📋 Customizable dashboard with widgets ([#28](https://github.com/cedricziel/trueapp/issues/28))
+- 📋 System update management ([#29](https://github.com/cedricziel/trueapp/issues/29))
+- 📋 Network interface management ([#30](https://github.com/cedricziel/trueapp/issues/30))
+- 📋 Pool health and scrub monitoring ([#31](https://github.com/cedricziel/trueapp/issues/31))
+- 📋 Server discovery wizard with mDNS ([#39](https://github.com/cedricziel/trueapp/issues/39))
 - 📋 File upload/download
-- 📋 Push notifications for alerts
-- 📋 Dark mode support
+- 📋 App Store / TestFlight distribution ([#16](https://github.com/cedricziel/trueapp/issues/16), [#51](https://github.com/cedricziel/trueapp/issues/51))
 
 ## Contributing
 

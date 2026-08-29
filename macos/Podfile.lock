@@ -12,28 +12,31 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - sqlite3 (3.50.2):
-    - sqlite3/common (= 3.50.2)
-  - sqlite3/common (3.50.2)
-  - sqlite3/dbstatvtab (3.50.2):
+  - sqlite3 (3.52.0):
+    - sqlite3/common (= 3.52.0)
+  - sqlite3/common (3.52.0)
+  - sqlite3/dbstatvtab (3.52.0):
     - sqlite3/common
-  - sqlite3/fts5 (3.50.2):
+  - sqlite3/fts5 (3.52.0):
     - sqlite3/common
-  - sqlite3/math (3.50.2):
+  - sqlite3/math (3.52.0):
     - sqlite3/common
-  - sqlite3/perf-threadsafe (3.50.2):
+  - sqlite3/perf-threadsafe (3.52.0):
     - sqlite3/common
-  - sqlite3/rtree (3.50.2):
+  - sqlite3/rtree (3.52.0):
+    - sqlite3/common
+  - sqlite3/session (3.52.0):
     - sqlite3/common
   - sqlite3_flutter_libs (0.0.1):
     - Flutter
     - FlutterMacOS
-    - sqlite3 (~> 3.50.1)
+    - sqlite3 (~> 3.52.0)
     - sqlite3/dbstatvtab
     - sqlite3/fts5
     - sqlite3/math
     - sqlite3/perf-threadsafe
     - sqlite3/rtree
+    - sqlite3/session
   - tray_manager (0.0.1):
     - FlutterMacOS
   - truenas_native_plugins (0.1.0):
@@ -80,18 +83,18 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
-  connectivity_plus: 4adf20a405e25b42b9c9f87feff8f4b6fde18a4e
-  flutter_secure_storage_macos: 7f45e30f838cf2659862a4e4e3ee1c347c2b3b54
+  connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
+  flutter_secure_storage_macos: c2754d3483d20bb207bb9e5a14f1b8e771abcdb9
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  local_auth_darwin: d2e8c53ef0c4f43c646462e3415432c4dab3ae19
-  network_info_plus: 21d1cd6a015ccb2fdff06a1fbfa88d54b4e92f61
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  sqlite3: 3e82a2daae39ba3b41ae6ee84a130494585460fc
-  sqlite3_flutter_libs: e7fc8c9ea2200ff3271f08f127842131746b70e2
-  tray_manager: a104b5c81b578d83f3c3d0f40a997c8b10810166
-  truenas_native_plugins: a8a4a8df3f75eaeb2f7b9ef30eabe84e405a601c
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
+  local_auth_darwin: fa4b06454df7df8e97c18d7ee55151c57e7af0de
+  network_info_plus: 2cb02d8435635eae13b3b79279681985121cf30c
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921
+  sqlite3_flutter_libs: f9114e4bbe1f2e03dd543373c53d23245982ca13
+  tray_manager: c2a678ee19e2a094f0c2d03660ee2c3e81cea8ab
+  truenas_native_plugins: 2b234f3726a22840001a3534747f40f5509b709e
+  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
 
 PODFILE CHECKSUM: 7eb978b976557c8c1cd717d8185ec483fd090a82
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0
