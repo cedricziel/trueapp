@@ -167,14 +167,8 @@ void main() {
           password: 'password',
         );
 
-        // Wider than the other cases in this file: under the widget-test
-        // environment's synthetic square-glyph font (see
-        // test/helpers/layout_assertions.dart), the filled button's
-        // "Retry Authentication" label - longer than any other button text
-        // this widget renders - is measured wide enough to overflow a true
-        // 375pt row even though real proportional text fits comfortably.
         await tester.pumpWidget(
-          wrap(const AuthenticationStateWidget(child: child), width: 500),
+          wrap(const AuthenticationStateWidget(child: child)),
         );
 
         serverProvider.emit(

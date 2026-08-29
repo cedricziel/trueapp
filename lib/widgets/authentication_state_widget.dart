@@ -102,7 +102,17 @@ class AuthenticationStateWidget extends StatelessWidget {
                     isRetryable ? CupertinoIcons.refresh : CupertinoIcons.lock,
                   ),
                   const SizedBox(width: 8),
-                  Text(isRetryable ? 'Retry Authentication' : 'Authenticate'),
+                  // Flexible (not Expanded, which would force the button to
+                  // fill all available width) lets this label shrink and
+                  // ellipsize on the narrowest phones instead of overflowing
+                  // - the button otherwise hugs its content's natural width.
+                  Flexible(
+                    child: Text(
+                      isRetryable ? 'Retry Authentication' : 'Authenticate',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
