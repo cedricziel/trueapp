@@ -17,7 +17,7 @@ class TruenasPluginTestHelpers {
     TestWidgetsFlutterBinding.ensureInitialized();
 
     // CloudKit method channel
-    const cloudKitChannel = MethodChannel('com.cedricziel.truehub/cloudkit');
+    final cloudKitChannel = MethodChannel('$channelPrefix/cloudkit');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(cloudKitChannel,
             (MethodCall methodCall) async {
@@ -26,7 +26,7 @@ class TruenasPluginTestHelpers {
     });
 
     // Keychain method channel
-    const keychainChannel = MethodChannel('com.cedricziel.truehub/keychain');
+    final keychainChannel = MethodChannel('$channelPrefix/keychain');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(keychainChannel,
             (MethodCall methodCall) async {
@@ -103,16 +103,18 @@ class TruenasPluginTestHelpers {
   }
 
   /// Clean up method channel mocks
-  static void tearDownMethodChannelMocks() {
+  static void tearDownMethodChannelMocks({
+    String channelPrefix = 'com.cedricziel.truehub',
+  }) {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('com.cedricziel.truehub/cloudkit'),
+      MethodChannel('$channelPrefix/cloudkit'),
       null,
     );
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('com.cedricziel.truehub/keychain'),
+      MethodChannel('$channelPrefix/keychain'),
       null,
     );
   }

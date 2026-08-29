@@ -6,7 +6,7 @@ import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/screens/settings_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'package:drift/native.dart';
+import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
@@ -19,16 +19,12 @@ void main() {
     setUp(() async {
       await TestProviders.cleanupTestEnvironment();
       TestProviders.setupTestEnvironment();
-      database = AppDatabase.forTesting(NativeDatabase.memory());
+      database = createTestDatabase();
       unifiedServerService = await TestProviders.createMockUnifiedServerService(
         database: database,
       );
       serverProvider = ServerProvider(unifiedServerService);
       trayProvider = TrayProvider();
-    });
-
-    tearDown(() async {
-      await database.close();
     });
 
     testWidgets('should display settings screen with clear database option', (

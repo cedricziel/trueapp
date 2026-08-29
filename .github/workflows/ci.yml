@@ -27,7 +27,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
@@ -37,7 +37,7 @@ jobs:
         cache: true
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         # build/ is deliberately not cached. It holds Xcode's precompiled Swift
         # modules, which are bound to the exact FlutterMacOS.framework headers
@@ -68,10 +68,24 @@ jobs:
 
     - name: Run tests
       run: |
-        # Run all tests with expanded reporter for better CI output
+        # Run all tests with expanded reporter for better CI output.
+        # --coverage feeds the coverage-floor check below.
         flutter test --reporter=expanded \
           --timeout=30s \
-          --no-pub
+          --no-pub \
+          --coverage
+
+    - name: Enforce coverage floor
+      run: dart run tool/check_coverage.dart
+
+    - name: Upload coverage report
+      # always(): the report is most useful precisely when the floor check
+      # above failed, so the upload must not be skipped by that failure.
+      if: always()
+      uses: actions/upload-artifact@v5
+      with:
+        name: lcov-report
+        path: coverage/lcov.info
 
     - name: Run fastlane helper tests
       run: ruby fastlane/test/pubspec_version_test.rb

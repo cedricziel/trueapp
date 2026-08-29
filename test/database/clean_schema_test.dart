@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart' as models;
-import 'package:truehub/services/database.dart';
-import 'package:drift/native.dart';
+
+import '../helpers/test_database.dart';
 
 void main() {
   group('Clean Schema v10 Tests', () {
     test(
       'should create database with schema v10 and complete app metadata',
       () async {
-        final database = AppDatabase.forTesting(NativeDatabase.memory());
+        final database = createTestDatabase();
 
         // Verify schema version is 10 (includes complete app metadata for offline access)
         expect(database.schemaVersion, 10);
@@ -56,13 +56,11 @@ void main() {
         final allServers = await database.getAllServers();
         expect(allServers.length, 2);
         expect(allServers.every((s) => s.port == null), true);
-
-        await database.close();
       },
     );
 
     test('should handle all field combinations correctly', () async {
-      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      final database = createTestDatabase();
 
       // Test server with all nullable fields as null
       final minimalServer = models.NasServer.create(
@@ -105,8 +103,6 @@ void main() {
       expect(full.localUrl, 'http://192.168.1.100:8080');
       expect(full.trustedWifiSsids, ['HomeWiFi', 'OfficeWiFi']);
       expect(full.allowUntrustedCertificates, true);
-
-      await database.close();
     });
   });
 }
