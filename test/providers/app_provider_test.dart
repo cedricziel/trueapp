@@ -246,6 +246,11 @@ void main() {
         username: 'admin',
         password: 'password',
       );
+      // Persists the server row itself (app_configs.server_id is a foreign
+      // key), but deliberately never stores credentials via
+      // serverService.saveServerConfig - that's what keeps this server
+      // "orphaned" for setServer()'s offline-fallback path below.
+      await database.insertServer(orphanServer);
       await appProvider.setServer(orphanServer);
 
       await database.insertFullAppConfig(
