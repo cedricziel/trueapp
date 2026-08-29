@@ -61,7 +61,9 @@ set_secret MATCH_KEYCHAIN_PASSWORD "$(openssl rand -base64 32)"
 set_secret MATCH_DEPLOY_KEY "$(cat "$tmp/key")"
 
 # Same override precedence as fastlane/Appfile.
-EFFECTIVE_APP_ID="${APP_IDENTIFIER:-$(grep -o 'com\.cedricziel\.[A-Za-z0-9.]*' fastlane/Appfile | head -1)}"
+# ${VAR-...} (no colon) mirrors the Appfile's Ruby `ENV[..] ||` semantics,
+# which keeps a set-but-empty value.
+EFFECTIVE_APP_ID="${APP_IDENTIFIER-$(grep -o 'com\.cedricziel\.[A-Za-z0-9.]*' fastlane/Appfile | head -1)}"
 
 cat <<MSG
 

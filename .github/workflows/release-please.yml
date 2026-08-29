@@ -21,6 +21,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # release-please labels its release PRs; with the GITHUB_TOKEN
+      # fallback that needs issues: write.
+      issues: write
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name:        ${{ steps.rp.outputs.tag_name }}
