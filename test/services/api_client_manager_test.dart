@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/truenas_api_client.dart';
@@ -149,6 +150,113 @@ void main() {
         'non-existent-id',
       );
       expect(existingClient, isNull);
+    });
+
+    group('ensureAllConnectionsAlive', () {
+      test('returns an empty map when there are no active clients', () async {
+        final failures = await ApiClientManager.ensureAllConnectionsAlive();
+        expect(failures, isEmpty);
+      });
+
+      test(
+        'collects a per-server failure when a client cannot reconnect',
+        () async {
+          // 127.0.0.1 on a port nothing listens on: the OS refuses the
+          // connection immediately (no DNS lookup, no external network
+          // needed), so ensureConnectionAlive()'s real reconnection attempt
+          // fails fast and deterministically instead of timing out.
+          final unreachableServer = NasServer(
+            id: 'unreachable-server',
+            name: 'Unreachable Server',
+            host: '127.0.0.1',
+            port: 1,
+            useHttps: false,
+            username: 'testuser',
+            password: 'testpass',
+            isDefault: false,
+            trustedWifiSsids: const [],
+            localUrl: null,
+          );
+
+          await ApiClientManager.getClient(unreachableServer);
+
+          final failures = await ApiClientManager.ensureAllConnectionsAlive()
+              .timeout(const Duration(seconds: 20));
+
+          expect(failures.keys, [unreachableServer.id]);
+          expect(failures[unreachableServer.id], isA<ConnectionException>());
+        },
+        timeout: const Timeout(Duration(seconds: 25)),
+      );
+
+      test(
+        'only reports failures for servers whose client is still cached',
+        () async {
+          // getActiveServerIds() only contains servers with a live client,
+          // so a serverId that was never fetched is simply skipped (the
+          // `if (client == null) return;` guard) rather than reported as a
+          // failure.
+          expect(ApiClientManager.getActiveServerIds(), isEmpty);
+          final failures = await ApiClientManager.ensureAllConnectionsAlive();
+          expect(failures, isEmpty);
+        },
+      );
+    });
+
+    group('forceRecreateClient', () {
+      test(
+        'closes the existing client and returns a fresh one with ref count 1',
+        () async {
+          final original = await ApiClientManager.getClient(testServer1);
+          await ApiClientManager.getClient(testServer1); // ref count -> 2
+          expect(ApiClientManager.getRefCounts()[testServer1.id], 2);
+
+          final recreated = await ApiClientManager.forceRecreateClient(
+            testServer1,
+          );
+
+          expect(recreated, isNot(same(original)));
+          expect(ApiClientManager.hasClient(testServer1.id), isTrue);
+          expect(ApiClientManager.getRefCounts()[testServer1.id], 1);
+        },
+      );
+
+      test('works even when there was no existing client to close', () async {
+        expect(ApiClientManager.hasClient(testServer1.id), isFalse);
+
+        final client = await ApiClientManager.forceRecreateClient(testServer1);
+
+        expect(client, isA<TrueNasApiClient>());
+        expect(ApiClientManager.hasClient(testServer1.id), isTrue);
+      });
+    });
+
+    group('setConnectionStatusProvider', () {
+      test('accepts a null provider without throwing', () {
+        expect(
+          () => ApiClientManager.setConnectionStatusProvider(null),
+          returnsNormally,
+        );
+      });
+    });
+
+    group('clearAllForTesting', () {
+      test('closes every client and resets manager state', () async {
+        await ApiClientManager.getClient(testServer1);
+        await ApiClientManager.getClient(testServer2);
+        expect(ApiClientManager.getClientCount(), 2);
+
+        await ApiClientManager.clearAllForTesting();
+
+        expect(ApiClientManager.getClientCount(), 0);
+        expect(ApiClientManager.getActiveServerIds(), isEmpty);
+        expect(ApiClientManager.getRefCounts(), isEmpty);
+      });
+
+      test('is safe to call with nothing to clear', () async {
+        await expectLater(ApiClientManager.clearAllForTesting(), completes);
+        expect(ApiClientManager.getClientCount(), 0);
+      });
     });
   });
 }
