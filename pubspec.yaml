@@ -99,6 +99,12 @@ dev_dependencies:
   build_runner: ^2.16.0
   dart_pre_commit: ^6.1.4
 
+  # Platform-interface test doubles for SecureStorageService's tests -
+  # both are already transitive deps of flutter_secure_storage/local_auth;
+  # listed explicitly since the tests import them directly.
+  flutter_secure_storage_platform_interface: ^2.0.3
+  local_auth_platform_interface: ^1.1.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
