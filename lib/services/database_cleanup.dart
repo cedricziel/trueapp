@@ -1,21 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/native_keychain_service.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show KeychainServiceInterface;
 
 /// One-time cleanup helper to remove old servers without passwords
 class DatabaseCleanup {
   static Future<void> removeServersWithoutPasswords(
-    AppDatabase database,
-  ) async {
+    AppDatabase database, {
+    KeychainServiceInterface? keychain,
+  }) async {
     if (kDebugMode) {
       print(
         'DatabaseCleanup: Removing servers without passwords for clean migration',
       );
     }
 
+    final effectiveKeychain = keychain ?? NativeKeychainService.instance;
     final servers = await database.getAllServers();
     for (final server in servers) {
-      if (server.password.isEmpty) {
+      final hasPassword = await effectiveKeychain.hasPassword(
+        serverId: server.id,
+      );
+      if (!hasPassword) {
         if (kDebugMode) {
           print(
             'DatabaseCleanup: Removing server ${server.id} (${server.name}) - no password',

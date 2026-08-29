@@ -1018,29 +1018,27 @@ void main() {
       expect(ports.single.apiUrl, isNull);
     });
 
-    test(
-      'recovers a missing username column even when the from < 3 '
-      'credentials TableMigration step failed and was swallowed',
-      () async {
-        // `_migrateCredentialsToSecureStorage` catches every exception from
-        // its TableMigration and merely logs it (that behavior predates
-        // this PR and is called out as unable to change), so a real-world
-        // failure there - a locked file, a stray leftover temp table from
-        // a previous crashed migration attempt, anything - leaves
-        // nas_servers without a `username` column while onUpgrade still
-        // completes and stamps schema_version 10. If the `from < 10` step
-        // that (re-)adds `username` were skipped whenever `from < 3` (on
-        // the assumption the TableMigration above it must have already
-        // added it), every subsequent read would fail with "no such
-        // column: username" - unrecoverably, since the app would never
-        // run this migration again once schema_version reads 10.
-        //
-        // Reproduces the "TableMigration failed" half of that chain by
-        // pre-creating the temp table drift's TableMigration internally
-        // creates and drops (`tmp_for_copy_nas_servers`), so its own
-        // `CREATE TABLE` collides and throws.
-        final raw = sqlite3.sqlite3.openInMemory();
-        raw.execute('''
+    test('recovers a missing username column even when the from < 3 '
+        'credentials TableMigration step failed and was swallowed', () async {
+      // `_migrateCredentialsToSecureStorage` catches every exception from
+      // its TableMigration and merely logs it (that behavior predates
+      // this PR and is called out as unable to change), so a real-world
+      // failure there - a locked file, a stray leftover temp table from
+      // a previous crashed migration attempt, anything - leaves
+      // nas_servers without a `username` column while onUpgrade still
+      // completes and stamps schema_version 10. If the `from < 10` step
+      // that (re-)adds `username` were skipped whenever `from < 3` (on
+      // the assumption the TableMigration above it must have already
+      // added it), every subsequent read would fail with "no such
+      // column: username" - unrecoverably, since the app would never
+      // run this migration again once schema_version reads 10.
+      //
+      // Reproduces the "TableMigration failed" half of that chain by
+      // pre-creating the temp table drift's TableMigration internally
+      // creates and drops (`tmp_for_copy_nas_servers`), so its own
+      // `CREATE TABLE` collides and throws.
+      final raw = sqlite3.sqlite3.openInMemory();
+      raw.execute('''
           CREATE TABLE nas_servers (
             id TEXT NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
@@ -1054,24 +1052,23 @@ void main() {
             is_active INTEGER NOT NULL DEFAULT 1
           );
         ''');
-        raw.execute('''
+      raw.execute('''
           CREATE TABLE tmp_for_copy_nas_servers (poisoned INTEGER);
         ''');
-        raw.execute('PRAGMA user_version = 1;');
-        raw.execute('''
+      raw.execute('PRAGMA user_version = 1;');
+      raw.execute('''
           INSERT INTO nas_servers (id, name, host) VALUES ('s1', 'S', 'h.example.com')
         ''');
 
-        final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
-        addTearDown(database.close);
+      final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
+      addTearDown(database.close);
 
-        expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 10);
 
-        final server = await database.getServer('s1');
-        expect(server, isNotNull);
-        expect(server!.username, '');
-      },
-    );
+      final server = await database.getServer('s1');
+      expect(server, isNotNull);
+      expect(server!.username, '');
+    });
   });
 
   group('AppDatabase.disposeInstance', () {

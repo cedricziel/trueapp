@@ -286,11 +286,10 @@ void main() {
     testWidgets(
       'tapping opens a details dialog with URL, network kind and latency',
       (WidgetTester tester) async {
-        // `updatePingStatus` rebuilds the status without carrying forward
-        // `connectionUrl`/`isLocalConnection`, so the latency has to be set
-        // before the URL - `updateConnectionState` is the call that
-        // preserves an existing latency (`current?.latency`) once one is
-        // set.
+        // Order doesn't matter here: both `updatePingStatus` and
+        // `updateConnectionState` copyWith from the existing status, so
+        // latency and connectionUrl/isLocalConnection are preserved
+        // regardless of which call sets them first.
         provider.updatePingStatus(
           'srv-1',
           latency: const Duration(milliseconds: 15),
