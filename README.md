@@ -30,7 +30,6 @@ The app follows a clean architecture pattern with:
 - **Provider**: State management
 - **dio**: HTTP client for API calls
 - **flutter_slidable**: Swipe actions for list items
-- **fl_chart**: Charts for health monitoring
 
 ## Getting Started
 
