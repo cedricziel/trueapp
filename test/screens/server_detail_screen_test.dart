@@ -265,6 +265,52 @@ void main() {
       expect(systemStatsProvider.unsubscribeCallCount, 1);
     },
   );
+
+  testWidgets(
+    'survives a sub-route being pushed on top without crashing or '
+    'unsubscribing early (regression test for #102)',
+    (WidgetTester tester) async {
+      useCompactSurface(tester);
+
+      // ShellNavigationLeading.maybeBuild() calls `ModalRoute.of(context)`
+      // from ServerDetailScreen's own build context, so this screen's
+      // element depends on its ModalRoute. Pushing another route on top -
+      // exactly what happens when the user taps "Edit Server", "Pools",
+      // "Files" or "Health" - flips that route's `isCurrent` and re-runs
+      // didChangeDependencies() on the still-mounted ServerDetailScreen
+      // State, without disposing it.
+      final systemStatsProvider = _RecordingSystemStatsProvider(
+        unifiedServerService,
+      );
+      addTearDown(systemStatsProvider.dispose);
+
+      await tester.pumpWidget(
+        provideAppProviders(
+          database: database,
+          service: unifiedServerService,
+          serverProvider: serverProvider,
+          systemStatsProvider: systemStatsProvider,
+          child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('Storage Pools'));
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        CupertinoPageRoute<void>(builder: (_) => const SizedBox.shrink()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(systemStatsProvider.unsubscribeCallCount, 0);
+
+      navigator.pop();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(systemStatsProvider.unsubscribeCallCount, 0);
+    },
+  );
 }
 
 /// A [SystemStatsProvider] that records how many times

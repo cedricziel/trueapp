@@ -27,7 +27,7 @@ class ServerDetailScreen extends StatefulWidget {
 }
 
 class _ServerDetailScreenState extends State<ServerDetailScreen> {
-  late final SystemStatsProvider _systemStatsProvider;
+  SystemStatsProvider? _systemStatsProvider;
 
   @override
   void initState() {
@@ -64,7 +64,16 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _systemStatsProvider = context.read<SystemStatsProvider>();
+    // didChangeDependencies() runs after initState() and again any time an
+    // InheritedWidget this element depends on notifies - here that's the
+    // ModalRoute this screen builds against via
+    // ShellNavigationLeading.maybeBuild()'s `ModalRoute.of(context)`, which
+    // fires whenever a sub-route (Edit Server, Pools, Files, Health, ...)
+    // is pushed on top of or popped back to this screen. `??=` makes the
+    // capture idempotent across those repeat calls; assigning unconditionally
+    // to a `late final` field here would throw a LateInitializationError the
+    // first time the user navigated to any of this screen's sub-routes.
+    _systemStatsProvider ??= context.read<SystemStatsProvider>();
   }
 
   @override
@@ -74,7 +83,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     // immediately and doesn't need a frame boundary or a `mounted` check -
     // by the time dispose() runs the element is already unmounted, which
     // made a post-frame callback here dead code.
-    _systemStatsProvider.unsubscribeFromStats();
+    _systemStatsProvider?.unsubscribeFromStats();
     super.dispose();
   }
 
