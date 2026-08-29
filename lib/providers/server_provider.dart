@@ -101,6 +101,7 @@ class ServerProvider extends ChangeNotifier {
   Future<void> _loadServers() async {
     try {
       _servers = await _serverService.getAllServers();
+      if (_disposed) return;
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
@@ -235,6 +236,7 @@ class ServerProvider extends ChangeNotifier {
     if (server != null) {
       await _authenticateAndConnect(server);
     }
+    if (_disposed) return;
     notifyListeners();
   }
 
