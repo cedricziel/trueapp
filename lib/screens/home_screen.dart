@@ -70,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.add),
           onPressed: () {
-            context.go('/add-server');
+            // push, not go: AddServerScreen closes itself with Navigator.pop,
+            // and `go` would replace the stack so there is nothing left to pop.
+            context.push('/add-server');
           },
         ),
       ),

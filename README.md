@@ -84,9 +84,9 @@ lib/
 - ✅ Connection status / network awareness
 - ✅ macOS menu bar (tray) integration
 - ✅ Native plugins extracted into the reusable `truenas_native_plugins` package
+- ✅ Adaptive Cupertino sidebar navigation with go_router ([#54](https://github.com/cedricziel/trueapp/issues/54))
 
 ### In Progress
-- 🚧 Adaptive Cupertino sidebar navigation ([#54](https://github.com/cedricziel/trueapp/issues/54))
 - 🚧 Breaking large screens into smaller reusable widgets ([#35](https://github.com/cedricziel/trueapp/issues/35))
 - 🚧 Raising test coverage towards the 80% goal
 
