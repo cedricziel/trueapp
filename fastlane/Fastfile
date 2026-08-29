@@ -24,7 +24,7 @@ end
 # Marketing version = pubspec.yaml `version:` without the +build suffix.
 # release-please bumps it; nothing here writes to it.
 def marketing_version
-  @marketing_version ||= PubspecVersion.read(File.expand_path("../pubspec.yaml", __dir__))
+  @marketing_version ||= PubspecVersion.read
 end
 
 before_all do |lane, options|
