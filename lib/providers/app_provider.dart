@@ -5,7 +5,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
-import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -14,7 +14,7 @@ import 'package:truehub/providers/server_provider.dart';
 class AppProvider extends ChangeNotifier {
   final AppDatabase _database;
   final UnifiedServerService _serverService;
-  TrueNasApiClient? _apiClient;
+  ApiClientInterface? _apiClient;
   String? _currentServerId;
   NasServer? _currentServer;
   List<AppConfig> _appConfigs = [];

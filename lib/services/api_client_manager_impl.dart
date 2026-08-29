@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 
@@ -18,7 +19,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   }
 
   @override
-  Future<TrueNasApiClient?> getClient(NasServer server) async {
+  Future<ApiClientInterface?> getClient(NasServer server) async {
     final serverId = server.id;
 
     if (kDebugMode) {
@@ -194,7 +195,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   }
 
   @override
-  TrueNasApiClient? getExistingClient(String serverId) {
+  ApiClientInterface? getExistingClient(String serverId) {
     return _clients[serverId];
   }
 
@@ -219,7 +220,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   }
 
   @override
-  Future<TrueNasApiClient?> forceRecreateClient(NasServer server) async {
+  Future<ApiClientInterface?> forceRecreateClient(NasServer server) async {
     final serverId = server.id;
 
     if (kDebugMode) {

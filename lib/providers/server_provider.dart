@@ -4,6 +4,7 @@ import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -32,7 +33,7 @@ class ServerProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
-  TrueNasApiClient? _apiClient;
+  ApiClientInterface? _apiClient;
 
   // Authentication state stream
   final StreamController<AuthenticationStatus> _authController =
