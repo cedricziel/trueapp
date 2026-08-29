@@ -102,6 +102,31 @@ lib/
 - 📋 File upload/download
 - 📋 App Store / TestFlight distribution ([#16](https://github.com/cedricziel/trueapp/issues/16), [#51](https://github.com/cedricziel/trueapp/issues/51))
 
+## Releasing
+
+Releases are cut by [release-please](https://github.com/googleapis/release-please)
+from conventional commits on `main`:
+
+1. Merging commits to `main` opens or updates a release PR that bumps
+   `version:` in `pubspec.yaml` and `CHANGELOG.md`.
+2. Merging the release PR tags `vX.Y.Z`, publishes a GitHub prerelease, and
+   the `Upload to TestFlight` job builds a signed iOS IPA with
+   [fastlane](https://fastlane.tools) and uploads it to TestFlight.
+
+The build number is the commit count at the tag; the marketing version comes
+from `pubspec.yaml`. Signing assets live in a private fastlane `match`
+repository. To build locally:
+
+```bash
+bundle install
+cp fastlane/.env.default fastlane/.env   # fill in from 1Password
+bundle exec fastlane build               # signed IPA in build/, no upload
+bundle exec fastlane beta                # build + upload to TestFlight
+```
+
+Setting up CI secrets for a fresh fork is a one-time run of
+`scripts/bootstrap-release-secrets.sh`.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
