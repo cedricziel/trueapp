@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "cedricziel": {
+      "source": {
+        "source": "github",
+        "repo": "cedricziel/claude-plugins"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "common@cedricziel": true
+  }
+}
