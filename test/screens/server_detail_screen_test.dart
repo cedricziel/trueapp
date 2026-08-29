@@ -233,84 +233,86 @@ void main() {
     },
   );
 
-  testWidgets(
-    'unsubscribes from system stats when the screen is disposed '
-    '(regression test for #102)',
-    (WidgetTester tester) async {
-      useCompactSurface(tester);
+  testWidgets('unsubscribes from system stats when the screen is disposed '
+      '(regression test for #102)', (WidgetTester tester) async {
+    useCompactSurface(tester);
 
-      final systemStatsProvider = _RecordingSystemStatsProvider(
-        unifiedServerService,
-      );
-      addTearDown(systemStatsProvider.dispose);
+    final systemStatsProvider = _RecordingSystemStatsProvider(
+      unifiedServerService,
+    );
+    addTearDown(systemStatsProvider.dispose);
 
-      await tester.pumpWidget(
-        provideAppProviders(
-          database: database,
-          service: unifiedServerService,
-          serverProvider: serverProvider,
-          systemStatsProvider: systemStatsProvider,
-          child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
-        ),
-      );
-      await pumpUntilFound(tester, find.text('Storage Pools'));
+    await tester.pumpWidget(
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
+        systemStatsProvider: systemStatsProvider,
+        child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Storage Pools'));
 
-      expect(systemStatsProvider.unsubscribeCallCount, 0);
+    expect(systemStatsProvider.unsubscribeCallCount, 0);
 
-      // Replacing the whole tree tears down ServerDetailScreen's State,
-      // running its dispose() - the same teardown a back navigation or tab
-      // switch triggers in the real app.
-      await tester.pumpWidget(const CupertinoApp(home: SizedBox.shrink()));
+    // Replacing the whole tree tears down ServerDetailScreen's State,
+    // running its dispose() - the same teardown a back navigation or tab
+    // switch triggers in the real app.
+    await tester.pumpWidget(const CupertinoApp(home: SizedBox.shrink()));
 
-      expect(systemStatsProvider.unsubscribeCallCount, 1);
-    },
-  );
+    expect(systemStatsProvider.unsubscribeCallCount, 1);
+  });
 
-  testWidgets(
-    'survives a sub-route being pushed on top without crashing or '
-    'unsubscribing early (regression test for #102)',
-    (WidgetTester tester) async {
-      useCompactSurface(tester);
+  testWidgets('survives a sub-route being pushed on top without crashing or '
+      'unsubscribing early (regression test for #102)', (
+    WidgetTester tester,
+  ) async {
+    useCompactSurface(tester);
 
-      // ShellNavigationLeading.maybeBuild() calls `ModalRoute.of(context)`
-      // from ServerDetailScreen's own build context, so this screen's
-      // element depends on its ModalRoute. Pushing another route on top -
-      // exactly what happens when the user taps "Edit Server", "Pools",
-      // "Files" or "Health" - flips that route's `isCurrent` and re-runs
-      // didChangeDependencies() on the still-mounted ServerDetailScreen
-      // State, without disposing it.
-      final systemStatsProvider = _RecordingSystemStatsProvider(
-        unifiedServerService,
-      );
-      addTearDown(systemStatsProvider.dispose);
+    // ShellNavigationLeading.maybeBuild() calls `ModalRoute.of(context)`
+    // from ServerDetailScreen's own build context, so this screen's
+    // element depends on its ModalRoute. Pushing another route on top -
+    // exactly what happens when the user taps "Edit Server", "Pools",
+    // "Files" or "Health" - flips that route's `isCurrent` and re-runs
+    // didChangeDependencies() on the still-mounted ServerDetailScreen
+    // State, without disposing it.
+    final systemStatsProvider = _RecordingSystemStatsProvider(
+      unifiedServerService,
+    );
+    addTearDown(systemStatsProvider.dispose);
 
-      await tester.pumpWidget(
-        provideAppProviders(
-          database: database,
-          service: unifiedServerService,
-          serverProvider: serverProvider,
-          systemStatsProvider: systemStatsProvider,
-          child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
-        ),
-      );
-      await pumpUntilFound(tester, find.text('Storage Pools'));
+    await tester.pumpWidget(
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
+        systemStatsProvider: systemStatsProvider,
+        child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Storage Pools'));
 
-      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-      navigator.push(
-        CupertinoPageRoute<void>(builder: (_) => const SizedBox.shrink()),
-      );
-      await tester.pumpAndSettle();
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.push(
+      CupertinoPageRoute<void>(builder: (_) => const SizedBox.shrink()),
+    );
+    // Not pumpAndSettle(): this screen can render an indefinite
+    // CupertinoActivityIndicator elsewhere (see pump_helpers.dart's module
+    // doc), so bound the pump to the Cupertino page-transition duration
+    // instead of waiting for every animation to stop.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
-      expect(tester.takeException(), isNull);
-      expect(systemStatsProvider.unsubscribeCallCount, 0);
+    expect(tester.takeException(), isNull);
+    expect(systemStatsProvider.unsubscribeCallCount, 0);
 
-      navigator.pop();
-      await tester.pumpAndSettle();
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
-      expect(tester.takeException(), isNull);
-      expect(systemStatsProvider.unsubscribeCallCount, 0);
-    },
-  );
+    expect(tester.takeException(), isNull);
+    expect(systemStatsProvider.unsubscribeCallCount, 0);
+  });
 }
 
 /// A [SystemStatsProvider] that records how many times
