@@ -197,28 +197,38 @@ void main() {
       expect(serverProvider.selectedServer, isNull);
     });
 
-    test('should close the cached API client when a server is deleted', () async {
-      // Seed the mock manager with a cached client for this server, the way
-      // a real `getClient()` call from `selectServer` would. The mock's
-      // `getClient` does not itself register a client on a cache miss, so
-      // without this the `hasClient` assertion below would pass trivially
-      // regardless of whether `deleteServer` actually closes the client.
-      TestProviders.mockApiClientManager.addMockClient(
-        testServer.id,
-        FakeApiClient(),
-      );
-      await serverProvider.selectServer(testServer);
-      expect(ApiClientManager.hasClient(testServer.id), isTrue);
+    test(
+      'should close the cached API client when a server is deleted',
+      () async {
+        // Select the server first: `selectServer` unconditionally releases
+        // whatever client the *previous* selection held (see its "Release
+        // previous client if any" step), including when reselecting the
+        // already-selected server. Seeding the mock client before this call
+        // would have it wiped out by that release before the assertion below
+        // ever sees it.
+        await serverProvider.selectServer(testServer);
 
-      // Deleting the server must not leave a stale client (and its
-      // websocket/keepalive timer) behind for a server that no longer exists.
-      await serverProvider.deleteServer(testServer.id);
+        // Seed the mock manager with a cached client for this server, the way
+        // a real `getClient()` call from `selectServer` would. The mock's
+        // `getClient` does not itself register a client on a cache miss, so
+        // without this the `hasClient` assertion below would pass trivially
+        // regardless of whether `deleteServer` actually closes the client.
+        TestProviders.mockApiClientManager.addMockClient(
+          testServer.id,
+          FakeApiClient(),
+        );
+        expect(ApiClientManager.hasClient(testServer.id), isTrue);
 
-      expect(ApiClientManager.hasClient(testServer.id), isFalse);
+        // Deleting the server must not leave a stale client (and its
+        // websocket/keepalive timer) behind for a server that no longer exists.
+        await serverProvider.deleteServer(testServer.id);
 
-      // Restore the test server for other tests relying on setUp state.
-      await serverProvider.addServer(testServer, 'password');
-    });
+        expect(ApiClientManager.hasClient(testServer.id), isFalse);
+
+        // Restore the test server for other tests relying on setUp state.
+        await serverProvider.addServer(testServer, 'password');
+      },
+    );
 
     test('should update server and maintain consistency', () async {
       // Add another server
