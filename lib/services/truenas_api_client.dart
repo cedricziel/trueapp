@@ -42,6 +42,9 @@ class TrueNasApiClient implements ApiClientInterface {
 
   TrueNasApiClient(this._server, [this._connectionStatusProvider]);
 
+  /// Whether the JSON-RPC socket is currently usable.
+  bool get _hasLiveConnection => _client != null && !_client!.isClosed;
+
   Future<void> _ensureConnected() async {
     if (_client != null && !_client!.isClosed) {
       return;
@@ -135,7 +138,15 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   Future<void> _sendKeepalivePing() async {
-    if (_client == null || _client!.isClosed || !_isAuthenticated) {
+    if (!_keepaliveEnabled) {
+      return;
+    }
+
+    // A closed socket is precisely the case that needs recovering. Returning
+    // here (as this used to) left the client dead until something else
+    // happened to issue a request.
+    if (!_hasLiveConnection || !_isAuthenticated) {
+      await _handleKeepaliveTimeout();
       return;
     }
 
@@ -219,6 +230,12 @@ class TrueNasApiClient implements ApiClientInterface {
       // Re-establish connection
       await _ensureConnected();
       await _ensureAuthenticated();
+      await _restoreSubscriptions();
+
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.connected,
+      );
 
       if (kDebugMode) {
         print('TrueNAS API: Successfully reconnected after keepalive timeout');
@@ -234,6 +251,42 @@ class TrueNasApiClient implements ApiClientInterface {
       );
       // Stop keepalive on repeated failures to avoid continuous retry loops
       _stopKeepalive();
+    }
+  }
+
+  /// Makes the client usable again after the connection may have died while
+  /// the app was suspended.
+  ///
+  /// Cheap when the socket is healthy (a single ping); reconnects,
+  /// re-authenticates and restores active subscriptions when it is not.
+  /// Call this when the app returns to the foreground - no timer fires while
+  /// the process is suspended, so nothing else notices the dead socket.
+  @override
+  Future<void> ensureConnectionAlive() async {
+    if (_hasLiveConnection && _isAuthenticated) {
+      await _sendKeepalivePing();
+      return;
+    }
+
+    await _handleKeepaliveTimeout();
+  }
+
+  /// Re-subscribes to the streams the UI had asked for before the connection
+  /// was lost. The stale subscription ids belong to the dead socket.
+  Future<void> _restoreSubscriptions() async {
+    final wantsSystemStats = _isSubscribedToRealtime;
+    final wantsAppStats = _isSubscribedToAppStats;
+
+    if (wantsSystemStats) {
+      _isSubscribedToRealtime = false;
+      _realtimeSubscriptionId = null;
+      await subscribeToSystemStats();
+    }
+
+    if (wantsAppStats) {
+      _isSubscribedToAppStats = false;
+      _appStatsSubscriptionId = null;
+      await subscribeToAppStats();
     }
   }
 
@@ -329,7 +382,10 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   Future<void> _ensureAuthenticated() async {
-    if (_isAuthenticated) return;
+    // Authentication belongs to a socket: once that socket is gone, so is the
+    // session, no matter what the flag from the previous connection says.
+    if (_isAuthenticated && _hasLiveConnection) return;
+    _isAuthenticated = false;
 
     try {
       await _ensureConnected();
@@ -921,7 +977,10 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> subscribeToSystemStats() async {
-    if (_isSubscribedToRealtime) {
+    // A subscription only exists for as long as the socket that created it.
+    // After the connection drops - which is what the OS does to a backgrounded
+    // app - the flag is stale and re-subscribing is exactly what's needed.
+    if (_isSubscribedToRealtime && _hasLiveConnection) {
       if (kDebugMode) {
         print('TrueNAS API: Already subscribed to realtime stats');
       }
@@ -1001,7 +1060,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> subscribeToAppStats() async {
-    if (_isSubscribedToAppStats) {
+    if (_isSubscribedToAppStats && _hasLiveConnection) {
       if (kDebugMode) {
         print('TrueNAS API: Already subscribed to app stats');
       }

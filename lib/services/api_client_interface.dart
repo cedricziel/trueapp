@@ -71,6 +71,11 @@ abstract class ApiClientInterface {
 
   // System stats subscription methods
   Stream<SystemStats> get systemStatsStream;
+
+  /// Verify the connection is still usable and recover it if it is not.
+  /// Called when the app returns to the foreground.
+  Future<void> ensureConnectionAlive();
+
   Future<void> subscribeToSystemStats();
   Future<void> unsubscribeFromSystemStats();
 
