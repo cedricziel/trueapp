@@ -14,6 +14,7 @@ import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/connection_status_widget.dart';
+import 'package:truehub/widgets/section_header.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -192,21 +193,15 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Storage Pools',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Text('View All'),
-                    onPressed: () {
-                      context.go('/server/${server.id}/pools', extra: server);
-                    },
-                  ),
-                ],
+              SectionHeader(
+                title: 'Storage Pools',
+                action: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    context.go('/server/${server.id}/pools', extra: server);
+                  },
+                  child: const Text('View All'),
+                ),
               ),
               const SizedBox(height: 12),
               if (poolProvider.isLoading)
@@ -249,33 +244,27 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'System Stats',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              Consumer<SystemStatsProvider>(
-                builder: (context, statsProvider, child) {
-                  return CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Icon(
-                      statsProvider.isSubscribed
-                          ? CupertinoIcons.pause_circle
-                          : CupertinoIcons.play_circle,
-                    ),
-                    onPressed: () {
-                      if (statsProvider.isSubscribed) {
-                        statsProvider.unsubscribeFromStats();
-                      } else {
-                        statsProvider.subscribeToStats();
-                      }
-                    },
-                  );
-                },
-              ),
-            ],
+          SectionHeader(
+            title: 'System Stats',
+            action: Consumer<SystemStatsProvider>(
+              builder: (context, statsProvider, child) {
+                return CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    if (statsProvider.isSubscribed) {
+                      statsProvider.unsubscribeFromStats();
+                    } else {
+                      statsProvider.subscribeToStats();
+                    }
+                  },
+                  child: Icon(
+                    statsProvider.isSubscribed
+                        ? CupertinoIcons.pause_circle
+                        : CupertinoIcons.play_circle,
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           const SystemStatsWidget(),
@@ -292,21 +281,15 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Apps',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Text('View All'),
-                    onPressed: () {
-                      context.go('/server/${server.id}/apps', extra: server);
-                    },
-                  ),
-                ],
+              SectionHeader(
+                title: 'Apps',
+                action: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    context.go('/server/${server.id}/apps', extra: server);
+                  },
+                  child: const Text('View All'),
+                ),
               ),
               const SizedBox(height: 12),
               if (appProvider.isLoading)

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
@@ -25,31 +26,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           children: [
             const SizedBox(height: 20),
-            if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) ...[
+            if (defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.windows ||
+                defaultTargetPlatform == TargetPlatform.linux) ...[
               Consumer<TrayProvider>(
                 builder: (context, trayProvider, child) {
+                  final isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
                   return CupertinoFormSection(
-                    header: Text(Platform.isMacOS ? 'MENU BAR' : 'SYSTEM TRAY'),
+                    header: Text(isMacOS ? 'MENU BAR' : 'SYSTEM TRAY'),
                     children: [
                       CupertinoFormRow(
-                        prefix: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              Platform.isMacOS
-                                  ? 'Minimize to Menu Bar'
-                                  : 'Minimize to System Tray',
-                            ),
-                            Text(
-                              Platform.isMacOS
-                                  ? 'Close window minimizes to menu bar instead of quitting'
-                                  : 'Close window minimizes to system tray instead of quitting',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: CupertinoColors.systemGrey,
+                        prefix: Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isMacOS
+                                    ? 'Minimize to Menu Bar'
+                                    : 'Minimize to System Tray',
                               ),
-                            ),
-                          ],
+                              Text(
+                                isMacOS
+                                    ? 'Close window minimizes to menu bar instead of quitting'
+                                    : 'Close window minimizes to system tray instead of quitting',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: CupertinoColors.systemGrey,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         child: CupertinoSwitch(
                           value: trayProvider.minimizeToTray,
@@ -57,18 +63,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       CupertinoFormRow(
-                        prefix: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Show in Dock'),
-                            Text(
-                              'Display app icon in dock while running',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: CupertinoColors.systemGrey,
+                        prefix: const Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Show in Dock'),
+                              Text(
+                                'Display app icon in dock while running',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: CupertinoColors.systemGrey,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         child: CupertinoSwitch(
                           value: trayProvider.showInDock,
@@ -85,18 +93,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               header: const Text('SECURITY'),
               children: [
                 CupertinoFormRow(
-                  prefix: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Authentication Session'),
-                      Text(
-                        'Manage biometric authentication session',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: CupertinoColors.systemGrey,
+                  prefix: const Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Authentication Session'),
+                        Text(
+                          'Manage biometric authentication session',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: CupertinoColors.systemGrey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   child: Builder(
                     builder: (builderContext) {
@@ -175,18 +185,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               header: const Text('DATABASE'),
               children: [
                 CupertinoFormRow(
-                  prefix: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Clear Database'),
-                      Text(
-                        'Remove all servers and reset app data',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: CupertinoColors.systemGrey,
+                  prefix: const Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Clear Database'),
+                        Text(
+                          'Remove all servers and reset app data',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: CupertinoColors.systemGrey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   child: CupertinoButton(
                     padding: EdgeInsets.zero,
