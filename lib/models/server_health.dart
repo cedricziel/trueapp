@@ -56,7 +56,7 @@ class DiskInfo extends Equatable {
     required this.health,
   });
 
-  double get usagePercentage => (used / size) * 100;
+  double get usagePercentage => size == 0 ? 0.0 : (used / size) * 100;
 
   @override
   List<Object?> get props => [

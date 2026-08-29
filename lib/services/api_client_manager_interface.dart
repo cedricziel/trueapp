@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:truehub/models/nas_server.dart';
-import 'package:truehub/services/truenas_api_client.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 
 /// Interface for managing TrueNAS API client instances
@@ -9,7 +9,7 @@ abstract class ApiClientManagerInterface {
   void setConnectionStatusProvider(ConnectionStatusProvider? provider);
 
   /// Get or create a client for the given server
-  Future<TrueNasApiClient?> getClient(NasServer server);
+  Future<ApiClientInterface?> getClient(NasServer server);
 
   /// Release a client reference (decrements ref count)
   Future<void> releaseClient(String serverId);
@@ -28,7 +28,7 @@ abstract class ApiClientManagerInterface {
   Future<Map<String, Object>> ensureAllConnectionsAlive();
 
   /// Get an existing client without creating a new one
-  TrueNasApiClient? getExistingClient(String serverId);
+  ApiClientInterface? getExistingClient(String serverId);
 
   /// Check if a client exists for the given server
   bool hasClient(String serverId);
@@ -43,7 +43,7 @@ abstract class ApiClientManagerInterface {
   Map<String, int> getRefCounts();
 
   /// Force recreation of a client
-  Future<TrueNasApiClient?> forceRecreateClient(NasServer server);
+  Future<ApiClientInterface?> forceRecreateClient(NasServer server);
 
   /// Clear all clients (for testing)
   Future<void> clearAllForTesting();

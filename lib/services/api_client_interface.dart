@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
@@ -89,17 +88,4 @@ abstract class ApiClientInterface {
   Future<Map<String, dynamic>> getSystemAdvancedConfig();
   Future<String> getSystemProductType();
   Future<bool> isIxHardware();
-}
-
-/// Interface for API client management to enable dependency injection
-abstract class ApiClientManagerInterface {
-  Future<ApiClientInterface?> getClient(NasServer server);
-  Future<void> releaseClient(String serverId);
-  Future<void> closeClient(String serverId);
-  Future<void> closeAllClients();
-  ApiClientInterface? getExistingClient(String serverId);
-  bool hasClient(String serverId);
-  int getClientCount();
-  List<String> getActiveServerIds();
-  Map<String, int> getRefCounts();
 }
