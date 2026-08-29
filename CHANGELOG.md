@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/cedricziel/trueapp/compare/v0.1.1...v0.1.2) (2026-08-29)
+
+
+### Bug Fixes
+
+* **test:** move the macOS floor pin to 12.0 raised by the deps bump ([#117](https://github.com/cedricziel/trueapp/issues/117)) ([64b99d1](https://github.com/cedricziel/trueapp/commit/64b99d12c4666cff8f40a198911710aa29fe01ae))
+
 ## [0.1.1](https://github.com/cedricziel/trueapp/compare/v0.1.0...v0.1.1) (2026-08-29)
 
 
