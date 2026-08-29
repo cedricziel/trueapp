@@ -22,6 +22,10 @@ class FakeTrueNasServer {
   int subscribeCount = 0;
   int pingCount = 0;
 
+  /// Makes core.subscribe fail, the way a server still starting up rejects
+  /// subscriptions for a while after a reconnect.
+  bool failSubscribes = false;
+
   static Future<FakeTrueNasServer> start() async {
     final httpServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final server = FakeTrueNasServer._(httpServer);
@@ -49,6 +53,9 @@ class FakeTrueNasServer {
         return true;
       })
       ..registerMethod('core.subscribe', (json_rpc.Parameters _) {
+        if (failSubscribes) {
+          throw json_rpc.RpcException(1, 'subscription refused');
+        }
         subscribeCount++;
         return 'subscription-$subscribeCount';
       })
@@ -128,6 +135,40 @@ void main() {
         server.subscribeCount,
         2,
         reason: 'active subscriptions must be restored, or stats stay frozen',
+      );
+    },
+  );
+
+  test(
+    'a subscription that fails to restore is retried on the next resume',
+    () async {
+      await client.subscribeToSystemStats();
+      expect(server.subscribeCount, 1);
+
+      await server.dropConnections();
+      server.failSubscribes = true;
+
+      // First resume: the socket comes back, but the server refuses the
+      // subscription for now.
+      await client.ensureConnectionAlive();
+      expect(
+        server.subscribeCount,
+        1,
+        reason: 'a refused subscription must not count as established',
+      );
+
+      // The server accepts subscriptions again; the stream the UI asked for is
+      // still wanted, so the next resume has to attempt it rather than treat a
+      // healthy socket as good enough.
+      server.failSubscribes = false;
+      await client.ensureConnectionAlive();
+
+      expect(
+        server.subscribeCount,
+        2,
+        reason:
+            'a subscription the UI asked for must survive a failed restore, '
+            'otherwise the stream stays frozen while recovery reports success',
       );
     },
   );

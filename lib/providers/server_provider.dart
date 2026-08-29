@@ -372,7 +372,15 @@ class ServerProvider extends ChangeNotifier {
     // Every pooled client matters, not just the selected server's: other
     // providers hold clients the OS dropped just the same. One round of
     // recovery covers them all and reports per-server failures.
+    final client = _apiClient;
     final failures = await ApiClientManager.ensureAllConnectionsAlive();
+
+    // Recovery is asynchronous: the user may have switched servers (or the
+    // client may have been recreated) while it ran. Applying a result for the
+    // previous selection to the current one would report the wrong state.
+    if (!identical(_apiClient, client) || _selectedServer?.id != server.id) {
+      return;
+    }
 
     final failure = failures[server.id];
     if (failure == null) {
