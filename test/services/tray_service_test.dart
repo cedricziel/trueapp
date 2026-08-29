@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -186,10 +188,11 @@ void main() {
       );
 
       final setIconCall = trayCalls.firstWhere((c) => c.method == 'setIcon');
-      // Non-macOS (this test VM is Linux) always uses the .ico asset.
+      // macOS uses the custom NAS template icon; every other supported
+      // platform (this test VM is Linux) uses the .ico asset.
       expect(
         (setIconCall.arguments as Map)['iconPath'],
-        contains('tray_icon.ico'),
+        contains(Platform.isMacOS ? 'nasTemplate_light.png' : 'tray_icon.ico'),
       );
 
       final setContextMenuCall = trayCalls.firstWhere(
@@ -367,14 +370,11 @@ void main() {
     });
 
     test('left mouse down only pops up the menu on macOS', () {
-      // This test VM reports Platform.isMacOS == false, so
-      // onTrayIconMouseDown's early-return branch is what actually runs
-      // here; the macOS branch is unreachable from a Linux test run.
       service.onTrayIconMouseDown();
-      expect(
-        trayCalls.map((c) => c.method),
-        isNot(contains('popUpContextMenu')),
-      );
+      final popUpCalled = trayCalls
+          .map((c) => c.method)
+          .contains('popUpContextMenu');
+      expect(popUpCalled, Platform.isMacOS);
     });
   });
 
