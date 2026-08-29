@@ -43,8 +43,8 @@ dependencies:
   json_rpc_2: ^4.0.0
 
   # Local storage
-  drift: ^2.27.0
-  drift_flutter: ^0.2.4
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
   path_provider: ^2.1.5
   path: ^1.9.1
 
@@ -96,9 +96,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  drift_dev: ^2.27.0
+  drift_dev: ^2.34.5
   build_runner: ^2.5.4
-  dart_pre_commit: ^6.0.0
+  dart_pre_commit: ^6.1.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -11,6 +11,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Single source of truth: the SDK the job installs and the key its cache is
+  # scoped to must never drift apart.
+  FLUTTER_VERSION: '3.47.2'
+
 jobs:
   test:
     permissions:
@@ -27,7 +32,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.47.2'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: 'stable'
         cache: true
 
@@ -38,9 +43,12 @@ jobs:
           ~/.pub-cache
           **/.dart_tool
           **/build
-        key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+        # .dart_tool and build hold SDK-specific artifacts, so the key and the
+        # fallback both carry the Flutter version. Without it, a cache written
+        # by an older SDK would be restored into a newer one's build.
+        key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: |
-          ${{ runner.os }}-flutter-
+          ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
 
     - name: Get dependencies
       run: flutter pub get

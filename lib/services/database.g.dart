@@ -760,6 +760,9 @@ class $AppConfigsTable extends AppConfigs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES nas_servers (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _appNameMeta = const VerificationMeta(
     'appName',
@@ -2401,6 +2404,9 @@ class $AppPortConfigsTable extends AppPortConfigs
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES app_configs (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _portNumberMeta = const VerificationMeta(
     'portNumber',
@@ -3043,6 +3049,23 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appConfigs,
     appPortConfigs,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'nas_servers',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('app_configs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'app_configs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('app_port_configs', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$NasServersTableCreateCompanionBuilder =
@@ -3077,6 +3100,29 @@ typedef $$NasServersTableUpdateCompanionBuilder =
       Value<bool> isDefault,
       Value<int> rowid,
     });
+
+final class $$NasServersTableReferences
+    extends BaseReferences<_$AppDatabase, $NasServersTable, NasServerData> {
+  $$NasServersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AppConfigsTable, List<AppConfigData>>
+  _appConfigsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.appConfigs,
+    aliasName: 'nas_servers__id__app_configs__server_id',
+  );
+
+  $$AppConfigsTableProcessedTableManager get appConfigsRefs {
+    final manager = $$AppConfigsTableTableManager(
+      $_db,
+      $_db.appConfigs,
+    ).filter((f) => f.serverId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_appConfigsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$NasServersTableFilterComposer
     extends Composer<_$AppDatabase, $NasServersTable> {
@@ -3146,6 +3192,31 @@ class $$NasServersTableFilterComposer
     column: $table.isDefault,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> appConfigsRefs(
+    Expression<bool> Function($$AppConfigsTableFilterComposer f) f,
+  ) {
+    final $$AppConfigsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.appConfigs,
+      getReferencedColumn: (t) => t.serverId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppConfigsTableFilterComposer(
+            $db: $db,
+            $table: $db.appConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$NasServersTableOrderingComposer
@@ -3268,6 +3339,31 @@ class $$NasServersTableAnnotationComposer
 
   GeneratedColumn<bool> get isDefault =>
       $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  Expression<T> appConfigsRefs<T extends Object>(
+    Expression<T> Function($$AppConfigsTableAnnotationComposer a) f,
+  ) {
+    final $$AppConfigsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.appConfigs,
+      getReferencedColumn: (t) => t.serverId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppConfigsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.appConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$NasServersTableTableManager
@@ -3281,12 +3377,9 @@ class $$NasServersTableTableManager
           $$NasServersTableAnnotationComposer,
           $$NasServersTableCreateCompanionBuilder,
           $$NasServersTableUpdateCompanionBuilder,
-          (
-            NasServerData,
-            BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>,
-          ),
+          (NasServerData, $$NasServersTableReferences),
           NasServerData,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool appConfigsRefs})
         > {
   $$NasServersTableTableManager(_$AppDatabase db, $NasServersTable table)
     : super(
@@ -3360,9 +3453,43 @@ class $$NasServersTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$NasServersTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({appConfigsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (appConfigsRefs) db.appConfigs],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (appConfigsRefs)
+                    await $_getPrefetchedData<
+                      NasServerData,
+                      $NasServersTable,
+                      AppConfigData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$NasServersTableReferences
+                          ._appConfigsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$NasServersTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).appConfigsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.serverId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -3377,12 +3504,9 @@ typedef $$NasServersTableProcessedTableManager =
       $$NasServersTableAnnotationComposer,
       $$NasServersTableCreateCompanionBuilder,
       $$NasServersTableUpdateCompanionBuilder,
-      (
-        NasServerData,
-        BaseReferences<_$AppDatabase, $NasServersTable, NasServerData>,
-      ),
+      (NasServerData, $$NasServersTableReferences),
       NasServerData,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool appConfigsRefs})
     >;
 typedef $$AppConfigsTableCreateCompanionBuilder =
     AppConfigsCompanion Function({
@@ -3451,6 +3575,46 @@ typedef $$AppConfigsTableUpdateCompanionBuilder =
       Value<String?> usedPortsJson,
     });
 
+final class $$AppConfigsTableReferences
+    extends BaseReferences<_$AppDatabase, $AppConfigsTable, AppConfigData> {
+  $$AppConfigsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $NasServersTable _serverIdTable(_$AppDatabase db) =>
+      db.nasServers.createAlias('app_configs__server_id__nas_servers__id');
+
+  $$NasServersTableProcessedTableManager get serverId {
+    final $_column = $_itemColumn<String>('server_id')!;
+
+    final manager = $$NasServersTableTableManager(
+      $_db,
+      $_db.nasServers,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_serverIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$AppPortConfigsTable, List<AppPortConfigData>>
+  _appPortConfigsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.appPortConfigs,
+    aliasName: 'app_configs__id__app_port_configs__app_config_id',
+  );
+
+  $$AppPortConfigsTableProcessedTableManager get appPortConfigsRefs {
+    final manager = $$AppPortConfigsTableTableManager(
+      $_db,
+      $_db.appPortConfigs,
+    ).filter((f) => f.appConfigId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_appPortConfigsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$AppConfigsTableFilterComposer
     extends Composer<_$AppDatabase, $AppConfigsTable> {
   $$AppConfigsTableFilterComposer({
@@ -3462,11 +3626,6 @@ class $$AppConfigsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get serverId => $composableBuilder(
-    column: $table.serverId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3609,6 +3768,54 @@ class $$AppConfigsTableFilterComposer
     column: $table.usedPortsJson,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$NasServersTableFilterComposer get serverId {
+    final $$NasServersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.serverId,
+      referencedTable: $db.nasServers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NasServersTableFilterComposer(
+            $db: $db,
+            $table: $db.nasServers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> appPortConfigsRefs(
+    Expression<bool> Function($$AppPortConfigsTableFilterComposer f) f,
+  ) {
+    final $$AppPortConfigsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.appPortConfigs,
+      getReferencedColumn: (t) => t.appConfigId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppPortConfigsTableFilterComposer(
+            $db: $db,
+            $table: $db.appPortConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AppConfigsTableOrderingComposer
@@ -3622,11 +3829,6 @@ class $$AppConfigsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get serverId => $composableBuilder(
-    column: $table.serverId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3769,6 +3971,29 @@ class $$AppConfigsTableOrderingComposer
     column: $table.usedPortsJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$NasServersTableOrderingComposer get serverId {
+    final $$NasServersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.serverId,
+      referencedTable: $db.nasServers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NasServersTableOrderingComposer(
+            $db: $db,
+            $table: $db.nasServers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$AppConfigsTableAnnotationComposer
@@ -3782,9 +4007,6 @@ class $$AppConfigsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get serverId =>
-      $composableBuilder(column: $table.serverId, builder: (column) => column);
 
   GeneratedColumn<String> get appName =>
       $composableBuilder(column: $table.appName, builder: (column) => column);
@@ -3895,6 +4117,54 @@ class $$AppConfigsTableAnnotationComposer
     column: $table.usedPortsJson,
     builder: (column) => column,
   );
+
+  $$NasServersTableAnnotationComposer get serverId {
+    final $$NasServersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.serverId,
+      referencedTable: $db.nasServers,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NasServersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.nasServers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> appPortConfigsRefs<T extends Object>(
+    Expression<T> Function($$AppPortConfigsTableAnnotationComposer a) f,
+  ) {
+    final $$AppPortConfigsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.appPortConfigs,
+      getReferencedColumn: (t) => t.appConfigId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppPortConfigsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.appPortConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AppConfigsTableTableManager
@@ -3908,12 +4178,9 @@ class $$AppConfigsTableTableManager
           $$AppConfigsTableAnnotationComposer,
           $$AppConfigsTableCreateCompanionBuilder,
           $$AppConfigsTableUpdateCompanionBuilder,
-          (
-            AppConfigData,
-            BaseReferences<_$AppDatabase, $AppConfigsTable, AppConfigData>,
-          ),
+          (AppConfigData, $$AppConfigsTableReferences),
           AppConfigData,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool serverId, bool appPortConfigsRefs})
         > {
   $$AppConfigsTableTableManager(_$AppDatabase db, $AppConfigsTable table)
     : super(
@@ -4055,9 +4322,80 @@ class $$AppConfigsTableTableManager
                 usedPortsJson: usedPortsJson,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AppConfigsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback:
+              ({serverId = false, appPortConfigsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (appPortConfigsRefs) db.appPortConfigs,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (serverId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.serverId,
+                                    referencedTable: $$AppConfigsTableReferences
+                                        ._serverIdTable(db),
+                                    referencedColumn:
+                                        $$AppConfigsTableReferences
+                                            ._serverIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (appPortConfigsRefs)
+                        await $_getPrefetchedData<
+                          AppConfigData,
+                          $AppConfigsTable,
+                          AppPortConfigData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AppConfigsTableReferences
+                              ._appPortConfigsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AppConfigsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).appPortConfigsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.appConfigId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
         ),
       );
 }
@@ -4072,12 +4410,9 @@ typedef $$AppConfigsTableProcessedTableManager =
       $$AppConfigsTableAnnotationComposer,
       $$AppConfigsTableCreateCompanionBuilder,
       $$AppConfigsTableUpdateCompanionBuilder,
-      (
-        AppConfigData,
-        BaseReferences<_$AppDatabase, $AppConfigsTable, AppConfigData>,
-      ),
+      (AppConfigData, $$AppConfigsTableReferences),
       AppConfigData,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool serverId, bool appPortConfigsRefs})
     >;
 typedef $$AppPortConfigsTableCreateCompanionBuilder =
     AppPortConfigsCompanion Function({
@@ -4108,6 +4443,33 @@ typedef $$AppPortConfigsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
     });
 
+final class $$AppPortConfigsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $AppPortConfigsTable, AppPortConfigData> {
+  $$AppPortConfigsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AppConfigsTable _appConfigIdTable(_$AppDatabase db) => db.appConfigs
+      .createAlias('app_port_configs__app_config_id__app_configs__id');
+
+  $$AppConfigsTableProcessedTableManager get appConfigId {
+    final $_column = $_itemColumn<int>('app_config_id')!;
+
+    final manager = $$AppConfigsTableTableManager(
+      $_db,
+      $_db.appConfigs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_appConfigIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
 class $$AppPortConfigsTableFilterComposer
     extends Composer<_$AppDatabase, $AppPortConfigsTable> {
   $$AppPortConfigsTableFilterComposer({
@@ -4119,11 +4481,6 @@ class $$AppPortConfigsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get appConfigId => $composableBuilder(
-    column: $table.appConfigId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4171,6 +4528,29 @@ class $$AppPortConfigsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$AppConfigsTableFilterComposer get appConfigId {
+    final $$AppConfigsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.appConfigId,
+      referencedTable: $db.appConfigs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppConfigsTableFilterComposer(
+            $db: $db,
+            $table: $db.appConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$AppPortConfigsTableOrderingComposer
@@ -4184,11 +4564,6 @@ class $$AppPortConfigsTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get appConfigId => $composableBuilder(
-    column: $table.appConfigId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4236,6 +4611,29 @@ class $$AppPortConfigsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$AppConfigsTableOrderingComposer get appConfigId {
+    final $$AppConfigsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.appConfigId,
+      referencedTable: $db.appConfigs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppConfigsTableOrderingComposer(
+            $db: $db,
+            $table: $db.appConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$AppPortConfigsTableAnnotationComposer
@@ -4249,11 +4647,6 @@ class $$AppPortConfigsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get appConfigId => $composableBuilder(
-    column: $table.appConfigId,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<int> get portNumber => $composableBuilder(
     column: $table.portNumber,
@@ -4285,6 +4678,29 @@ class $$AppPortConfigsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$AppConfigsTableAnnotationComposer get appConfigId {
+    final $$AppConfigsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.appConfigId,
+      referencedTable: $db.appConfigs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AppConfigsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.appConfigs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$AppPortConfigsTableTableManager
@@ -4298,16 +4714,9 @@ class $$AppPortConfigsTableTableManager
           $$AppPortConfigsTableAnnotationComposer,
           $$AppPortConfigsTableCreateCompanionBuilder,
           $$AppPortConfigsTableUpdateCompanionBuilder,
-          (
-            AppPortConfigData,
-            BaseReferences<
-              _$AppDatabase,
-              $AppPortConfigsTable,
-              AppPortConfigData
-            >,
-          ),
+          (AppPortConfigData, $$AppPortConfigsTableReferences),
           AppPortConfigData,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool appConfigId})
         > {
   $$AppPortConfigsTableTableManager(
     _$AppDatabase db,
@@ -4375,9 +4784,55 @@ class $$AppPortConfigsTableTableManager
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AppPortConfigsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({appConfigId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (appConfigId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.appConfigId,
+                                referencedTable: $$AppPortConfigsTableReferences
+                                    ._appConfigIdTable(db),
+                                referencedColumn:
+                                    $$AppPortConfigsTableReferences
+                                        ._appConfigIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -4392,12 +4847,9 @@ typedef $$AppPortConfigsTableProcessedTableManager =
       $$AppPortConfigsTableAnnotationComposer,
       $$AppPortConfigsTableCreateCompanionBuilder,
       $$AppPortConfigsTableUpdateCompanionBuilder,
-      (
-        AppPortConfigData,
-        BaseReferences<_$AppDatabase, $AppPortConfigsTable, AppPortConfigData>,
-      ),
+      (AppPortConfigData, $$AppPortConfigsTableReferences),
       AppPortConfigData,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool appConfigId})
     >;
 
 class $AppDatabaseManager {
