@@ -52,3 +52,12 @@ app.*.map.json
 # committing it means every contributor inherits whoever committed it
 # last's personal grants with no prompt. Never track it.
 .claude/settings.local.json
+
+# Ruby / fastlane
+fastlane/.env
+fastlane/report.xml
+fastlane/README.md
+*.ipa
+*.dSYM.zip
+vendor/bundle/
+.bundle/
