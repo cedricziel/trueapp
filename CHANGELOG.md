@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/cedricziel/trueapp/compare/v0.1.2...v0.1.3) (2026-08-29)
+
+
+### Bug Fixes
+
+* **keychain:** match synchronizable items in iOS read and update queries ([#120](https://github.com/cedricziel/trueapp/issues/120)) ([37d4521](https://github.com/cedricziel/trueapp/commit/37d452159bde8a8e8ae2e03a9fc483bc487fe801))
+
 ## [0.1.2](https://github.com/cedricziel/trueapp/compare/v0.1.1...v0.1.2) (2026-08-29)
 
 
