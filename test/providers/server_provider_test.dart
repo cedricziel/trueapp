@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/test_providers.dart';
@@ -193,6 +194,20 @@ void main() {
 
       // Selected server should be null after deletion
       expect(serverProvider.selectedServer, isNull);
+    });
+
+    test('should close the cached API client when a server is deleted', () async {
+      // Select the server so it may pick up a cached client.
+      await serverProvider.selectServer(testServer);
+
+      // Deleting the server must not leave a stale client (and its
+      // websocket/keepalive timer) behind for a server that no longer exists.
+      await serverProvider.deleteServer(testServer.id);
+
+      expect(ApiClientManager.hasClient(testServer.id), isFalse);
+
+      // Restore the test server for other tests relying on setUp state.
+      await serverProvider.addServer(testServer, 'password');
     });
 
     test('should update server and maintain consistency', () async {
