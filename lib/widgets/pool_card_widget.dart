@@ -43,8 +43,8 @@ class PoolCardWidget extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: healthy
-                        ? CupertinoColors.systemGreen.withOpacity(0.1)
-                        : CupertinoColors.systemRed.withOpacity(0.1),
+                        ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                        : CupertinoColors.systemRed.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -88,8 +88,8 @@ class PoolCardWidget extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: healthy
-                            ? CupertinoColors.systemGreen.withOpacity(0.1)
-                            : CupertinoColors.systemRed.withOpacity(0.1),
+                            ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                            : CupertinoColors.systemRed.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(

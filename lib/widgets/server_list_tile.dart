@@ -67,8 +67,8 @@ class ServerListTile extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: server.isActive
-                      ? CupertinoColors.activeGreen.withOpacity(0.1)
-                      : CupertinoColors.systemGrey.withOpacity(0.1),
+                      ? CupertinoColors.activeGreen.withValues(alpha: 0.1)
+                      : CupertinoColors.systemGrey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

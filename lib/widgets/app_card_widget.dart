@@ -93,8 +93,8 @@ class AppCardWidget extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: app.installed
-                        ? CupertinoColors.systemGreen.withOpacity(0.1)
-                        : CupertinoColors.systemBlue.withOpacity(0.1),
+                        ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                        : CupertinoColors.systemBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -151,7 +151,7 @@ class AppCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6.withOpacity(0.5),
+                  color: CupertinoColors.systemGrey6.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -250,7 +250,7 @@ class AppCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemYellow.withOpacity(0.1),
+                  color: CupertinoColors.systemYellow.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -297,7 +297,7 @@ class AppCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemBlue.withOpacity(0.1),
+                  color: CupertinoColors.systemBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -327,7 +327,9 @@ class AppCardWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: CupertinoColors.systemGreen.withOpacity(0.1),
+                          color: CupertinoColors.systemGreen.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -428,7 +430,7 @@ class AppCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemRed.withOpacity(0.1),
+                  color: CupertinoColors.systemRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

@@ -3108,7 +3108,7 @@ final class $$NasServersTableReferences
   static MultiTypedResultKey<$AppConfigsTable, List<AppConfigData>>
   _appConfigsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.appConfigs,
-    aliasName: $_aliasNameGenerator(db.nasServers.id, db.appConfigs.serverId),
+    aliasName: 'nas_servers__id__app_configs__server_id',
   );
 
   $$AppConfigsTableProcessedTableManager get appConfigsRefs {
@@ -3580,9 +3580,7 @@ final class $$AppConfigsTableReferences
   $$AppConfigsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static $NasServersTable _serverIdTable(_$AppDatabase db) =>
-      db.nasServers.createAlias(
-        $_aliasNameGenerator(db.appConfigs.serverId, db.nasServers.id),
-      );
+      db.nasServers.createAlias('app_configs__server_id__nas_servers__id');
 
   $$NasServersTableProcessedTableManager get serverId {
     final $_column = $_itemColumn<String>('server_id')!;
@@ -3601,10 +3599,7 @@ final class $$AppConfigsTableReferences
   static MultiTypedResultKey<$AppPortConfigsTable, List<AppPortConfigData>>
   _appPortConfigsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.appPortConfigs,
-    aliasName: $_aliasNameGenerator(
-      db.appConfigs.id,
-      db.appPortConfigs.appConfigId,
-    ),
+    aliasName: 'app_configs__id__app_port_configs__app_config_id',
   );
 
   $$AppPortConfigsTableProcessedTableManager get appPortConfigsRefs {
@@ -4457,10 +4452,8 @@ final class $$AppPortConfigsTableReferences
     super.$_typedResult,
   );
 
-  static $AppConfigsTable _appConfigIdTable(_$AppDatabase db) =>
-      db.appConfigs.createAlias(
-        $_aliasNameGenerator(db.appPortConfigs.appConfigId, db.appConfigs.id),
-      );
+  static $AppConfigsTable _appConfigIdTable(_$AppDatabase db) => db.appConfigs
+      .createAlias('app_port_configs__app_config_id__app_configs__id');
 
   $$AppConfigsTableProcessedTableManager get appConfigId {
     final $_column = $_itemColumn<int>('app_config_id')!;

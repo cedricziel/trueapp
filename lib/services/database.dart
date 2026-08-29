@@ -178,8 +178,14 @@ class AppDatabase extends _$AppDatabase {
         // Credentials are now handled by ServerSyncService
         // Old servers with embedded credentials will be cleaned up
 
-        // Drop the username and password columns
+        // Drop the username and password columns.
+        //
+        // TableMigration is drift's documented API for rewriting a table, and
+        // the only way to drop a column on SQLite. Upstream still marks it
+        // experimental, so the analyzer flags it; this migration already
+        // shipped and cannot change.
         await m.alterTable(
+          // ignore: experimental_member_use
           TableMigration(
             nasServers,
             columnTransformer: {

@@ -21,9 +21,9 @@ class AppIcon extends StatelessWidget {
         fallbackBackgroundColor ??
         (app.installed
             ? (app.healthy
-                  ? CupertinoColors.systemGreen.withOpacity(0.1)
-                  : CupertinoColors.systemRed.withOpacity(0.1))
-            : CupertinoColors.systemBlue.withOpacity(0.1));
+                  ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                  : CupertinoColors.systemRed.withValues(alpha: 0.1))
+            : CupertinoColors.systemBlue.withValues(alpha: 0.1));
 
     final iconColor =
         fallbackIconColor ??

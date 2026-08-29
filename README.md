@@ -36,7 +36,7 @@ The app follows a clean architecture pattern with:
 
 ### Prerequisites
 
-- Flutter SDK 3.32.6 or newer (bundles Dart 3.8.1, which `pubspec.yaml` requires)
+- Flutter SDK 3.47.2 or newer (bundles Dart 3.13.2; `pubspec.yaml` requires Dart 3.9.0+)
 - Xcode (for iOS/macOS development)
 - CocoaPods
 

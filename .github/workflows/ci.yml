@@ -11,6 +11,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Single source of truth: the SDK the job installs and the key its cache is
+  # scoped to must never drift apart.
+  FLUTTER_VERSION: '3.47.2'
+
 jobs:
   test:
     permissions:
@@ -27,20 +32,27 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.32.6'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: 'stable'
         cache: true
 
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
+        # build/ is deliberately not cached. It holds Xcode's precompiled Swift
+        # modules, which are bound to the exact FlutterMacOS.framework headers
+        # they were built against. Restoring them across a toolchain change
+        # fails the macOS build with "has been modified since the module file
+        # was built" - and the runner's Xcode can move without any key of ours
+        # changing, so scoping alone would not be enough.
         path: |
           ~/.pub-cache
           **/.dart_tool
-          **/build
-        key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+        # .dart_tool is SDK-specific too, so the key and the fallback both carry
+        # the Flutter version.
+        key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: |
-          ${{ runner.os }}-flutter-
+          ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
 
     - name: Get dependencies
       run: flutter pub get

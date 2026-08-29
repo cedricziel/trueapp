@@ -130,8 +130,8 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   color: healthy
-                      ? CupertinoColors.systemGreen.withOpacity(0.1)
-                      : CupertinoColors.systemRed.withOpacity(0.1),
+                      ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                      : CupertinoColors.systemRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
