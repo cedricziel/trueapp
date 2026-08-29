@@ -61,7 +61,7 @@ void main() {
 
   tearDown(() async {
     await TestProviders.disposeTestStack(
-      provider: serverProvider,
+      providers: [serverProvider, poolProvider],
       service: unifiedServerService,
       database: database,
     );

@@ -45,7 +45,9 @@ Repository pattern with drift (SQLite) database:
 
 ### Key Implementation Notes
 1. The app supports multiple TrueNAS server connections stored securely in SQLite
-2. API credentials are stored in the database (consider security implications)
+2. Passwords live in the native Keychain via `NativeKeychainService`, never in the
+   database. Server metadata, including the username, is stored by the repository
+   layer: CloudKit on Apple platforms, SQLite elsewhere
 3. Uses dio for HTTP requests to TrueNAS API
 4. Native platform features through iOS/macOS specific implementations
 

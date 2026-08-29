@@ -49,7 +49,7 @@ void main() {
 
   tearDown(() async {
     await TestProviders.disposeTestStack(
-      provider: serverProvider,
+      providers: [serverProvider],
       service: unifiedServerService,
       database: database,
     );
@@ -155,6 +155,10 @@ void main() {
       WidgetTester tester,
     ) async {
       bool? navigationResult;
+      // `navigationResult` is null both before the route is pushed and after a
+      // cancel, so on its own it cannot tell a successful cancel from a Cancel
+      // button that never popped. This flag records that the route completed.
+      var navigationCompleted = false;
 
       await tester.pumpWidget(
         CupertinoApp(
@@ -186,6 +190,7 @@ void main() {
                           ),
                         ),
                       );
+                  navigationCompleted = true;
                 },
               ),
             ),
@@ -203,9 +208,15 @@ void main() {
       // Cancel the edit once the push transition stopped duplicating the
       // navigation bar contents.
       await tapWhenUnambiguous(tester, find.text('Cancel'));
-      await settleRouteTransition(tester);
+      await pumpUntil(tester, () => navigationCompleted);
 
+      expect(
+        navigationCompleted,
+        isTrue,
+        reason: 'Cancel should pop the edit screen',
+      );
       expect(navigationResult, isNull);
+      expect(find.text('Edit'), findsOneWidget);
     });
 
     testWidgets('should update server in database when saved', (
