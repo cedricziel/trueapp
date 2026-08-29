@@ -99,25 +99,28 @@ void main() {
       expect(config.usedPorts, isEmpty);
     });
 
-    test('effectiveDisplayName prefers displayName, then title, then appName', () {
-      const withDisplayName = AppConfig(
-        serverId: 's',
-        appName: 'app',
-        displayName: 'Custom',
-        title: 'Title',
-      );
-      expect(withDisplayName.effectiveDisplayName, equals('Custom'));
+    test(
+      'effectiveDisplayName prefers displayName, then title, then appName',
+      () {
+        const withDisplayName = AppConfig(
+          serverId: 's',
+          appName: 'app',
+          displayName: 'Custom',
+          title: 'Title',
+        );
+        expect(withDisplayName.effectiveDisplayName, equals('Custom'));
 
-      const withTitleOnly = AppConfig(
-        serverId: 's',
-        appName: 'app',
-        title: 'Title',
-      );
-      expect(withTitleOnly.effectiveDisplayName, equals('Title'));
+        const withTitleOnly = AppConfig(
+          serverId: 's',
+          appName: 'app',
+          title: 'Title',
+        );
+        expect(withTitleOnly.effectiveDisplayName, equals('Title'));
 
-      const withNeither = AppConfig(serverId: 's', appName: 'app');
-      expect(withNeither.effectiveDisplayName, equals('app'));
-    });
+        const withNeither = AppConfig(serverId: 's', appName: 'app');
+        expect(withNeither.effectiveDisplayName, equals('app'));
+      },
+    );
 
     test('primaryPort returns the primary enabled port when present', () {
       const primary = AppPortConfig(
@@ -186,14 +189,17 @@ void main() {
       expect(config.maintainers, isEmpty);
     });
 
-    test('maintainers returns empty list when maintainersJson is malformed', () {
-      final config = AppConfig(
-        serverId: 's',
-        appName: 'app',
-        maintainersJson: 'not-json',
-      );
-      expect(config.maintainers, isEmpty);
-    });
+    test(
+      'maintainers returns empty list when maintainersJson is malformed',
+      () {
+        final config = AppConfig(
+          serverId: 's',
+          appName: 'app',
+          maintainersJson: 'not-json',
+        );
+        expect(config.maintainers, isEmpty);
+      },
+    );
 
     test('upgradeInfo decodes a valid upgradeInfoJson', () {
       final json = jsonEncode({
@@ -278,7 +284,11 @@ void main() {
       screenshots: [],
       sources: [],
       maintainers: [
-        AppMaintainer(name: 'Dev', email: 'dev@example.com', url: 'https://x.com'),
+        AppMaintainer(
+          name: 'Dev',
+          email: 'dev@example.com',
+          url: 'https://x.com',
+        ),
       ],
       recommended: true,
       catalog: 'TRUENAS',
@@ -290,29 +300,32 @@ void main() {
       portals: {},
     );
 
-    test('fromApp copies fields from an App and encodes JSON helper fields', () {
-      final config = AppConfig.fromApp(serverId: 'server-1', app: buildApp());
+    test(
+      'fromApp copies fields from an App and encodes JSON helper fields',
+      () {
+        final config = AppConfig.fromApp(serverId: 'server-1', app: buildApp());
 
-      expect(config.serverId, equals('server-1'));
-      expect(config.appName, equals('plex'));
-      expect(config.iconUrl, equals('https://example.com/icon.png'));
-      expect(config.title, equals('Plex'));
-      expect(config.installed, isTrue);
-      expect(config.healthy, isTrue);
-      expect(config.version, equals('1.0.0'));
-      expect(config.categories, equals(['media']));
-      expect(config.recommended, isTrue);
-      expect(config.catalog, equals('TRUENAS'));
-      expect(config.train, equals('stable'));
-      expect(config.maintainersJson, isNotNull);
-      expect(config.maintainers.first.name, equals('Dev'));
-      expect(config.upgradeInfoJson, isNotNull);
-      expect(config.upgradeInfo!.upgradeAvailable, isTrue);
-      expect(config.usedPortsJson, isNotNull);
-      expect(config.usedPorts.first.containerPort, equals(32400));
-      expect(config.createdAt, isNotNull);
-      expect(config.updatedAt, isNotNull);
-    });
+        expect(config.serverId, equals('server-1'));
+        expect(config.appName, equals('plex'));
+        expect(config.iconUrl, equals('https://example.com/icon.png'));
+        expect(config.title, equals('Plex'));
+        expect(config.installed, isTrue);
+        expect(config.healthy, isTrue);
+        expect(config.version, equals('1.0.0'));
+        expect(config.categories, equals(['media']));
+        expect(config.recommended, isTrue);
+        expect(config.catalog, equals('TRUENAS'));
+        expect(config.train, equals('stable'));
+        expect(config.maintainersJson, isNotNull);
+        expect(config.maintainers.first.name, equals('Dev'));
+        expect(config.upgradeInfoJson, isNotNull);
+        expect(config.upgradeInfo!.upgradeAvailable, isTrue);
+        expect(config.usedPortsJson, isNotNull);
+        expect(config.usedPorts.first.containerPort, equals(32400));
+        expect(config.createdAt, isNotNull);
+        expect(config.updatedAt, isNotNull);
+      },
+    );
 
     test('fromApp leaves JSON helper fields null when App has empty lists', () {
       const emptyApp = App(
