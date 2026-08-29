@@ -172,6 +172,57 @@ void main() {
       });
     });
 
+    group('Custom channelPrefix', () {
+      test(
+        'setupMethodChannelMocks registers handlers under the given prefix, '
+        'not the default one',
+        () async {
+          TruenasPluginTestHelpers.setupMethodChannelMocks(
+            channelPrefix: 'com.example.app',
+            cloudKitResponses: {'initialize': true},
+            keychainResponses: {'hasPassword': true},
+          );
+
+          const customCloudKitChannel = MethodChannel(
+            'com.example.app/cloudkit',
+          );
+          const customKeychainChannel = MethodChannel(
+            'com.example.app/keychain',
+          );
+
+          expect(
+            await customCloudKitChannel.invokeMethod<bool>('initialize'),
+            isTrue,
+            reason: 'a call on the custom-prefixed channel must reach the mock '
+                'handler',
+          );
+          expect(
+            await customKeychainChannel.invokeMethod<bool>(
+              'hasPassword',
+              {},
+            ),
+            isTrue,
+          );
+
+          // The default-prefixed channel must NOT have a handler when a
+          // custom prefix was requested - otherwise a call meant for
+          // com.example.app/keychain would silently succeed against the
+          // wrong channel instead of surfacing the mismatch.
+          const defaultKeychainChannel = MethodChannel(
+            'com.cedricziel.truehub/keychain',
+          );
+          expect(
+            () => defaultKeychainChannel.invokeMethod('hasPassword', {}),
+            throwsA(isA<MissingPluginException>()),
+          );
+
+          TruenasPluginTestHelpers.tearDownMethodChannelMocks(
+            channelPrefix: 'com.example.app',
+          );
+        },
+      );
+    });
+
     group('Teardown', () {
       test('should clear method channel handlers', () async {
         TruenasPluginTestHelpers.setupMethodChannelMocks();

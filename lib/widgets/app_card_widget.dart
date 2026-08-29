@@ -123,11 +123,15 @@ class AppCardWidget extends StatelessWidget {
                       color: CupertinoColors.systemGrey2,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      app.categories.take(2).join(', '),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.systemGrey2,
+                    Flexible(
+                      child: Text(
+                        app.categories.take(2).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: CupertinoColors.systemGrey2,
+                        ),
                       ),
                     ),
                   ],
@@ -202,11 +206,15 @@ class AppCardWidget extends StatelessWidget {
                             color: CupertinoColors.systemOrange,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'RX: ${_formatBytes(app.resourceUsage!.networkRxBytes.toInt())}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: CupertinoColors.label,
+                          Flexible(
+                            child: Text(
+                              'RX: ${_formatBytes(app.resourceUsage!.networkRxBytes.toInt())}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: CupertinoColors.label,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -216,11 +224,15 @@ class AppCardWidget extends StatelessWidget {
                             color: CupertinoColors.systemOrange,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'TX: ${_formatBytes(app.resourceUsage!.networkTxBytes.toInt())}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: CupertinoColors.label,
+                          Flexible(
+                            child: Text(
+                              'TX: ${_formatBytes(app.resourceUsage!.networkTxBytes.toInt())}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: CupertinoColors.label,
+                              ),
                             ),
                           ),
                           const Spacer(),

@@ -462,7 +462,8 @@ void main() {
     });
 
     test('should properly dispose resources', () async {
-      // Use existing database to avoid multiple database warnings
+      // Reuse the fixture database rather than opening a second one -
+      // each test should own exactly one live database instance.
       final testProvider = await TestProviders.createServerProvider(
         database: database,
       );

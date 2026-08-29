@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cupertino_sidebar/cupertino_sidebar.dart';
 import 'package:truehub/navigation/compact_navigation.dart';
+import 'package:truehub/navigation/navigation_layout.dart';
 
 class AdaptiveNavigationScaffold extends StatefulWidget {
   final Widget child;
@@ -18,8 +19,6 @@ class _AdaptiveNavigationScaffoldState
     extends State<AdaptiveNavigationScaffold> {
   int _selectedIndex = 0;
   bool _isSidebarExpanded = true;
-
-  static const double _breakpoint = 768.0;
 
   @override
   void didChangeDependencies() {
@@ -46,10 +45,12 @@ class _AdaptiveNavigationScaffoldState
   }
 
   bool _isLargeScreen(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    // Use breakpoint for width, but also consider platform
-    // macOS should always use sidebar for consistency
-    return size.width >= _breakpoint || Platform.isMacOS;
+    final width = MediaQuery.sizeOf(context).width;
+    return NavigationLayout.resolve(
+          width: width,
+          platform: defaultTargetPlatform,
+        ) ==
+        NavigationLayoutMode.expanded;
   }
 
   void _onDestinationSelected(int index) {

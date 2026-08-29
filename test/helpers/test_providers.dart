@@ -22,8 +22,9 @@ class TestProviders {
   /// Creates a real UnifiedServerService with SQLite repository and mock keychain
   /// for testing that requires actual database persistence
   ///
-  /// IMPORTANT: Always provide a database parameter to avoid creating multiple database instances
-  /// which can cause race conditions. Each test should create its own database in setUp().
+  /// Pass in a database each test built itself (e.g. via
+  /// test/helpers/test_database.dart's `createTestDatabase`), so every test
+  /// owns its own executor rather than sharing one across instances.
   static Future<UnifiedServerService> createMockUnifiedServerService({
     required AppDatabase database,
   }) async {

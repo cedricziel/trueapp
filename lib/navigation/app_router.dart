@@ -11,7 +11,40 @@ import 'package:truehub/screens/server_apps_screen.dart';
 import 'package:truehub/screens/server_files_screen.dart';
 import 'package:truehub/screens/server_health_screen.dart';
 import 'package:truehub/navigation/adaptive_navigation_scaffold.dart';
+import 'package:truehub/navigation/server_route_host.dart';
 import 'package:truehub/models/nas_server.dart';
+
+/// A server carried in `state.extra` by an in-app navigation, or `null` if
+/// absent, of the wrong type, or for a different server than [state]'s
+/// route - which happens for a cold start, a deep link, or a restored
+/// location, none of which populate `extra`.
+///
+/// This is purely an optimisation [ServerRouteHost] uses to skip its loading
+/// state on an in-app hop; every `/server/:serverId` route resolves the
+/// server from its id regardless (ticket #84).
+NasServer? _cachedServer(GoRouterState state) {
+  final extra = state.extra;
+  return (extra is NasServer && extra.id == state.pathParameters['serverId'])
+      ? extra
+      : null;
+}
+
+/// Builds a [CupertinoPage] hosting a `/server/:serverId` route (or a route
+/// nested under it) through [ServerRouteHost], so [build] only ever runs
+/// once the server has actually resolved.
+Page<void> _serverPage(
+  GoRouterState state,
+  Widget Function(NasServer server) build,
+) {
+  return CupertinoPage(
+    key: state.pageKey,
+    child: ServerRouteHost(
+      serverId: state.pathParameters['serverId'] ?? '',
+      cachedServer: _cachedServer(state),
+      builder: (context, server) => build(server),
+    ),
+  );
+}
 
 /// Builds a router for the app.
 ///
@@ -41,79 +74,58 @@ GoRouter createAppRouter({String initialLocation = '/servers'}) => GoRouter(
         GoRoute(
           path: '/server/:serverId',
           name: 'server-detail',
-          pageBuilder: (context, state) {
-            final server = state.extra as NasServer;
-            return CupertinoPage(
-              key: state.pageKey,
-              child: ServerDetailScreen(server: server),
-            );
-          },
+          pageBuilder: (context, state) => _serverPage(
+            state,
+            (server) => ServerDetailScreen(server: server),
+          ),
           routes: [
             GoRoute(
               path: 'profile',
               name: 'server-profile',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: UserProfileScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => UserProfileScreen(server: server),
+              ),
             ),
             GoRoute(
               path: 'edit',
               name: 'server-edit',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: EditServerScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => EditServerScreen(server: server),
+              ),
             ),
             GoRoute(
               path: 'pools',
               name: 'server-pools',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: ServerPoolsScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => ServerPoolsScreen(server: server),
+              ),
             ),
             GoRoute(
               path: 'apps',
               name: 'server-apps',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: ServerAppsScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => ServerAppsScreen(server: server),
+              ),
             ),
             GoRoute(
               path: 'files',
               name: 'server-files',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: ServerFilesScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => ServerFilesScreen(server: server),
+              ),
             ),
             GoRoute(
               path: 'health',
               name: 'server-health',
-              pageBuilder: (context, state) {
-                final server = state.extra as NasServer;
-                return CupertinoPage(
-                  key: state.pageKey,
-                  child: ServerHealthScreen(server: server),
-                );
-              },
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => ServerHealthScreen(server: server),
+              ),
             ),
           ],
         ),
