@@ -53,6 +53,10 @@ app.*.map.json
 # last's personal grants with no prompt. Never track it.
 .claude/settings.local.json
 
+# Scratch git worktrees the Workflow tool creates for isolated subagent runs.
+# Ephemeral per-session state, never meant to be committed.
+.claude/worktrees/
+
 # Ruby / fastlane
 fastlane/.env
 fastlane/report.xml
