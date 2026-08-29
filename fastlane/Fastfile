@@ -24,7 +24,7 @@ end
 # Marketing version = pubspec.yaml `version:` without the +build suffix.
 # release-please bumps it; nothing here writes to it.
 def marketing_version
-  @marketing_version ||= PubspecVersion.read(File.expand_path("../pubspec.yaml", __dir__))
+  @marketing_version ||= PubspecVersion.read
 end
 
 before_all do |lane, options|
@@ -74,6 +74,12 @@ private_lane :build_ios do
   api_key = load_app_store_connect_api_key
   sync_code_signing(type: "appstore", readonly: is_ci, api_key: api_key)
 
+  # update_code_signing_settings below rewrites project.pbxproj on disk.
+  # Restore it afterwards so a local build/beta leaves the tracked signing
+  # settings (automatic, for day-to-day Xcode use) untouched.
+  pbxproj = File.expand_path("../#{XCODEPROJ}/project.pbxproj", __dir__)
+  pbxproj_original = File.binread(pbxproj)
+
   # Flutter's Runner target uses automatic signing, which needs an
   # interactive Apple ID session. Switch to manual signing with the profile
   # match just installed so xcodebuild can sign headlessly.
@@ -89,12 +95,16 @@ private_lane :build_ios do
   # Compile Dart and stage assets; signing happens in build_app below.
   # --build-name/--build-number land in Flutter/Generated.xcconfig, which
   # the Xcode project reads as MARKETING_VERSION / CURRENT_PROJECT_VERSION.
+  # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
+  # against the system gems, not this bundle (where cocoapods isn't a dep).
   Dir.chdir("..") do
-    sh(
-      "flutter", "build", "ios", "--release", "--no-codesign",
-      "--build-name=#{marketing_version}",
-      "--build-number=#{commit_count_build_number}"
-    )
+    Bundler.with_unbundled_env do
+      sh(
+        "flutter", "build", "ios", "--release", "--no-codesign",
+        "--build-name=#{marketing_version}",
+        "--build-number=#{commit_count_build_number}"
+      )
+    end
   end
 
   build_app(
@@ -113,6 +123,8 @@ private_lane :build_ios do
   )
 
   api_key
+ensure
+  File.binwrite(pbxproj, pbxproj_original) if pbxproj_original
 end
 
 # Loads an App Store Connect API key from one of:

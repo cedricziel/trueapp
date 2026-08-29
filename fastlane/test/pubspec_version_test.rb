@@ -23,6 +23,11 @@ class PubspecVersionTest < Minitest::Test
     with_pubspec("dependencies:\n  foo:\n    version: 9.9.9\nversion: 2.0.0+3\n") { |p| assert_equal "2.0.0", PubspecVersion.read(p) }
   end
 
+  def test_default_path_points_at_the_repo_pubspec
+    assert_equal File.expand_path("../../pubspec.yaml", __dir__.sub(%r{/test$}, "/lib")), PubspecVersion::DEFAULT_PATH
+    assert File.exist?(PubspecVersion::DEFAULT_PATH), "DEFAULT_PATH should resolve to the checked-in pubspec.yaml"
+  end
+
   def test_missing_version_raises
     with_pubspec("name: x\n") { |p| assert_raises(ArgumentError) { PubspecVersion.read(p) } }
   end
