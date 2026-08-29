@@ -10,10 +10,6 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 env:
   # Keep in sync with ci.yml.
   FLUTTER_VERSION: '3.47.2'
@@ -22,6 +18,12 @@ jobs:
   release-please:
     name: Release PR / Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      # release-please labels its release PRs; with the GITHUB_TOKEN
+      # fallback that needs issues: write.
+      issues: write
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name:        ${{ steps.rp.outputs.tag_name }}
@@ -47,6 +49,8 @@ jobs:
   testflight:
     name: Upload to TestFlight
     needs: release-please
+    permissions:
+      contents: read
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: macos-26
     timeout-minutes: 90
@@ -87,7 +91,10 @@ jobs:
           mkdir -p ~/.ssh
           echo "$MATCH_DEPLOY_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          # Pin GitHub's published host keys (TLS-authenticated source)
+          # instead of trusting whatever answers ssh-keyscan.
+          curl -fsSL https://api.github.com/meta \
+            | jq -r '.ssh_keys[] | "github.com \(.)"' >> ~/.ssh/known_hosts
 
       - name: Get dependencies
         run: flutter pub get
