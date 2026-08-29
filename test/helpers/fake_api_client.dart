@@ -333,8 +333,7 @@ class FakeApiClient implements ApiClientInterface {
   Stream<SystemStats> get systemStatsStream => _systemStatsController.stream;
 
   /// Pushes [stats] to every current [systemStatsStream] listener.
-  void emitSystemStats(SystemStats stats) =>
-      _systemStatsController.add(stats);
+  void emitSystemStats(SystemStats stats) => _systemStatsController.add(stats);
 
   @override
   Future<void> ensureConnectionAlive() async {

@@ -105,6 +105,11 @@ dev_dependencies:
   flutter_secure_storage_platform_interface: ^2.0.3
   local_auth_platform_interface: ^1.1.0
 
+  # database_test.dart builds raw historical schemas to test drift
+  # migrations - already a transitive dep of drift/drift_dev, listed
+  # explicitly since the test imports it directly.
+  sqlite3: ^3.5.2
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
