@@ -16,7 +16,7 @@ DEPLOY_KEY_TITLE="trueapp-fastlane-match-ci"
 # 1Password locations (see fastlane/.env.default).
 OP_ASC_ITEM="${OP_ASC_ITEM:-AppStore Connect: fastlane-ci}"
 OP_ASC_KEY_ID_FIELD="${OP_ASC_KEY_ID_FIELD:-Benutzername}"
-OP_ASC_ISSUER_FIELD="${OP_ASC_ISSUER_FIELD:-issuer_id}"
+OP_ASC_ISSUER_FIELD="${OP_ASC_ISSUER_FIELD:-Issue ID}"
 OP_ASC_P8_FILE="${OP_ASC_P8_FILE:-}"   # file attachment name; auto-detected if empty
 OP_MATCH_ITEM="${OP_MATCH_ITEM:-fastlane-ci: match}"
 
