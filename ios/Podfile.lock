@@ -1,59 +1,28 @@
 PODS:
-  - connectivity_plus (0.0.1):
-    - Flutter
   - Flutter (1.0.0)
   - flutter_secure_storage (6.0.0):
     - Flutter
-  - local_auth_darwin (0.0.1):
-    - Flutter
-    - FlutterMacOS
-  - network_info_plus (0.0.1):
-    - Flutter
-  - permission_handler_apple (9.4.8):
-    - Flutter
   - truenas_native_plugins (0.1.0):
-    - Flutter
-  - url_launcher_ios (0.0.1):
     - Flutter
 
 DEPENDENCIES:
-  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
-  - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
-  - network_info_plus (from `.symlinks/plugins/network_info_plus/ios`)
-  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - truenas_native_plugins (from `.symlinks/plugins/truenas_native_plugins/ios`)
-  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
 EXTERNAL SOURCES:
-  connectivity_plus:
-    :path: ".symlinks/plugins/connectivity_plus/ios"
   Flutter:
     :path: Flutter
   flutter_secure_storage:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
-  local_auth_darwin:
-    :path: ".symlinks/plugins/local_auth_darwin/darwin"
-  network_info_plus:
-    :path: ".symlinks/plugins/network_info_plus/ios"
-  permission_handler_apple:
-    :path: ".symlinks/plugins/permission_handler_apple/ios"
   truenas_native_plugins:
     :path: ".symlinks/plugins/truenas_native_plugins/ios"
-  url_launcher_ios:
-    :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  connectivity_plus: 2a701ffec2c0ae28a48cf7540e279787e77c447d
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
-  local_auth_darwin: 63c73d6d28cc3e239be2b6aa460ea6e317cd5100
-  network_info_plus: 6613d9d7cdeb0e6f366ed4dbe4b3c51c52d567a9
-  permission_handler_apple: ee2fe0fd04551b304eb002714ff067c371c822ed
-  truenas_native_plugins: a5e975082bea74e12f3fb60c8b25f201f0e55330
-  url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
+  flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
+  truenas_native_plugins: cfa81d52b63912426cd098e5bf66b214a3f88582
 
-PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
 
 COCOAPODS: 1.17.0
