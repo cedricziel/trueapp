@@ -117,14 +117,18 @@ void main() {
         // `keychain_service.dart` / `cloudkit_service.dart` build their
         // channel names dynamically from a default `_channelPrefix`
         // ('com.cedricziel.truehub') plus a suffix, so they never contain
-        // the full literal string. `test_helpers.dart` (used by the
-        // package's own test suite) and the Swift CloudKit plugin do
-        // contain the literals, so cross-check against those instead.
-        final testHelpersSource = repo.read(
-          'packages/truenas_native_plugins/lib/src/test_utils/test_helpers.dart',
-        );
+        // the full literal string - and neither does `test_helpers.dart`'s
+        // `setupMethodChannelMocks`/`tearDownMethodChannelMocks`, which
+        // build their mock channel names the same way (from a
+        // `channelPrefix` parameter) so a caller can point them at a
+        // non-default prefix. The Swift platform plugins register their
+        // channels with a literal name, so cross-check against those - the
+        // authoritative native-side source of truth - instead.
         final cloudKitSwift = repo.read(
           'packages/truenas_native_plugins/ios/Classes/CloudKitPlugin.swift',
+        );
+        final keychainSwift = repo.read(
+          'packages/truenas_native_plugins/ios/Classes/KeychainPlugin.swift',
         );
 
         for (final channel in channels) {
@@ -134,8 +138,7 @@ void main() {
             reason: 'README does not name channel/container $channel',
           );
           expect(
-            testHelpersSource.contains(channel) ||
-                cloudKitSwift.contains(channel),
+            cloudKitSwift.contains(channel) || keychainSwift.contains(channel),
             isTrue,
             reason: '$channel is documented but not present in the source',
           );

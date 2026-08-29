@@ -9,6 +9,7 @@ import 'package:truehub/services/secure_storage_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:truehub/widgets/form_row_label.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -36,26 +37,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     header: Text(isMacOS ? 'MENU BAR' : 'SYSTEM TRAY'),
                     children: [
                       CupertinoFormRow(
-                        prefix: Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isMacOS
-                                    ? 'Minimize to Menu Bar'
-                                    : 'Minimize to System Tray',
-                              ),
-                              Text(
-                                isMacOS
-                                    ? 'Close window minimizes to menu bar instead of quitting'
-                                    : 'Close window minimizes to system tray instead of quitting',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: CupertinoColors.systemGrey,
-                                ),
-                              ),
-                            ],
-                          ),
+                        prefix: FormRowLabel(
+                          title: isMacOS
+                              ? 'Minimize to Menu Bar'
+                              : 'Minimize to System Tray',
+                          subtitle: isMacOS
+                              ? 'Close window minimizes to menu bar instead of quitting'
+                              : 'Close window minimizes to system tray instead of quitting',
                         ),
                         child: CupertinoSwitch(
                           value: trayProvider.minimizeToTray,
@@ -63,20 +51,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       CupertinoFormRow(
-                        prefix: const Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Show in Dock'),
-                              Text(
-                                'Display app icon in dock while running',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: CupertinoColors.systemGrey,
-                                ),
-                              ),
-                            ],
-                          ),
+                        prefix: const FormRowLabel(
+                          title: 'Show in Dock',
+                          subtitle: 'Display app icon in dock while running',
                         ),
                         child: CupertinoSwitch(
                           value: trayProvider.showInDock,
@@ -93,20 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               header: const Text('SECURITY'),
               children: [
                 CupertinoFormRow(
-                  prefix: const Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Authentication Session'),
-                        Text(
-                          'Manage biometric authentication session',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                        ),
-                      ],
-                    ),
+                  prefix: const FormRowLabel(
+                    title: 'Authentication Session',
+                    subtitle: 'Manage biometric authentication session',
                   ),
                   child: Builder(
                     builder: (builderContext) {
@@ -185,20 +151,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               header: const Text('DATABASE'),
               children: [
                 CupertinoFormRow(
-                  prefix: const Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Clear Database'),
-                        Text(
-                          'Remove all servers and reset app data',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                        ),
-                      ],
-                    ),
+                  prefix: const FormRowLabel(
+                    title: 'Clear Database',
+                    subtitle: 'Remove all servers and reset app data',
                   ),
                   child: CupertinoButton(
                     padding: EdgeInsets.zero,

@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -84,6 +85,43 @@ void main() {
 
       expect(find.text('Settings'), findsOneWidget);
       expectNoLayoutOverflow(tester);
+    },
+  );
+
+  testWidgets(
+    'SettingsScreen renders the MENU BAR tray section on macOS without '
+    'overflowing a compact surface',
+    (WidgetTester tester) async {
+      // Reset synchronously before the test body returns: flutter_test
+      // checks that no `debug*` foundation variable is left set as soon as
+      // the test callback's future completes, which happens before any
+      // `addTearDown` callback registered here would run (matches the
+      // pattern in adaptive_navigation_scaffold_test.dart).
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        useCompactSurface(tester);
+        final trayProvider = TrayProvider();
+        addTearDown(trayProvider.dispose);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider.value(value: serverProvider),
+              ChangeNotifierProvider.value(value: trayProvider),
+            ],
+            child: const CupertinoApp(home: SettingsScreen()),
+          ),
+        );
+        await tester.pump();
+
+        // Non-vacuity guard: proves the tray section actually rendered,
+        // rather than the assertion below passing merely because the
+        // section (and the Flexible fix inside it) was never built.
+        expect(find.text('MENU BAR'), findsOneWidget);
+        expectNoLayoutOverflow(tester);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     },
   );
 

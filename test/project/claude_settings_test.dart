@@ -1,77 +1,47 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/repo_files.dart';
 
+/// Ticket #90 (see issue comment 5461545627): `.claude/settings.local.json`
+/// is a per-developer file - Claude Code writes local permission approvals
+/// into it as a working-tree change - so committing it means every
+/// contributor inherits whoever committed it last inherits their personal
+/// grants with no prompt. The fix is for the repository to never track it
+/// at all, not to police its contents: a hygiene test that pins the
+/// allow-list to a literal snapshot (as this file previously did) turns
+/// every local permission approval into an unrelated red test suite, and
+/// nothing here should couple to what any one contributor has approved.
 void main() {
   late RepoFileReader repo;
-  late List<String> allow;
 
   setUpAll(() {
     repo = LocalRepoFileReader();
-    final decoded =
-        jsonDecode(repo.read('.claude/settings.local.json'))
-            as Map<String, dynamic>;
-    allow = List<String>.from(
-      (decoded['permissions'] as Map<String, dynamic>)['allow'] as List,
-    );
   });
 
-  group('Claude Code permission allowlist', () {
-    test(
-      'does not pre-approve shell wrappers that can run arbitrary programs',
-      () {
-        // `Bash(gtimeout:*)` is deliberately NOT checked here: CLAUDE.md
-        // names gtimeout as this project's timeout tool, and ticket #90
-        // scopes this change to exactly the two wildcard entries below —
-        // widening it to gtimeout is tracked as a separate follow-up.
-        const arbitraryCommandWrappers = [
-          'timeout',
-          'curl',
-          'sh',
-          'bash',
-          'zsh',
-          'env',
-          'eval',
-          'xargs',
-          'nohup',
-        ];
+  test('.claude/settings.local.json is not tracked by the repository', () {
+    // git rm --cached leaves the file on disk (LocalRepoFileReader reads
+    // the working tree, not the git index) but drops it from `git
+    // ls-files`; .gitignore is what stops it from being re-added. Asserting
+    // the ignore rule, rather than shelling out to `git`, keeps this test
+    // fast and independent of a git binary being on PATH.
+    final gitignore = repo.read('.gitignore');
+    final ignoresIt = gitignore
+        .split('\n')
+        .map((line) => line.trim())
+        .any(
+          (line) =>
+              line == '.claude/settings.local.json' ||
+              line == '.claude/*.local.json' ||
+              line == '.claude/',
+        );
 
-        for (final wrapper in arbitraryCommandWrappers) {
-          expect(allow, isNot(contains('Bash($wrapper:*)')));
-        }
-      },
+    expect(
+      ignoresIt,
+      isTrue,
+      reason:
+          '.gitignore must exclude .claude/settings.local.json so a '
+          "contributor's local Claude Code permission grants are never "
+          'committed for everyone else to inherit',
     );
-
-    test('keeps every other entry, in order, exactly as written', () {
-      expect(allow, [
-        'Bash(mkdir:*)',
-        'Bash(flutter pub:*)',
-        'Bash(git add:*)',
-        'Bash(gh issue list:*)',
-        'WebFetch(domain:github.com)',
-        'WebFetch(domain:pub.dev)',
-        'WebFetch(domain:www.gnu.org)',
-        'Bash(flutter analyze:*)',
-        'Bash(dart run build_runner:*)',
-        'Bash(flutter test:*)',
-        'Bash(git push:*)',
-        'WebFetch(domain:api.truenas.com)',
-        'WebFetch(domain:raw.githubusercontent.com)',
-        'Bash(grep:*)',
-        'Bash(dart format:*)',
-        'Bash(gh repo view:*)',
-        'Bash(gh label:*)',
-        'Bash(gh issue view:*)',
-        'Bash(gh issue create:*)',
-        'Bash(dart analyze:*)',
-        'Bash(find:*)',
-        'Bash(flutter build:*)',
-        'Bash(git commit:*)',
-        'Bash(gtimeout:*)',
-        'Bash(timeout 30s flutter test:*)',
-      ]);
-    });
   });
 }

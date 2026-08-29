@@ -54,5 +54,14 @@ class FakeServerLookup implements ServerLookup {
     _controller.add(servers);
   }
 
+  /// Publishes [servers] on [serversStream] only, leaving the map behind
+  /// [getServer] untouched. Simulates a stream-only blip - e.g. a CloudKit
+  /// fetch failure that emits an empty list while the records backing
+  /// [getServer] are unaffected - which [emit] cannot reproduce because it
+  /// always keeps the two in sync.
+  void emitStreamOnly(List<NasServer> servers) {
+    _controller.add(servers);
+  }
+
   Future<void> dispose() => _controller.close();
 }

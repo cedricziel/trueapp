@@ -17,7 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? _authSubscription;
 
   /// The id of a server a list tap has just started selecting, set
-  /// synchronously before `selectServer` is even called.
+  /// synchronously before `selectServer` is even called and cleared once
+  /// that tap's own `push` has run.
   ///
   /// `selectServer`'s authentication event reaches the listener below
   /// asynchronously, so without this guard it can react to the very tap
@@ -25,6 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
   /// firing a redundant `go` that replaces the stack the tap is about to
   /// `push` onto. Setting this before the `await` closes that window: by
   /// the time the listener's callback runs, the flag is already in place.
+  ///
+  /// It must be cleared once the tap's push has happened - it only needs to
+  /// cover that one microtask-sized race, not the rest of the screen's
+  /// lifetime. Left set, it would permanently and silently suppress
+  /// single-server auto-navigation for that server id on every later
+  /// reconnect, for as long as `HomeScreen` stays mounted underneath the
+  /// pushed detail page.
   String? _selectingServerId;
 
   @override
@@ -159,6 +167,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       // to the server list with (ticket #85).
                       context.push('/server/${server.id}', extra: server);
                     }
+                    // One-shot: only the window up to and including this
+                    // tap's own push needs guarding (see the field's doc
+                    // comment) - clearing it synchronously right after
+                    // `push` would reopen exactly the race it exists to
+                    // close, since `push` inserts the new route before the
+                    // widget tree (and therefore `ModalRoute.isCurrent`)
+                    // reflects that; deferring the clear to a post-frame
+                    // callback gives the pushed route a frame to actually
+                    // land, so the `isCurrent` guard is reliably in place by
+                    // the time the flag stops covering the race.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _selectingServerId = null;
+                    });
                   },
                 );
               },

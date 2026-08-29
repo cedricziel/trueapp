@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/navigation/server_route_host.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/fake_server_lookup.dart';
 import '../helpers/mock_server_sync_service.dart';
 
 /// Widget-level coverage for [ServerRouteHost] itself (ticket #84), isolated
@@ -134,5 +135,61 @@ void main() {
     }
 
     expect(find.text('List'), findsOneWidget);
+  });
+
+  testWidgets('does not redirect away from a resolved server when the stream '
+      'reports it missing but a direct lookup still finds it (transient '
+      'blip, e.g. a CloudKit fetch failure that emits an empty list)', (
+    WidgetTester tester,
+  ) async {
+    final srv = server();
+    final lookup = FakeServerLookup(initial: [srv]);
+    addTearDown(lookup.dispose);
+
+    final router = GoRouter(
+      initialLocation: '/server/${srv.id}',
+      routes: [
+        GoRoute(
+          path: '/servers',
+          builder: (context, state) =>
+              const CupertinoPageScaffold(child: Center(child: Text('List'))),
+        ),
+        GoRoute(
+          path: '/server/:serverId',
+          pageBuilder: (context, state) => CupertinoPage(
+            child: ServerRouteHost(
+              serverId: state.pathParameters['serverId']!,
+              lookup: lookup,
+              builder: (context, resolved) => CupertinoPageScaffold(
+                child: Center(child: Text(resolved.name)),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(CupertinoApp.router(routerConfig: router));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text(srv.name), findsOneWidget);
+
+    // Simulate a transient CloudKit blip: the stream reports an empty
+    // list (as a failed/not-yet-indexed fetch does) while the record
+    // backing a direct getServer() call is untouched.
+    final callsBeforeBlip = lookup.getServerCallCount;
+    lookup.emitStreamOnly([]);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.text(srv.name),
+      findsOneWidget,
+      reason: 'a transient empty stream emission must not eject the user',
+    );
+    expect(find.text('List'), findsNothing);
+    expect(lookup.getServerCallCount, greaterThan(callsBeforeBlip));
   });
 }

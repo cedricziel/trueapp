@@ -1,7 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/server_detail_screen.dart';
@@ -128,6 +131,135 @@ void main() {
       expectNoLayoutOverflow(tester);
     },
   );
+
+  testWidgets(
+    'renders a favorite app with resource usage, an upgrade and a long '
+    'category list at iPhone width without layout overflow',
+    (WidgetTester tester) async {
+      useCompactSurface(tester);
+
+      // Ticket #86 reported a second overflow beyond the section headers'
+      // 29px one, but the investigation that shipped alongside the
+      // SectionHeader fix could not reproduce it in the empty-provider
+      // state or with a seeded PoolProvider - AppCardWidget's several
+      // `Row(children: [..., Spacer(), ...])` layouts (categories/version,
+      // network usage, ports) were never exercised with real installed-app
+      // data. This seeds exactly that: a favorite, installed app with
+      // resource usage, an available upgrade, a long category list and a
+      // port - everything AppCardWidget conditionally renders.
+      const longApp = App(
+        name: 'a-favorite-app-with-a-long-instance-name',
+        title: 'A Favorite App With A Long Instance Name',
+        description: 'A test app',
+        installed: true,
+        healthy: true,
+        latestVersion: '2.0.0',
+        latestAppVersion: '2.0.0',
+        latestHumanVersion: '2.0.0',
+        categories: [
+          'Media & Streaming Applications',
+          'Network & Communication Tools',
+        ],
+        tags: [],
+        screenshots: [],
+        sources: [],
+        maintainers: [],
+        recommended: false,
+        catalog: 'community',
+        train: 'community',
+        resourceUsage: AppResourceUsage(
+          cpuUsage: 42.5,
+          memoryUsage: 512 * 1024 * 1024,
+          memoryLimit: 1024 * 1024 * 1024,
+          networkRxBytes: 12345678,
+          networkTxBytes: 987654,
+        ),
+        upgradeInfo: AppUpgradeInfo(
+          upgradeAvailable: true,
+          availableVersion: '2.1.0',
+          currentVersion: '2.0.0',
+          canUpgrade: true,
+        ),
+        usedPorts: [
+          AppPortInfo(
+            containerPort: 8080,
+            protocol: 'tcp',
+            hostPorts: [AppHostPort(hostPort: 8080, hostIp: '0.0.0.0')],
+          ),
+        ],
+        portals: {'Web UI': 'http://192.168.1.100:8080'},
+      );
+      final favoriteConfig = AppConfig(
+        serverId: testServer.id,
+        appName: longApp.name,
+        isFavorite: true,
+        installed: true,
+      );
+
+      final appProvider = _FakeAppProvider(
+        database: database,
+        serverService: unifiedServerService,
+        seedApps: [longApp],
+        seedFavorites: [favoriteConfig],
+      );
+      addTearDown(appProvider.dispose);
+
+      await tester.pumpWidget(
+        provideAppProviders(
+          database: database,
+          service: unifiedServerService,
+          serverProvider: serverProvider,
+          appProvider: appProvider,
+          child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+        ),
+      );
+      await pumpUntilFound(
+        tester,
+        find.textContaining('a-favorite-app-with-a-long-instance-name'),
+      );
+      // Installed apps display their instance `name`, not `title` - see
+      // `App.effectiveDisplayName`.
+      expect(
+        find.textContaining('a-favorite-app-with-a-long-instance-name'),
+        findsOneWidget,
+      );
+      expectNoLayoutOverflow(tester);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pump();
+
+      expectNoLayoutOverflow(tester);
+    },
+  );
+}
+
+/// An [AppProvider] whose [apps] and [favoriteApps] are seeded directly,
+/// bypassing the network/database round trip so a widget test can render
+/// `AppCardWidget` with realistic data - resource usage, an upgrade, ports -
+/// without a live API client.
+class _FakeAppProvider extends AppProvider {
+  _FakeAppProvider({
+    required super.database,
+    required super.serverService,
+    required List<App> seedApps,
+    required List<AppConfig> seedFavorites,
+  }) : _seedApps = seedApps,
+       _seedFavorites = seedFavorites;
+
+  final List<App> _seedApps;
+  final List<AppConfig> _seedFavorites;
+
+  @override
+  List<App> get apps => _seedApps;
+
+  @override
+  List<AppConfig> get favoriteApps => _seedFavorites;
+
+  @override
+  bool get isLoading => false;
+
+  @override
+  String? get error => null;
 }
 
 /// A [PoolProvider] whose [pools] is seeded directly, bypassing the network

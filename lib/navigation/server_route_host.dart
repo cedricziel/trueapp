@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/navigation/server_route_resolver.dart';
 import 'package:truehub/navigation/shell_navigation_leading.dart';
+import 'package:truehub/services/server_lookup.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 /// Resolves a `/server/:serverId` route's id to its [NasServer] and hands it
@@ -30,6 +31,7 @@ class ServerRouteHost extends StatefulWidget {
     required this.serverId,
     required this.builder,
     this.cachedServer,
+    this.lookup,
   });
 
   /// The `serverId` path parameter of the route being hosted.
@@ -39,6 +41,13 @@ class ServerRouteHost extends StatefulWidget {
   /// to render an initial frame with no loading state while resolution
   /// happens. Ignored if its id does not match [serverId].
   final NasServer? cachedServer;
+
+  /// The [ServerLookup] to resolve against. Defaults to
+  /// `context.read<UnifiedServerService>()` when omitted (the production
+  /// path); tests can inject a [ServerLookup] fake directly - e.g.
+  /// `FakeServerLookup` - without registering a full [UnifiedServerService]
+  /// with the widget tree.
+  final ServerLookup? lookup;
 
   /// Builds the routed screen once [serverId] has resolved to a server.
   final Widget Function(BuildContext context, NasServer server) builder;
@@ -52,10 +61,20 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
   NasServer? _resolved;
   bool _redirected = false;
 
+  /// Whether a [ServerResolved] has ever been shown for the current
+  /// [ServerRouteHost.serverId]. Once true, a later [ServerUnknown] is
+  /// treated as a possibly-stale list snapshot rather than proof of
+  /// deletion - see [_handleUnknown].
+  bool _hasEverResolved = false;
+
+  ServerLookup get _lookup =>
+      widget.lookup ?? context.read<UnifiedServerService>();
+
   @override
   void initState() {
     super.initState();
     _resolved = _matchingCachedServer();
+    _hasEverResolved = _resolved != null;
     _listen();
   }
 
@@ -68,6 +87,7 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
       setState(() {
         _resolved = _matchingCachedServer();
       });
+      _hasEverResolved = _resolved != null;
       _listen();
     }
   }
@@ -78,9 +98,7 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
   }
 
   void _listen() {
-    final resolver = LookupServerRouteResolver(
-      context.read<UnifiedServerService>(),
-    );
+    final resolver = LookupServerRouteResolver(_lookup);
     _subscription = resolver
         .resolve(widget.serverId, initialServer: _matchingCachedServer())
         .listen((resolution) {
@@ -89,16 +107,57 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
             case ServerResolving():
               break;
             case ServerResolved(:final server):
+              _hasEverResolved = true;
               setState(() {
                 _resolved = server;
               });
             case ServerUnknown():
-              setState(() {
-                _resolved = null;
-              });
-              _redirectToServerListOnceSettled();
+              _handleUnknown();
           }
         });
+  }
+
+  /// A server this route previously showed can look unknown for reasons
+  /// short of deletion - e.g. on Apple platforms, a CloudKit fetch that
+  /// fails or hits a not-yet-indexed record emits an empty server list,
+  /// which the resolver's stream watch reports the same way as a real
+  /// deletion. Redirecting on that alone would eject the user (and any
+  /// pushed stack / in-progress edit) over a transient sync blip.
+  ///
+  /// So: an *initial* unknown (nothing has ever resolved for this id) is
+  /// trusted immediately. A later one is re-confirmed with a direct
+  /// [ServerLookup.getServer] call, and only redirects if that authoritative
+  /// lookup also comes back empty. The last-known server keeps showing
+  /// while that confirmation is in flight.
+  Future<void> _handleUnknown() async {
+    if (!_hasEverResolved) {
+      setState(() {
+        _resolved = null;
+      });
+      _redirectToServerListOnceSettled();
+      return;
+    }
+
+    final requestedId = widget.serverId;
+    NasServer? confirmed;
+    try {
+      confirmed = await _lookup.getServer(requestedId);
+    } catch (_) {
+      confirmed = null;
+    }
+    if (!mounted || widget.serverId != requestedId) return;
+
+    if (confirmed != null) {
+      setState(() {
+        _resolved = confirmed;
+      });
+      return;
+    }
+
+    setState(() {
+      _resolved = null;
+    });
+    _redirectToServerListOnceSettled();
   }
 
   void _redirectToServerListOnceSettled() {
