@@ -473,6 +473,35 @@ void main() {
       // Don't close the shared database here - it's managed by tearDown
     });
 
+    test(
+      'should not crash when disposed while auto-select/auth is in flight',
+      () async {
+        // ServerProvider's constructor starts a fire-and-forget auto-select
+        // chain (see _initializeProvider) that addServer() does not await.
+        // Disposing immediately after addServer(), before that chain settles,
+        // used to throw "Cannot add new events after calling close" from
+        // _emitAuthStatus once the dangling continuation resumed. Regression
+        // coverage for #104.
+        final testProvider = await TestProviders.createServerProvider(
+          database: database,
+        );
+        final raceServer = NasServer.create(
+          name: 'Race Server',
+          host: '192.168.1.101',
+          username: 'admin',
+          password: 'password',
+        );
+
+        await testProvider.addServer(raceServer, 'password');
+        testProvider.dispose();
+
+        // Give the dangling auto-select/authenticate continuation a chance
+        // to resume and reach _emitAuthStatus - it must no-op instead of
+        // throwing.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      },
+    );
+
     test('should handle edge cases in auto-selection', () async {
       // Test auto-selection with clean provider state
       // Clear the existing servers first to test the edge case
