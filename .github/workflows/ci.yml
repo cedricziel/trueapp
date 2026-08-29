@@ -73,6 +73,9 @@ jobs:
           --timeout=30s \
           --no-pub
 
+    - name: Run fastlane helper tests
+      run: ruby fastlane/test/pubspec_version_test.rb
+
     - name: Build iOS (no codesign)
       run: flutter build ios --no-codesign
 

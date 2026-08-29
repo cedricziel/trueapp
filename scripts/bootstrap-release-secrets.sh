@@ -30,12 +30,12 @@ set_secret() { # name value
 }
 
 echo "Reading App Store Connect key from 1Password item '$OP_ASC_ITEM'..."
-ASC_KEY_ID="$(op item get "$OP_ASC_ITEM" --fields "$OP_ASC_KEY_ID_FIELD" --reveal)"
-ASC_ISSUER_ID="$(op item get "$OP_ASC_ITEM" --fields "$OP_ASC_ISSUER_FIELD" --reveal)"
-if [[ -z "$OP_ASC_P8_FILE" ]]; then
-  OP_ASC_P8_FILE="$(op item get "$OP_ASC_ITEM" --format json | jq -r '.files[0].name')"
-fi
-ASC_KEY_CONTENT="$(op read "op://$(op item get "$OP_ASC_ITEM" --format json | jq -r '.vault.name')/$OP_ASC_ITEM/$OP_ASC_P8_FILE")"
+asc_item="$(op item get "$OP_ASC_ITEM" --format json --reveal)"
+field() { jq -r --arg l "$1" '.fields[] | select(.label == $l) | .value' <<<"$asc_item"; }
+ASC_KEY_ID="$(field "$OP_ASC_KEY_ID_FIELD")"
+ASC_ISSUER_ID="$(field "$OP_ASC_ISSUER_FIELD")"
+[[ -n "$OP_ASC_P8_FILE" ]] || OP_ASC_P8_FILE="$(jq -r '.files[0].name' <<<"$asc_item")"
+ASC_KEY_CONTENT="$(op read "op://$(jq -r '.vault.name' <<<"$asc_item")/$OP_ASC_ITEM/$OP_ASC_P8_FILE")"
 [[ "$ASC_KEY_CONTENT" == *"BEGIN PRIVATE KEY"* ]] || { echo "downloaded .p8 does not look like a private key" >&2; exit 1; }
 
 echo "Reading match password from 1Password item '$OP_MATCH_ITEM'..."
