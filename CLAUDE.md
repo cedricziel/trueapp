@@ -20,6 +20,9 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 
 ## Tooling Notes
 - `gtimeout` is used for adding timeouts to bash commands
+- `.claude/settings.json` enables the `common@cedricziel` Claude Code plugin
+  (from `cedricziel/claude-plugins`), which auto-formats edited files via
+  `dart format` on save
 
 ## Development Philosophy
 - We want to use best-practices like coding against interfaces, dependency injection etc whenever we can and it's our responsibility to gradually modernize the parts of the app we touch
