@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/widgets/app_lifecycle_reconnector.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
@@ -173,13 +176,21 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp.router(
-      title: 'TrueNAS Manager',
-      theme: const CupertinoThemeData(
-        primaryColor: CupertinoColors.systemBlue,
-        brightness: Brightness.light,
+    // No timer runs while the process is suspended, so a connection the OS
+    // tore down in the background stays dead until something asks for it.
+    // Returning to the foreground is that trigger.
+    return AppLifecycleReconnector(
+      onResumed: () {
+        unawaited(context.read<ServerProvider>().refreshConnection());
+      },
+      child: CupertinoApp.router(
+        title: 'TrueNAS Manager',
+        theme: const CupertinoThemeData(
+          primaryColor: CupertinoColors.systemBlue,
+          brightness: Brightness.light,
+        ),
+        routerConfig: appRouter,
       ),
-      routerConfig: appRouter,
     );
   }
 }

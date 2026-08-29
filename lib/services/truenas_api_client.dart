@@ -29,10 +29,16 @@ class TrueNasApiClient implements ApiClientInterface {
   String? _realtimeSubscriptionId;
   bool _isSubscribedToRealtime = false;
 
+  /// What the UI asked for, as opposed to what is currently live on the
+  /// socket. A subscription that fails to restore is still wanted, so it must
+  /// outlive the connection that carried it.
+  bool _wantsSystemStats = false;
+
   // App stats subscription management
   StreamController<Map<String, AppResourceUsage>>? _appStatsController;
   String? _appStatsSubscriptionId;
   bool _isSubscribedToAppStats = false;
+  bool _wantsAppStats = false;
 
   // Keepalive mechanism
   Timer? _keepaliveTimer;
@@ -42,8 +48,11 @@ class TrueNasApiClient implements ApiClientInterface {
 
   TrueNasApiClient(this._server, [this._connectionStatusProvider]);
 
+  /// Whether the JSON-RPC socket is currently usable.
+  bool get _hasLiveConnection => _client != null && !_client!.isClosed;
+
   Future<void> _ensureConnected() async {
-    if (_client != null && !_client!.isClosed) {
+    if (_hasLiveConnection) {
       return;
     }
 
@@ -78,18 +87,34 @@ class TrueNasApiClient implements ApiClientInterface {
         protocols: ['json-rpc'],
       );
 
+      // WebSocketChannel.connect is lazy: without awaiting readiness a failed
+      // handshake surfaces as an unhandled asynchronous error instead of a
+      // failure the caller can act on.
+      await _wsChannel!.ready.timeout(const Duration(seconds: 15));
+
       _client = Peer(_wsChannel!.cast<String>());
 
       // Register method to handle collection_update notifications from server
       _setupCollectionUpdateHandler();
 
       // Start listening for responses with error handling
-      _client!.listen().catchError((error) {
-        if (kDebugMode) {
-          print('TrueNAS API: WebSocket error: $error');
-        }
-        throw _handleConnectionError(error);
-      });
+      // Socket-level failures arrive here asynchronously, with no caller to
+      // receive them: rethrowing would only produce an unhandled zone error.
+      // Record the state instead - the next request (or the resume hook) sees
+      // the closed client and recovers.
+      unawaited(
+        _client!.listen().catchError((error) {
+          if (kDebugMode) {
+            print('TrueNAS API: WebSocket error: $error');
+          }
+          _isAuthenticated = false;
+          _connectionStatusProvider?.updateConnectionState(
+            _server.id,
+            TrueNASConnectionState.error,
+            error: error.toString(),
+          );
+        }),
+      );
 
       _isAuthenticated = false;
       if (kDebugMode) {
@@ -99,6 +124,15 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Connection failed: $e');
       }
+
+      // Drop the half-open channel. Keeping it means a later close() awaits a
+      // handshake that never completed, which never returns.
+      final failedChannel = _wsChannel;
+      _wsChannel = null;
+      _client = null;
+      _isAuthenticated = false;
+      unawaited(failedChannel?.sink.close().catchError((_) {}));
+
       _connectionStatusProvider?.updateConnectionState(
         _server.id,
         TrueNASConnectionState.error,
@@ -135,7 +169,11 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   Future<void> _sendKeepalivePing() async {
-    if (_client == null || _client!.isClosed || !_isAuthenticated) {
+    // A closed socket is precisely the case that needs recovering. Returning
+    // here (as this used to) left the client dead until something else
+    // happened to issue a request.
+    if (!_hasLiveConnection || !_isAuthenticated) {
+      await _handleKeepaliveTimeout();
       return;
     }
 
@@ -196,7 +234,17 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  Future<void> _handleKeepaliveTimeout() async {
+  /// Guards against two triggers (the keepalive timer and the app-resume
+  /// hook) starting overlapping reconnects, which would open two sessions.
+  Future<void>? _recovery;
+
+  Future<void> _handleKeepaliveTimeout() {
+    return _recovery ??= _recoverConnection().whenComplete(() {
+      _recovery = null;
+    });
+  }
+
+  Future<void> _recoverConnection() async {
     _awaitingPong = false;
 
     if (kDebugMode) {
@@ -208,8 +256,14 @@ class TrueNasApiClient implements ApiClientInterface {
       TrueNASConnectionState.reconnecting,
     );
 
-    // Reset connection state
+    // Reset connection state. The subscriptions belonged to the socket that
+    // just died; what the UI wants (_wantsSystemStats / _wantsAppStats) is
+    // deliberately untouched so it can be restored below.
     _isAuthenticated = false;
+    _isSubscribedToRealtime = false;
+    _realtimeSubscriptionId = null;
+    _isSubscribedToAppStats = false;
+    _appStatsSubscriptionId = null;
 
     try {
       // Close existing connection
@@ -219,6 +273,12 @@ class TrueNasApiClient implements ApiClientInterface {
       // Re-establish connection
       await _ensureConnected();
       await _ensureAuthenticated();
+      await _restoreSubscriptions();
+
+      _connectionStatusProvider?.updateConnectionState(
+        _server.id,
+        TrueNASConnectionState.connected,
+      );
 
       if (kDebugMode) {
         print('TrueNAS API: Successfully reconnected after keepalive timeout');
@@ -235,6 +295,64 @@ class TrueNasApiClient implements ApiClientInterface {
       // Stop keepalive on repeated failures to avoid continuous retry loops
       _stopKeepalive();
     }
+  }
+
+  /// Makes the client usable again after the connection may have died while
+  /// the app was suspended.
+  ///
+  /// Cheap when the socket is healthy (a single ping); reconnects,
+  /// re-authenticates and restores active subscriptions when it is not.
+  /// Call this when the app returns to the foreground - no timer fires while
+  /// the process is suspended, so nothing else notices the dead socket.
+  /// True when the UI asked for a stream that is not live on this socket.
+  bool get _hasMissingSubscription =>
+      (_wantsSystemStats && !_isSubscribedToRealtime) ||
+      (_wantsAppStats && !_isSubscribedToAppStats);
+
+  @override
+  Future<void> ensureConnectionAlive() async {
+    // _sendKeepalivePing already owns the "is this connection usable, and
+    // recover it if not" decision; don't restate it here.
+    await _sendKeepalivePing();
+
+    // A healthy socket is not enough: a stream the UI wants may have failed to
+    // restore on an earlier attempt, and the ping cannot see that. A refusal
+    // here is a partial failure - the connection is fine and the intent is
+    // kept, so the next attempt retries it - and must not be reported as a
+    // lost connection.
+    if (_hasLiveConnection && _isAuthenticated && _hasMissingSubscription) {
+      try {
+        await _restoreSubscriptions();
+      } catch (e) {
+        if (kDebugMode) {
+          print('TrueNAS API: Subscription restore deferred: $e');
+        }
+      }
+    }
+
+    // Recovery reports its own failures to the connection status provider and
+    // does not rethrow, because the periodic timer must not die on a blip. A
+    // caller that asked for a usable connection needs the bad news.
+    if (!_hasLiveConnection || !_isAuthenticated) {
+      throw ConnectionException(
+        ConnectionError.networkUnreachable(
+          details: 'Could not restore the connection to ${_server.name}',
+        ),
+      );
+    }
+  }
+
+  /// Re-subscribes to the streams the UI had asked for before the connection
+  /// was lost. The stale subscription ids belong to the dead socket.
+  Future<void> _restoreSubscriptions() async {
+    // Independent RPCs over an established session; no reason to serialise
+    // them on a path where round trips already stack up. The intent flags stay
+    // set: a restore that fails here is retried by the next recovery.
+    await Future.wait([
+      if (_wantsSystemStats && !_isSubscribedToRealtime)
+        subscribeToSystemStats(),
+      if (_wantsAppStats && !_isSubscribedToAppStats) subscribeToAppStats(),
+    ]);
   }
 
   @override
@@ -329,7 +447,10 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   Future<void> _ensureAuthenticated() async {
-    if (_isAuthenticated) return;
+    // Authentication belongs to a socket: once that socket is gone, so is the
+    // session, no matter what the flag from the previous connection says.
+    if (_isAuthenticated && _hasLiveConnection) return;
+    _isAuthenticated = false;
 
     try {
       await _ensureConnected();
@@ -921,12 +1042,20 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> subscribeToSystemStats() async {
-    if (_isSubscribedToRealtime) {
+    // A subscription only exists for as long as the socket that created it.
+    // After the connection drops - which is what the OS does to a backgrounded
+    // app - the flag is stale and re-subscribing is exactly what's needed.
+    _wantsSystemStats = true;
+
+    if (_isSubscribedToRealtime && _hasLiveConnection) {
       if (kDebugMode) {
         print('TrueNAS API: Already subscribed to realtime stats');
       }
       return;
     }
+
+    _isSubscribedToRealtime = false;
+    _realtimeSubscriptionId = null;
 
     try {
       await _ensureAuthenticated();
@@ -964,7 +1093,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
 
     try {
-      if (_client != null && !_client!.isClosed) {
+      if (_hasLiveConnection) {
         await _client!.sendRequest('core.unsubscribe', [
           _realtimeSubscriptionId!,
         ]);
@@ -980,6 +1109,7 @@ class TrueNasApiClient implements ApiClientInterface {
         print('TrueNAS API: Error unsubscribing from system stats: $e');
       }
     } finally {
+      _wantsSystemStats = false;
       _isSubscribedToRealtime = false;
       _realtimeSubscriptionId = null;
       await _systemStatsController?.close();
@@ -1001,7 +1131,9 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> subscribeToAppStats() async {
-    if (_isSubscribedToAppStats) {
+    _wantsAppStats = true;
+
+    if (_isSubscribedToAppStats && _hasLiveConnection) {
       if (kDebugMode) {
         print('TrueNAS API: Already subscribed to app stats');
       }
@@ -1044,7 +1176,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
 
     try {
-      if (_client != null && !_client!.isClosed) {
+      if (_hasLiveConnection) {
         await _client!.sendRequest('core.unsubscribe', [
           _appStatsSubscriptionId!,
         ]);
@@ -1060,6 +1192,7 @@ class TrueNasApiClient implements ApiClientInterface {
         print('TrueNAS API: Error unsubscribing from app stats: $e');
       }
     } finally {
+      _wantsAppStats = false;
       _isSubscribedToAppStats = false;
       _appStatsSubscriptionId = null;
       await _appStatsController?.close();

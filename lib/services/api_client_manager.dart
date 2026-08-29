@@ -40,6 +40,10 @@ class ApiClientManager {
     return instance.closeClient(serverId);
   }
 
+  static Future<Map<String, Object>> ensureAllConnectionsAlive() async {
+    return instance.ensureAllConnectionsAlive();
+  }
+
   static Future<void> closeAllClients() async {
     return instance.closeAllClients();
   }
