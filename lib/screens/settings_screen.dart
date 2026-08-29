@@ -286,10 +286,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             actions: [
               CupertinoDialogAction(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close success dialog
-                  Navigator.of(context).pop(); // Return to home screen
-                },
+                onPressed: () =>
+                    Navigator.of(context).pop(), // Close success dialog
                 child: const Text('OK'),
               ),
             ],
