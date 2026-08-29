@@ -143,9 +143,11 @@ class CompactConnectionErrorWidget extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemRed.withOpacity(0.1),
+        color: CupertinoColors.systemRed.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: CupertinoColors.systemRed.withOpacity(0.3)),
+        border: Border.all(
+          color: CupertinoColors.systemRed.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [

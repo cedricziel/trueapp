@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 0.0.1+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.9.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -57,7 +57,7 @@ dependencies:
 
   # UI enhancements
   flutter_slidable: ^4.0.0
-  fl_chart: ^1.0.0
+  fl_chart: ^1.1.1
   stream_channel: ^2.1.4
 
   # WebSocket support
@@ -98,7 +98,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.27.0
   build_runner: ^2.5.4
-  dart_pre_commit: ^5.4.7
+  dart_pre_commit: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -79,9 +79,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemRed.withOpacity(0.1),
+          color: CupertinoColors.systemRed.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.systemRed.withOpacity(0.3)),
+          border: Border.all(
+            color: CupertinoColors.systemRed.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           children: [
@@ -164,7 +166,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: CupertinoColors.activeBlue.withOpacity(0.1),
+              color: CupertinoColors.activeBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(40),
             ),
             child: const Icon(
@@ -200,7 +202,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemOrange.withOpacity(0.1),
+                    color: CupertinoColors.systemOrange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -232,7 +234,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemGreen.withOpacity(0.1),
+                    color: CupertinoColors.systemGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -319,7 +321,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemBlue.withOpacity(0.1),
+                  color: CupertinoColors.systemBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

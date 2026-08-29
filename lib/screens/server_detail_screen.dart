@@ -474,7 +474,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemYellow.withOpacity(0.1),
+                  color: CupertinoColors.systemYellow.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(

@@ -99,8 +99,8 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: widget.app.installed
-                      ? CupertinoColors.systemGreen.withOpacity(0.1)
-                      : CupertinoColors.systemBlue.withOpacity(0.1),
+                      ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                      : CupertinoColors.systemBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -316,7 +316,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemRed.withOpacity(0.1),
+                    color: CupertinoColors.systemRed.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -424,7 +424,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemBlue.withOpacity(0.1),
+                  color: CupertinoColors.systemBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
