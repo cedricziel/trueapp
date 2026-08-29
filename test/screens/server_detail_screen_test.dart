@@ -7,6 +7,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/screens/server_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -231,6 +232,54 @@ void main() {
       expectNoLayoutOverflow(tester);
     },
   );
+
+  testWidgets(
+    'unsubscribes from system stats when the screen is disposed '
+    '(regression test for #102)',
+    (WidgetTester tester) async {
+      useCompactSurface(tester);
+
+      final systemStatsProvider = _RecordingSystemStatsProvider(
+        unifiedServerService,
+      );
+      addTearDown(systemStatsProvider.dispose);
+
+      await tester.pumpWidget(
+        provideAppProviders(
+          database: database,
+          service: unifiedServerService,
+          serverProvider: serverProvider,
+          systemStatsProvider: systemStatsProvider,
+          child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('Storage Pools'));
+
+      expect(systemStatsProvider.unsubscribeCallCount, 0);
+
+      // Replacing the whole tree tears down ServerDetailScreen's State,
+      // running its dispose() - the same teardown a back navigation or tab
+      // switch triggers in the real app.
+      await tester.pumpWidget(const CupertinoApp(home: SizedBox.shrink()));
+
+      expect(systemStatsProvider.unsubscribeCallCount, 1);
+    },
+  );
+}
+
+/// A [SystemStatsProvider] that records how many times
+/// [unsubscribeFromStats] is called, so tests can assert the subscription
+/// is torn down on screen disposal without a live API client.
+class _RecordingSystemStatsProvider extends SystemStatsProvider {
+  _RecordingSystemStatsProvider(super.service);
+
+  int unsubscribeCallCount = 0;
+
+  @override
+  Future<void> unsubscribeFromStats() async {
+    unsubscribeCallCount++;
+    await super.unsubscribeFromStats();
+  }
 }
 
 /// An [AppProvider] whose [apps] and [favoriteApps] are seeded directly,

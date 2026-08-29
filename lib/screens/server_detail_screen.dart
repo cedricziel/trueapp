@@ -27,6 +27,8 @@ class ServerDetailScreen extends StatefulWidget {
 }
 
 class _ServerDetailScreenState extends State<ServerDetailScreen> {
+  late final SystemStatsProvider _systemStatsProvider;
+
   @override
   void initState() {
     super.initState();
@@ -60,13 +62,19 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _systemStatsProvider = context.read<SystemStatsProvider>();
+  }
+
+  @override
   void dispose() {
-    // Unsubscribe from system stats when screen is disposed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<SystemStatsProvider>().unsubscribeFromStats();
-      }
-    });
+    // Unsubscribe from system stats when screen is disposed. The provider
+    // was captured synchronously in didChangeDependencies(), so this runs
+    // immediately and doesn't need a frame boundary or a `mounted` check -
+    // by the time dispose() runs the element is already unmounted, which
+    // made a post-frame callback here dead code.
+    _systemStatsProvider.unsubscribeFromStats();
     super.dispose();
   }
 
