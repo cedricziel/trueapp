@@ -53,6 +53,16 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       attempts++;
     }
+
+    // Fail here rather than letting every test in this group run against a
+    // provider that never settled and report an unrelated symptom.
+    expect(
+      serverProvider.selectedServer != null && !serverProvider.isAuthenticating,
+      isTrue,
+      reason:
+          'ServerProvider did not finish auto-selecting and authenticating '
+          'the sole registered server within 2s',
+    );
   });
 
   tearDown(() async {
@@ -120,6 +130,9 @@ void main() {
       () => find.textContaining('Pools').evaluate().isNotEmpty,
     );
 
+    // pumpUntilAsync returns false on timeout rather than failing, so
+    // without this the test passed even when the screen never rendered.
+    expect(find.textContaining('Pools'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

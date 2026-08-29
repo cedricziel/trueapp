@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/repo_files.dart';
@@ -5,8 +7,7 @@ import '../helpers/repo_files.dart';
 /// Ticket #90 (see issue comment 5461545627): `.claude/settings.local.json`
 /// is a per-developer file - Claude Code writes local permission approvals
 /// into it as a working-tree change - so committing it means every
-/// contributor inherits whoever committed it last inherits their personal
-/// grants with no prompt. The fix is for the repository to never track it
+/// contributor inherits whoever committed it last, with no prompt. The fix is for the repository to never track it
 /// at all, not to police its contents: a hygiene test that pins the
 /// allow-list to a literal snapshot (as this file previously did) turns
 /// every local permission approval into an unrelated red test suite, and
@@ -42,6 +43,38 @@ void main() {
           '.gitignore must exclude .claude/settings.local.json so a '
           "contributor's local Claude Code permission grants are never "
           'committed for everyone else to inherit',
+    );
+  });
+
+  test('.claude/settings.local.json is absent from the git index', () {
+    // The ignore rule above stops the file from being *re-added*, but it
+    // says nothing about a copy already staged: `git add -f` or a checkout
+    // predating the ignore rule would leave it tracked and that test would
+    // still pass. Only the index answers "is it tracked", so ask git.
+    if (!Directory('.git').existsSync()) {
+      markTestSkipped('not a git checkout - nothing to inspect');
+      return;
+    }
+
+    final ProcessResult result;
+    try {
+      result = Process.runSync('git', const [
+        'ls-files',
+        '--error-unmatch',
+        '.claude/settings.local.json',
+      ]);
+    } on ProcessException {
+      markTestSkipped('git is not on PATH');
+      return;
+    }
+
+    expect(
+      result.exitCode,
+      isNot(0),
+      reason:
+          '.claude/settings.local.json is still tracked by git. Run '
+          '`git rm --cached .claude/settings.local.json` - the .gitignore '
+          'rule alone does not untrack an already-staged file.',
     );
   });
 }

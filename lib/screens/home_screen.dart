@@ -158,28 +158,55 @@ class _HomeScreenState extends State<HomeScreen> {
                     // the authentication-stream listener above from
                     // reacting to this same select with its own `go` (see
                     // its comment).
-                    _selectingServerId = server.id;
-                    await serverProvider.selectServer(server);
-                    if (context.mounted) {
-                      // push, not go: the detail screen (and its own
-                      // forward navigations) needs a stack to pop back
-                      // through, otherwise there is nothing left to return
-                      // to the server list with (ticket #85).
-                      context.push('/server/${server.id}', extra: server);
+                    // A selection already in flight owns the navigation.
+                    // `selectServer` is a real round-trip, so a second tap
+                    // lands long before the first resolves; letting it
+                    // through would run two continuations that each
+                    // `push`, stacking two identical detail routes the
+                    // user has to pop twice for one tap.
+                    if (_selectingServerId != null) {
+                      return;
                     }
-                    // One-shot: only the window up to and including this
-                    // tap's own push needs guarding (see the field's doc
-                    // comment) - clearing it synchronously right after
-                    // `push` would reopen exactly the race it exists to
-                    // close, since `push` inserts the new route before the
-                    // widget tree (and therefore `ModalRoute.isCurrent`)
-                    // reflects that; deferring the clear to a post-frame
-                    // callback gives the pushed route a frame to actually
-                    // land, so the `isCurrent` guard is reliably in place by
-                    // the time the flag stops covering the race.
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _selectingServerId = null;
-                    });
+                    _selectingServerId = server.id;
+                    var pushed = false;
+                    try {
+                      await serverProvider.selectServer(server);
+                      if (context.mounted) {
+                        // push, not go: the detail screen (and its own
+                        // forward navigations) needs a stack to pop back
+                        // through, otherwise there is nothing left to
+                        // return to the server list with (ticket #85).
+                        context.push('/server/${server.id}', extra: server);
+                        pushed = true;
+                      }
+                    } finally {
+                      if (pushed) {
+                        // One-shot: only the window up to and including
+                        // this tap's own push needs guarding (see the
+                        // field's doc comment) - clearing it synchronously
+                        // right after `push` would reopen exactly the race
+                        // it exists to close, since `push` inserts the new
+                        // route before the widget tree (and therefore
+                        // `ModalRoute.isCurrent`) reflects that; deferring
+                        // the clear to a post-frame callback gives the
+                        // pushed route a frame to actually land, so the
+                        // `isCurrent` guard is reliably in place by the
+                        // time the flag stops covering the race.
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _selectingServerId = null;
+                        });
+                      } else {
+                        // No push happened - `selectServer` threw, or the
+                        // tile left the tree mid-await. Clear immediately:
+                        // there is no pushed route for the deferred clear
+                        // to wait on, and a stuck flag would silently
+                        // suppress single-server auto-navigation for this
+                        // id for as long as HomeScreen stays mounted, as
+                        // well as blocking every later tap by the guard
+                        // above.
+                        _selectingServerId = null;
+                      }
+                    }
                   },
                 );
               },

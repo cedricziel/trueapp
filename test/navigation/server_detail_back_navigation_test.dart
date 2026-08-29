@@ -230,4 +230,39 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('two overlapping taps push only one detail route', (
+    WidgetTester tester,
+  ) async {
+    useCompactSurface(tester);
+
+    await tester.pumpWidget(createTestApp());
+    await pumpUntilAsync(
+      tester,
+      () => find.text('Back Nav Server').evaluate().isNotEmpty,
+    );
+
+    // Two taps before the first can settle. `onTap` awaits its own
+    // `selectServer` - a real database round-trip - so the tile is still
+    // on screen and hittable when the second tap lands. Without an
+    // in-flight guard both continuations reach `context.push` and stack
+    // two identical detail routes on top of the list.
+    await tester.tap(find.text('Back Nav Server').first);
+    await tester.tap(find.text('Back Nav Server').first);
+    await settleRouteTransition(tester);
+    await pumpUntilAsync(
+      tester,
+      () => find.byIcon(CupertinoIcons.ellipsis).evaluate().isNotEmpty,
+    );
+
+    // A single back press must land on the server list. With two routes
+    // stacked it only uncovers the second detail page, leaving the user
+    // to press back twice for one tap.
+    await tapWhenUnambiguous(tester, find.byType(ShellBackButton));
+    await settleRouteTransition(tester);
+
+    expect(find.byIcon(CupertinoIcons.add), findsOneWidget);
+    expect(find.byType(ShellBackButton), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

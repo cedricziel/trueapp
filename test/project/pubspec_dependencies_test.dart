@@ -44,7 +44,13 @@ void main() {
       // Matches an actual import/export directive rather than a bare
       // substring, so this assertion's own source text (which necessarily
       // mentions the package name) does not trip itself up.
-      final importDirective = RegExp(r"(?:import|export)\s+'package:fl_chart/");
+      // Both quote styles are accepted: Dart allows either, so matching
+      // only single-quoted URIs would let a double-quoted directive slip
+      // past this assertion entirely. (Note the character class below is
+      // also why this comment must not spell out a literal directive.)
+      final importDirective = RegExp(
+        r"""(?:import|export)\s+['"]package:fl_chart/""",
+      );
       final files = _dartFilesUnder(repo, ['lib', 'test', 'packages']);
       expect(files, isNotEmpty);
       for (final file in files) {
