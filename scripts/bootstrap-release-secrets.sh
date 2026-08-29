@@ -35,7 +35,9 @@ field() { jq -r --arg l "$1" '.fields[] | select(.label == $l) | .value' <<<"$as
 ASC_KEY_ID="$(field "$OP_ASC_KEY_ID_FIELD")"
 ASC_ISSUER_ID="$(field "$OP_ASC_ISSUER_FIELD")"
 [[ -n "$OP_ASC_P8_FILE" ]] || OP_ASC_P8_FILE="$(jq -r '.files[0].name' <<<"$asc_item")"
-ASC_KEY_CONTENT="$(op read "op://$(jq -r '.vault.name' <<<"$asc_item")/$OP_ASC_ITEM/$OP_ASC_P8_FILE")"
+# Secret references must use ids: item titles may contain characters (':')
+# that op://vault/item/file rejects.
+ASC_KEY_CONTENT="$(op read "op://$(jq -r '.vault.id' <<<"$asc_item")/$(jq -r '.id' <<<"$asc_item")/$OP_ASC_P8_FILE")"
 [[ "$ASC_KEY_CONTENT" == *"BEGIN PRIVATE KEY"* ]] || { echo "downloaded .p8 does not look like a private key" >&2; exit 1; }
 
 echo "Reading match password from 1Password item '$OP_MATCH_ITEM'..."
@@ -67,7 +69,7 @@ Done. Two manual steps remain:
      gh secret set RELEASE_PLEASE_TOKEN --repo $REPO
 
 2. Create the App Store provisioning profile in the match repo (needs the
-   App ID $(grep -o 'com\.cedricziel\.[a-z]*' fastlane/Matchfile | head -1) to exist with its capabilities enabled):
+   App ID $(grep -o 'com\.cedricziel\.[a-z]*' fastlane/Appfile | head -1) to exist with its capabilities enabled):
      cp fastlane/.env.default fastlane/.env   # fill in ASC_* and MATCH_PASSWORD
      bundle exec fastlane bootstrap_signing
 MSG
