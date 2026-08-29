@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/app_config.dart' as app_models;
 
@@ -111,58 +112,44 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
-        await m.addColumn(nasServers, nasServers.isDefault);
+        await _addColumnIfMissing(m, nasServers, nasServers.isDefault);
       }
 
-      // `_migrateCredentialsToSecureStorage` rebuilds nas_servers via
-      // TableMigration against its *current* Dart definition (see the
-      // comment on that method), which already includes the `username`
-      // column re-added at v10 - so the dedicated `if (from < 10)` step
-      // below must not add it a second time for anyone who just went
-      // through this.
-      final legacyCredentialsMigrationRan = from < 3;
-      if (legacyCredentialsMigrationRan) {
+      if (from < 3) {
         await _migrateCredentialsToSecureStorage(m, from);
       }
 
-      // `createTable` always creates a table using its *current* Dart
-      // definition - every column through the latest schema version, not
-      // a historical snapshot - so when app_configs/app_port_configs are
-      // created fresh here, every later `addColumn` step below for those
-      // two tables already has its column and must be skipped, or SQLite
-      // rejects it as a duplicate column.
-      final appTablesJustCreated = from < 4;
-      if (appTablesJustCreated) {
-        await m.createTable(appConfigs);
-        await m.createTable(appPortConfigs);
+      if (from < 4) {
+        await _createTableIfMissing(m, appConfigs);
+        await _createTableIfMissing(m, appPortConfigs);
       }
-      if (from < 5 && !appTablesJustCreated) {
-        await m.addColumn(appConfigs, appConfigs.isFavorite);
+      if (from < 5) {
+        await _addColumnIfMissing(m, appConfigs, appConfigs.isFavorite);
       }
-      if (from < 6 && !appTablesJustCreated) {
-        await m.addColumn(appConfigs, appConfigs.title);
-        await m.addColumn(appConfigs, appConfigs.description);
-        await m.addColumn(appConfigs, appConfigs.installed);
-        await m.addColumn(appConfigs, appConfigs.healthy);
-        await m.addColumn(appConfigs, appConfigs.healthyError);
-        await m.addColumn(appConfigs, appConfigs.version);
-        await m.addColumn(appConfigs, appConfigs.appVersion);
-        await m.addColumn(appConfigs, appConfigs.humanVersion);
-        await m.addColumn(appConfigs, appConfigs.categories);
-        await m.addColumn(appConfigs, appConfigs.home);
-        await m.addColumn(appConfigs, appConfigs.tags);
-        await m.addColumn(appConfigs, appConfigs.recommended);
-        await m.addColumn(appConfigs, appConfigs.catalog);
-        await m.addColumn(appConfigs, appConfigs.train);
-        await m.addColumn(appConfigs, appConfigs.lastApiUpdate);
+      if (from < 6) {
+        await _addColumnIfMissing(m, appConfigs, appConfigs.title);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.description);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.installed);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.healthy);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.healthyError);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.version);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.appVersion);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.humanVersion);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.categories);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.home);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.tags);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.recommended);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.catalog);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.train);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.lastApiUpdate);
       }
-      if (from < 7 && !appTablesJustCreated) {
-        await m.addColumn(appConfigs, appConfigs.screenshots);
-        await m.addColumn(appConfigs, appConfigs.sources);
-        await m.addColumn(appConfigs, appConfigs.appReadme);
-        await m.addColumn(appConfigs, appConfigs.maintainersJson);
-        await m.addColumn(appConfigs, appConfigs.upgradeInfoJson);
-        await m.addColumn(appConfigs, appConfigs.usedPortsJson);
+      if (from < 7) {
+        await _addColumnIfMissing(m, appConfigs, appConfigs.screenshots);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.sources);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.appReadme);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.maintainersJson);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.upgradeInfoJson);
+        await _addColumnIfMissing(m, appConfigs, appConfigs.usedPortsJson);
       }
       if (from < 8) {
         // Clear out incorrectly set customUrl values from API portals
@@ -171,13 +158,13 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE app_port_configs SET custom_url = NULL WHERE custom_url IS NOT NULL',
         );
       }
-      if (from < 9 && !appTablesJustCreated) {
-        await m.addColumn(appPortConfigs, appPortConfigs.apiUrl);
+      if (from < 9) {
+        await _addColumnIfMissing(m, appPortConfigs, appPortConfigs.apiUrl);
       }
-      if (from < 10 && !legacyCredentialsMigrationRan) {
+      if (from < 10) {
         // Re-add username column as non-sensitive metadata
         // Password remains in keychain only
-        await m.addColumn(nasServers, nasServers.username);
+        await _addColumnIfMissing(m, nasServers, nasServers.username);
       }
     },
     beforeOpen: (details) async {
@@ -186,6 +173,42 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Adds [column] to [table], tolerating "already exists" - self-healing
+  /// against a migration that already added it on an earlier, interrupted
+  /// run of this same `onUpgrade` step.
+  ///
+  /// `_migrateCredentialsToSecureStorage`'s TableMigration swallows its own
+  /// exceptions (see the comment there), so a real-world failure there can
+  /// leave a column it was meant to carry over - `username` - missing even
+  /// though `onUpgrade` completes and stamps the new schema version. If a
+  /// later step then skipped re-adding that column on the assumption the
+  /// earlier one must have succeeded, every read afterwards would fail with
+  /// "no such column", unrecoverably: the app never runs this migration
+  /// again once the version already reads current. Always attempting the
+  /// column and only swallowing the "it's already there" case avoids that
+  /// trap without having to trust what an earlier step claims it did.
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    try {
+      await m.addColumn(table, column);
+    } on SqliteException catch (e) {
+      if (!e.toString().contains('duplicate column name')) rethrow;
+    }
+  }
+
+  /// Creates [table], tolerating "already exists" - the createTable
+  /// counterpart to [_addColumnIfMissing], for the same self-healing reason.
+  Future<void> _createTableIfMissing(Migrator m, TableInfo table) async {
+    try {
+      await m.createTable(table);
+    } on SqliteException catch (e) {
+      if (!e.toString().contains('already exists')) rethrow;
+    }
+  }
 
   Future<void> _migrateCredentialsToSecureStorage(
     Migrator m,
