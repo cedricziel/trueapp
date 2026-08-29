@@ -14,7 +14,8 @@ class ServerCredentials {
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // flutter_secure_storage >= 10 always uses encrypted storage on Android.
+    aOptions: AndroidOptions.defaultOptions,
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock,
       synchronizable: true,
@@ -106,10 +107,10 @@ class SecureStorageService {
 
       final authenticated = await _localAuth.authenticate(
         localizedReason: reason,
-        options: AuthenticationOptions(
-          biometricOnly: biometricOnly,
-          stickyAuth: true,
-        ),
+        biometricOnly: biometricOnly,
+        // local_auth 3.x name for stickyAuth: retry instead of failing when
+        // the app is backgrounded mid-authentication.
+        persistAcrossBackgrounding: true,
       );
 
       if (authenticated && useSession) {
