@@ -39,13 +39,17 @@ jobs:
     - name: Cache dependencies
       uses: actions/cache@v4
       with:
+        # build/ is deliberately not cached. It holds Xcode's precompiled Swift
+        # modules, which are bound to the exact FlutterMacOS.framework headers
+        # they were built against. Restoring them across a toolchain change
+        # fails the macOS build with "has been modified since the module file
+        # was built" - and the runner's Xcode can move without any key of ours
+        # changing, so scoping alone would not be enough.
         path: |
           ~/.pub-cache
           **/.dart_tool
-          **/build
-        # .dart_tool and build hold SDK-specific artifacts, so the key and the
-        # fallback both carry the Flutter version. Without it, a cache written
-        # by an older SDK would be restored into a newer one's build.
+        # .dart_tool is SDK-specific too, so the key and the fallback both carry
+        # the Flutter version.
         key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
         restore-keys: |
           ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
