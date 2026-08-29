@@ -193,8 +193,7 @@ void main() {
           expect(
             await customCloudKitChannel.invokeMethod<bool>('initialize'),
             isTrue,
-            reason:
-                'a call on the custom-prefixed channel must reach the mock '
+            reason: 'a call on the custom-prefixed channel must reach the mock '
                 'handler',
           );
           expect(
