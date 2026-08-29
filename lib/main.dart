@@ -46,7 +46,7 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => AppProvider(
-            database: database,
+            databaseRef: () => AppDatabase.instance,
             serverService: unifiedServerService,
           ),
         ),
