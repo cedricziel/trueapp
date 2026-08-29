@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/cedricziel/trueapp/compare/v0.1.3...v0.1.4) (2026-08-29)
+
+
+### Bug Fixes
+
+* reconnect and refresh when the app returns to the foreground ([#123](https://github.com/cedricziel/trueapp/issues/123)) ([b55ddba](https://github.com/cedricziel/trueapp/commit/b55ddba643dec21707a76ad5747b9d2c92ba3aba))
+
 ## [0.1.3](https://github.com/cedricziel/trueapp/compare/v0.1.2...v0.1.3) (2026-08-29)
 
 
