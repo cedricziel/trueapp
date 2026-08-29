@@ -6,6 +6,7 @@ import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/authentication_session_service.dart';
 import 'package:truehub/services/secure_storage_service.dart';
+import 'package:truehub/services/unified_server_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -240,6 +241,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Clear the provider state first
       final serverProvider = context.read<ServerProvider>();
       serverProvider.clearSelectedServer();
+
+      // Delete every server through the repository abstraction so CloudKit
+      // records (Apple platforms) and Keychain passwords (all platforms) are
+      // actually removed, not just the local drift cache below.
+      final unifiedServerService = context.read<UnifiedServerService>();
+      final servers = await unifiedServerService.getAllServers();
+      for (final server in servers) {
+        await unifiedServerService.deleteServerConfig(server.id);
+      }
 
       // Completely recreate the database file to ensure fresh schema
       try {
