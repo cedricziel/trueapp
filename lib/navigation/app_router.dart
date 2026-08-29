@@ -13,8 +13,13 @@ import 'package:truehub/screens/server_health_screen.dart';
 import 'package:truehub/navigation/adaptive_navigation_scaffold.dart';
 import 'package:truehub/models/nas_server.dart';
 
-final GoRouter appRouter = GoRouter(
-  initialLocation: '/servers',
+/// Builds a router for the app.
+///
+/// Exposed as a factory rather than only as the [appRouter] singleton so tests
+/// can drive a fresh navigation stack per test instead of sharing location
+/// state through a global.
+GoRouter createAppRouter({String initialLocation = '/servers'}) => GoRouter(
+  initialLocation: initialLocation,
   routes: [
     ShellRoute(
       builder: (context, state, child) {
@@ -122,3 +127,6 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
+
+/// The router instance used by the running app.
+final GoRouter appRouter = createAppRouter();
