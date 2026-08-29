@@ -4,7 +4,7 @@ storage_mode("git")
 
 type("appstore")
 
-app_identifier(["com.cedricziel.trueapp"])
+# app_identifier is read from the Appfile.
 
 git_branch(ENV["MATCH_GIT_BRANCH"]) if ENV["MATCH_GIT_BRANCH"]
 

@@ -8,8 +8,9 @@ require_relative "lib/pubspec_version"
 WORKSPACE       = "ios/Runner.xcworkspace"
 XCODEPROJ       = "ios/Runner.xcodeproj"
 SCHEME          = "Runner"
-APP_IDENTIFIER  = "com.cedricziel.trueapp"
-TEAM_ID         = "WPW3QSLZ2F"
+# Bundle id and team come from the Appfile (single source of truth).
+APP_IDENTIFIER  = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+TEAM_ID         = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
 OUTPUT_DIR      = "build"
 IPA_NAME        = "TrueNASManager.ipa"
 MATCH_PROFILE   = "match AppStore #{APP_IDENTIFIER}"
@@ -58,21 +59,10 @@ lane :beta do |options|
   # App Store Connect extracts them automatically — no separate upload step.
 end
 
-desc "Sync signing certificates and provisioning profiles via match (readonly by default)"
-lane :sync_signing do |options|
-  api_key = load_app_store_connect_api_key
-  match(type: options[:type] || "appstore", readonly: options[:readonly] != false, api_key: api_key)
-end
-
 desc "Bootstrap signing — creates the App Store profile in the match repo. Run once."
 lane :bootstrap_signing do
   api_key = load_app_store_connect_api_key
   match(type: "appstore", readonly: false, api_key: api_key)
-end
-
-desc "Print the version and build number that would be used"
-lane :show_build_number do
-  UI.message("Version: #{marketing_version}  Build: #{commit_count_build_number}")
 end
 
 # ---------------------------------------------------------------------------
@@ -167,8 +157,4 @@ def load_app_store_connect_api_key
       key_content.match?(/\A[A-Za-z0-9+\/=\s]+\z/) && !key_content.include?("BEGIN PRIVATE KEY")
   end
   @asc_api_key = app_store_connect_api_key(**params)
-end
-
-error do |lane, exception|
-  UI.error("Lane #{lane} failed: #{exception.message}")
 end
