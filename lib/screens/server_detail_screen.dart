@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
@@ -12,12 +13,6 @@ import 'package:truehub/widgets/pool_card_widget.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
-import 'package:truehub/screens/server_files_screen.dart';
-import 'package:truehub/screens/server_health_screen.dart';
-import 'package:truehub/screens/server_pools_screen.dart';
-import 'package:truehub/screens/edit_server_screen.dart';
-import 'package:truehub/screens/user_profile_screen.dart';
-import 'package:truehub/screens/server_apps_screen.dart';
 import 'package:truehub/widgets/connection_status_widget.dart';
 
 class ServerDetailScreen extends StatefulWidget {
@@ -91,12 +86,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                   padding: EdgeInsets.zero,
                   child: const Icon(CupertinoIcons.person_circle, size: 20),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) =>
-                            UserProfileScreen(server: currentServer),
-                      ),
+                    context.go(
+                      '/server/${currentServer.id}/profile',
+                      extra: currentServer,
                     );
                   },
                 ),
@@ -105,13 +97,6 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                   child: Text(currentServer.name, textAlign: TextAlign.center),
                 ),
               ],
-            ),
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.back),
-              onPressed: () {
-                Navigator.pop(context);
-              },
             ),
             trailing: CupertinoButton(
               padding: EdgeInsets.zero,
@@ -125,22 +110,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                         child: const Text('Edit Server'),
                         onPressed: () async {
                           Navigator.pop(context);
-                          final result = await Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) =>
-                                  EditServerScreen(server: currentServer),
-                            ),
+                          context.go(
+                            '/server/${currentServer.id}/edit',
+                            extra: currentServer,
                           );
-
-                          // Refresh server data if changes were made
-                          if (result == true && mounted) {
-                            if (context.mounted) {
-                              final serverProvider = context
-                                  .read<ServerProvider>();
-                              await serverProvider.refreshSelectedServer();
-                            }
-                          }
                         },
                       ),
                     ],
@@ -185,12 +158,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             title: 'Pools',
             subtitle: 'View storage pools and datasets',
             onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => ServerPoolsScreen(server: server),
-                ),
-              );
+              context.go('/server/${server.id}/pools', extra: server);
             },
           ),
           const SizedBox(height: 12),
@@ -199,12 +167,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             title: 'Files',
             subtitle: 'Browse and manage files',
             onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => ServerFilesScreen(server: server),
-                ),
-              );
+              context.go('/server/${server.id}/files', extra: server);
             },
           ),
           const SizedBox(height: 12),
@@ -213,12 +176,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             title: 'Health',
             subtitle: 'View system health and status',
             onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => ServerHealthScreen(server: server),
-                ),
-              );
+              context.go('/server/${server.id}/health', extra: server);
             },
           ),
         ],
@@ -245,13 +203,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     padding: EdgeInsets.zero,
                     child: const Text('View All'),
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) =>
-                              ServerPoolsScreen(server: server),
-                        ),
-                      );
+                      context.go('/server/${server.id}/pools', extra: server);
                     },
                   ),
                 ],
@@ -351,13 +303,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     padding: EdgeInsets.zero,
                     child: const Text('View All'),
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) =>
-                              ServerAppsScreen(server: server),
-                        ),
-                      );
+                      context.go('/server/${server.id}/apps', extra: server);
                     },
                   ),
                 ],
@@ -457,12 +403,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (context) => ServerAppsScreen(server: server),
-          ),
-        );
+        context.go('/server/${server.id}/apps', extra: server);
       },
       child: Container(
         padding: const EdgeInsets.all(16),

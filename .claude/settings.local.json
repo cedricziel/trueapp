@@ -26,7 +26,8 @@
       "Bash(git commit:*)",
       "Bash(gtimeout:*)",
       "Bash(timeout 30s flutter test:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

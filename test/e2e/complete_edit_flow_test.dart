@@ -8,7 +8,8 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
-import 'package:truehub/screens/home_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/form_finders.dart';
@@ -18,7 +19,12 @@ import '../helpers/test_providers.dart';
 /// End-to-end coverage for editing a server through the real screen stack:
 /// Home → Server Detail → Edit → Save.
 ///
-/// Two constraints shape every test in this file:
+/// The app navigates with go_router, so these tests drive `CupertinoApp.router`
+/// with a router built per test. Pumping a bare `CupertinoApp(home: HomeScreen())`
+/// would leave every `context.go` call without a router and the taps would do
+/// nothing.
+///
+/// Two further constraints shape every test in this file:
 ///
 /// * `ServerDetailScreen` renders an indefinite activity indicator while it
 ///   authenticates, so `pumpAndSettle` would never return. All waiting goes
@@ -67,8 +73,9 @@ void main() {
     );
   });
 
-  /// The full provider stack the home and detail screens depend on.
-  Widget createTestApp() {
+  /// The full provider stack the home and detail screens depend on, wired to a
+  /// freshly built router.
+  Widget createTestApp(GoRouter router) {
     return MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: database),
@@ -86,13 +93,16 @@ void main() {
         ),
         ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
       ],
-      child: const CupertinoApp(home: HomeScreen()),
+      child: CupertinoApp.router(routerConfig: router),
     );
   }
 
   /// Launches the app and waits until the registered server is listed.
+  ///
+  /// Runs at the default test surface, which is wide enough for the adaptive
+  /// scaffold to show its sidebar layout.
   Future<void> pumpHomeScreen(WidgetTester tester) async {
-    await tester.pumpWidget(createTestApp());
+    await tester.pumpWidget(createTestApp(createAppRouter()));
     await pumpUntilAsync(
       tester,
       () => find.text('Test TrueNAS Server').evaluate().isNotEmpty,
@@ -133,7 +143,7 @@ void main() {
       // STEP 1: Home screen lists the registered server.
       await pumpHomeScreen(tester);
 
-      expect(find.text('TrueNAS Manager'), findsOneWidget);
+      expect(find.text('Servers'), findsWidgets);
       expect(find.text('Test TrueNAS Server'), findsOneWidget);
       expect(find.text('https://192.168.1.100:443'), findsOneWidget);
       expect(serverProvider.selectedServer, isNull);

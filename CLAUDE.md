@@ -54,9 +54,10 @@ Repository pattern with drift (SQLite) database:
 ## Current Development Status
 - ✅ Completed: server management, JSON-RPC API client, CloudKit/SQLite repository layer,
   Keychain + biometrics, pools & datasets, app catalog with live resource usage, file browsing,
-  system stats, macOS tray, `truenas_native_plugins` package
-- 🚧 In Progress: adaptive Cupertino sidebar navigation (#54), splitting large screens into
-  smaller widgets (#35), raising test coverage towards 80%
+  system stats, macOS tray, `truenas_native_plugins` package, adaptive Cupertino sidebar
+  navigation with go_router (#54)
+- 🚧 In Progress: splitting large screens into smaller widgets (#35), raising test
+  coverage towards 80%
 - 📋 Planned: alerts & push notifications (#25), job monitor (#26), service management (#27),
   dashboard widgets (#28), system updates (#29), network interfaces (#30), pool health/scrub (#31),
   mDNS discovery (#39)

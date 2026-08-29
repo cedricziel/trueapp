@@ -9,7 +9,7 @@ import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
-import 'package:truehub/screens/home_screen.dart';
+import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/window_manager.dart';
@@ -173,13 +173,13 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
+    return CupertinoApp.router(
       title: 'TrueNAS Manager',
       theme: const CupertinoThemeData(
         primaryColor: CupertinoColors.systemBlue,
         brightness: Brightness.light,
       ),
-      home: const HomeScreen(),
+      routerConfig: appRouter,
     );
   }
 }

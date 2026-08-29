@@ -209,6 +209,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  cupertino_sidebar:
+    dependency: "direct main"
+    description:
+      name: cupertino_sidebar
+      sha256: df3ed087b5b86d335f32862f81a84b6f08efc603090349ee21d9630abd9017c6
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   dart_pre_commit:
     dependency: "direct dev"
     description:
@@ -432,6 +440,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  go_router:
+    dependency: "direct main"
+    description:
+      name: go_router
+      sha256: d8f590a69729f719177ea68eb1e598295e8dbc41bbc247fed78b2c8a25660d7c
+      url: "https://pub.dev"
+    source: hosted
+    version: "16.3.0"
   graphs:
     dependency: transitive
     description:

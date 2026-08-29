@@ -78,6 +78,10 @@ dependencies:
   # URL launcher for opening app URLs
   url_launcher: ^6.3.2
 
+  # Navigation packages for adaptive sidebar
+  go_router: ^16.0.0
+  cupertino_sidebar: ^1.0.1
+
   # Native plugins for CloudKit and Keychain
   truenas_native_plugins:
     path: packages/truenas_native_plugins
