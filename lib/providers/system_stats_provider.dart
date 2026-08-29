@@ -246,8 +246,18 @@ class SystemStatsProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('SystemStatsProvider: Disposing');
     }
-    // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-    unsubscribeFromStats();
+    // Note: We can't await in dispose(). Unlike `unsubscribeFromStats()`,
+    // this cleanup deliberately never calls notifyListeners() - doing so
+    // from a callback that resolves after `super.dispose()` below would hit
+    // ChangeNotifier's "used after being disposed" assertion.
+    _statsSubscription?.cancel();
+    _statsSubscription = null;
+    if (_apiClient != null) {
+      // Fire-and-forget: swallow errors exactly as the awaited call inside
+      // unsubscribeFromStats() does, since nothing here can await or retry.
+      _apiClient!.unsubscribeFromSystemStats().catchError((_) {});
+    }
+    _isSubscribed = false;
 
     if (_currentServerId != null) {
       ApiClientManager.releaseClient(_currentServerId!);
