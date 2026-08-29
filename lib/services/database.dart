@@ -113,17 +113,33 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(nasServers, nasServers.isDefault);
       }
-      if (from < 3) {
+
+      // `_migrateCredentialsToSecureStorage` rebuilds nas_servers via
+      // TableMigration against its *current* Dart definition (see the
+      // comment on that method), which already includes the `username`
+      // column re-added at v10 - so the dedicated `if (from < 10)` step
+      // below must not add it a second time for anyone who just went
+      // through this.
+      final legacyCredentialsMigrationRan = from < 3;
+      if (legacyCredentialsMigrationRan) {
         await _migrateCredentialsToSecureStorage(m, from);
       }
-      if (from < 4) {
+
+      // `createTable` always creates a table using its *current* Dart
+      // definition - every column through the latest schema version, not
+      // a historical snapshot - so when app_configs/app_port_configs are
+      // created fresh here, every later `addColumn` step below for those
+      // two tables already has its column and must be skipped, or SQLite
+      // rejects it as a duplicate column.
+      final appTablesJustCreated = from < 4;
+      if (appTablesJustCreated) {
         await m.createTable(appConfigs);
         await m.createTable(appPortConfigs);
       }
-      if (from < 5) {
+      if (from < 5 && !appTablesJustCreated) {
         await m.addColumn(appConfigs, appConfigs.isFavorite);
       }
-      if (from < 6) {
+      if (from < 6 && !appTablesJustCreated) {
         await m.addColumn(appConfigs, appConfigs.title);
         await m.addColumn(appConfigs, appConfigs.description);
         await m.addColumn(appConfigs, appConfigs.installed);
@@ -140,7 +156,7 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(appConfigs, appConfigs.train);
         await m.addColumn(appConfigs, appConfigs.lastApiUpdate);
       }
-      if (from < 7) {
+      if (from < 7 && !appTablesJustCreated) {
         await m.addColumn(appConfigs, appConfigs.screenshots);
         await m.addColumn(appConfigs, appConfigs.sources);
         await m.addColumn(appConfigs, appConfigs.appReadme);
@@ -155,14 +171,19 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE app_port_configs SET custom_url = NULL WHERE custom_url IS NOT NULL',
         );
       }
-      if (from < 9) {
+      if (from < 9 && !appTablesJustCreated) {
         await m.addColumn(appPortConfigs, appPortConfigs.apiUrl);
       }
-      if (from < 10) {
+      if (from < 10 && !legacyCredentialsMigrationRan) {
         // Re-add username column as non-sensitive metadata
         // Password remains in keychain only
         await m.addColumn(nasServers, nasServers.username);
       }
+    },
+    beforeOpen: (details) async {
+      // SQLite ignores declared foreign keys (including onDelete: cascade)
+      // unless this pragma is turned on per-connection - it defaults to off.
+      await customStatement('PRAGMA foreign_keys = ON');
     },
   );
 
@@ -192,6 +213,12 @@ class AppDatabase extends _$AppDatabase {
               nasServers.id: nasServers.id,
               nasServers.name: nasServers.name,
               nasServers.host: nasServers.host,
+              // `username` was re-added (at v10) after this migration
+              // shipped, so it never exists on the pre-v3 source table
+              // this step reads from - default it explicitly instead of
+              // letting TableMigration fall back to a same-name column
+              // read that would fail with "no such column: username".
+              nasServers.username: const Constant(''),
               nasServers.localUrl: nasServers.localUrl,
               nasServers.trustedWifiSsids: nasServers.trustedWifiSsids,
               nasServers.port: nasServers.port,

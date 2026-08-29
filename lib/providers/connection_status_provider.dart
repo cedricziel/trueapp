@@ -102,13 +102,18 @@ class ConnectionStatusProvider extends ChangeNotifier {
     final current = _connectionStatuses[serverId];
     final now = DateTime.now();
 
-    _connectionStatuses[serverId] = ConnectionStatus(
-      state: current?.state ?? TrueNASConnectionState.disconnected,
-      lastPing: pingSent ?? current?.lastPing ?? now,
-      lastPong: pongReceived ?? current?.lastPong,
-      error: current?.error,
-      latency: latency ?? current?.latency,
-    );
+    _connectionStatuses[serverId] =
+        current?.copyWith(
+          lastPing: pingSent ?? current.lastPing,
+          lastPong: pongReceived ?? current.lastPong,
+          latency: latency ?? current.latency,
+        ) ??
+        ConnectionStatus(
+          state: TrueNASConnectionState.disconnected,
+          lastPing: pingSent ?? now,
+          lastPong: pongReceived,
+          latency: latency,
+        );
 
     if (kDebugMode && pongReceived != null) {
       debugPrint(

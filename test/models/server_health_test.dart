@@ -16,7 +16,7 @@ void main() {
       expect(disk.usagePercentage, equals(25.0));
     });
 
-    test('usagePercentage is NaN when size is zero (no guard)', () {
+    test('usagePercentage guards against division by zero when size is 0', () {
       const disk = DiskInfo(
         name: 'da0',
         model: 'Model',
@@ -26,7 +26,7 @@ void main() {
         temperature: 0,
         health: 'GOOD',
       );
-      expect(disk.usagePercentage.isNaN, isTrue);
+      expect(disk.usagePercentage, equals(0.0));
     });
 
     test('equality holds for equal instances and differs on change', () {

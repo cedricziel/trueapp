@@ -339,11 +339,8 @@ void main() {
       await database.deleteAppConfig(999999);
     });
 
-    test('deleting a server does NOT cascade-delete its app configs, because '
-        "the connection never issues PRAGMA foreign_keys = ON, so SQLite "
-        "doesn't enforce the declared onDelete: KeyAction.cascade behavior "
-        '(true both here and in production - AppDatabase never sets that '
-        'pragma)', () async {
+    test('deleting a server cascade-deletes its app configs, per the declared '
+        'onDelete: KeyAction.cascade', () async {
       final database = createTestDatabase();
       final serverId = await _seedServer(database);
       await database.insertAppConfig(
@@ -352,9 +349,7 @@ void main() {
 
       await database.deleteServer(serverId);
 
-      // If foreign-key enforcement were active this would be empty -
-      // instead the app_configs row is silently orphaned.
-      expect(await database.getAppConfigs(serverId), hasLength(1));
+      expect(await database.getAppConfigs(serverId), isEmpty);
     });
   });
 
@@ -520,25 +515,22 @@ void main() {
       expect(ports.firstWhere((p) => p.id == firstPort).isPrimary, isFalse);
     });
 
-    test(
-      'deleting an app config does NOT cascade-delete its port configs, for '
-      'the same reason (foreign key enforcement is never turned on)',
-      () async {
-        final database = createTestDatabase();
-        final serverId = await _seedServer(database);
-        final appConfigId = await seedAppConfig(database, serverId);
-        await database.insertAppPortConfig(
-          AppPortConfigsCompanion.insert(
-            appConfigId: appConfigId,
-            portNumber: 32400,
-          ),
-        );
+    test('deleting an app config cascade-deletes its port configs, per the '
+        'declared onDelete: KeyAction.cascade', () async {
+      final database = createTestDatabase();
+      final serverId = await _seedServer(database);
+      final appConfigId = await seedAppConfig(database, serverId);
+      await database.insertAppPortConfig(
+        AppPortConfigsCompanion.insert(
+          appConfigId: appConfigId,
+          portNumber: 32400,
+        ),
+      );
 
-        await database.deleteAppConfig(appConfigId);
+      await database.deleteAppConfig(appConfigId);
 
-        expect(await database.getAppPortConfigs(appConfigId), hasLength(1));
-      },
-    );
+      expect(await database.getAppPortConfigs(appConfigId), isEmpty);
+    });
   });
 
   group('getAppConfigsWithPorts', () {
@@ -619,8 +611,9 @@ void main() {
       'appConfigToCompanion JSON-encodes list fields, mapToAppConfig decodes them back',
       () async {
         final database = createTestDatabase();
+        final serverId = await _seedServer(database);
         final config = app_models.AppConfig(
-          serverId: 'server-1',
+          serverId: serverId,
           appName: 'plex',
           categories: const ['media', 'entertainment'],
           tags: const ['popular'],
@@ -636,7 +629,7 @@ void main() {
         expect(companion.categories.value, '["media","entertainment"]');
 
         final id = await database.insertAppConfig(companion);
-        final roundTripped = (await database.getAppConfigs('server-1')).single;
+        final roundTripped = (await database.getAppConfigs(serverId)).single;
         final mapped = database.mapToAppConfig(roundTripped, const []);
 
         expect(mapped.id, id);
@@ -958,25 +951,23 @@ void main() {
       },
     );
 
-    test('upgrading from schema version 1 currently fails: createTable/'
-        'addColumn migration steps assume the historical, not the current, '
-        'shape of the table being touched', () async {
-      // KNOWN PRE-EXISTING BUG (not introduced or fixed by this test file -
-      // lib/services/database.dart was explicitly out of scope):
-      //
-      // `if (from < 4) { await m.createTable(appConfigs); ... }` creates
-      // app_configs using the *current* Dart table definition (every
-      // column through schema v7 - isFavorite, title, categories, ...),
-      // not the narrower v4 shape. The later `if (from < 5)` /
-      // `if (from < 6)` / `if (from < 7)` blocks then try to
-      // `m.addColumn` those same columns again onto a table that already
-      // has them, which SQLite rejects as a duplicate column. Any
-      // installation still below schema version 4 (i.e. one that has not
-      // been opened since very early releases) will fail to migrate to
-      // the current schema version 10 with a SqliteException, rather
-      // than silently succeeding. This reproduces that with a schema
-      // v1-shaped database (also pre-dating the v2 `isDefault` column and
-      // the v3 credentials migration).
+    test('upgrading from schema version 1 runs every migration step cleanly '
+        'and preserves the existing row', () async {
+      // Regression test for a bug where `if (from < 4) { await
+      // m.createTable(appConfigs); ... }` creates app_configs/
+      // app_port_configs using the *current* Dart table definition
+      // (every column through the latest schema version), not the
+      // narrower v4 shape - so the later `if (from < 5)` / `if (from <
+      // 6)` / `if (from < 7)` / `if (from < 9)` blocks were trying to
+      // `m.addColumn` those same columns again onto a table that
+      // already had them, which SQLite rejects as a duplicate column.
+      // Likewise `_migrateCredentialsToSecureStorage`'s TableMigration
+      // (from < 3) targets the current nas_servers shape, which
+      // includes `username` - re-added at v10 - so `if (from < 10) {
+      // addColumn(username) }` was also a duplicate for anyone who'd
+      // just gone through that step. This reproduces the whole chain
+      // with a schema v1-shaped database (pre-dating the v2
+      // `isDefault` column and the v3 credentials migration).
       final raw = sqlite3.sqlite3.openInMemory();
       raw.execute('''
           CREATE TABLE nas_servers (
@@ -1000,7 +991,31 @@ void main() {
       final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
       addTearDown(database.close);
 
-      await expectLater(database.getAllServers(), throwsA(anything));
+      expect(database.schemaVersion, 10);
+
+      final server = await database.getServer('s1');
+      expect(server, isNotNull);
+      expect(server!.username, '');
+      expect(server.isActive, isTrue);
+      expect(server.isDefault, isFalse);
+
+      // The tables app_configs/app_port_configs are usable afterwards,
+      // with every column through v10 present exactly once.
+      final configId = await database.insertAppConfig(
+        AppConfigsCompanion.insert(serverId: 's1', appName: 'plex'),
+      );
+      await database.insertAppPortConfig(
+        AppPortConfigsCompanion.insert(
+          appConfigId: configId,
+          portNumber: 32400,
+        ),
+      );
+      final config = await database.getAppConfig('s1', 'plex');
+      expect(config, isNotNull);
+      expect(config!.isFavorite, isFalse);
+      final ports = await database.getAppPortConfigs(configId);
+      expect(ports, hasLength(1));
+      expect(ports.single.apiUrl, isNull);
     });
   });
 

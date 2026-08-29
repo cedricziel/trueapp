@@ -150,6 +150,26 @@ void main() {
 
       expect(notifications, 1);
     });
+
+    test('preserves connectionUrl and isLocalConnection set by an earlier '
+        'updateConnectionState call', () {
+      provider.updateConnectionState(
+        'server-1',
+        TrueNASConnectionState.connected,
+        connectionUrl: 'https://nas.local',
+        isLocalConnection: true,
+      );
+
+      provider.updatePingStatus(
+        'server-1',
+        pongReceived: DateTime(2026, 1, 2),
+        latency: const Duration(milliseconds: 10),
+      );
+
+      final status = provider.getStatus('server-1')!;
+      expect(status.connectionUrl, 'https://nas.local');
+      expect(status.isLocalConnection, isTrue);
+    });
   });
 
   group('ConnectionStatusProvider - removeServer', () {
