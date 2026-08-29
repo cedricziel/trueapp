@@ -64,14 +64,21 @@ class TestProviders {
   /// forever. Without the guard a single failing test wedges every remaining
   /// test in the same file, which is exactly how a CI run turns into a one-hour
   /// timeout instead of a readable failure.
+  /// Every notifier the test created itself belongs in [providers]. Injecting
+  /// one with `ChangeNotifierProvider.value` hands the widget tree a borrowed
+  /// reference: the provider does not own it and never disposes it, so the
+  /// test has to. Missing one leaks whatever it holds - a `PoolProvider`, for
+  /// instance, keeps an API client checked out until `dispose` releases it.
   static Future<void> disposeTestStack({
-    ChangeNotifier? provider,
+    Iterable<ChangeNotifier> providers = const [],
     UnifiedServerService? service,
     AppDatabase? database,
     Duration timeout = const Duration(seconds: 5),
   }) async {
     await _ignoringErrors(cleanupTestEnvironment);
-    await _ignoringErrors(() async => provider?.dispose());
+    for (final provider in providers) {
+      await _ignoringErrors(() async => provider.dispose());
+    }
     await _ignoringErrors(() async => service?.dispose());
 
     if (database != null) {

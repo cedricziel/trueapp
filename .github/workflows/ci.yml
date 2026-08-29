@@ -13,6 +13,8 @@ concurrency:
 
 jobs:
   test:
+    permissions:
+      contents: read
     runs-on: macos-latest
     # A hanging test used to keep this job alive until the runner limit was
     # reached, which hides the failure and blocks the queue. Fail fast instead.
