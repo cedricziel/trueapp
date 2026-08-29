@@ -76,6 +76,12 @@ class MockApiClientManager implements ApiClientManagerInterface {
   }
 
   @override
+  Future<Map<String, Object>> ensureAllConnectionsAlive() async {
+    methodCalls.add('ensureAllConnectionsAlive');
+    return <String, Object>{};
+  }
+
+  @override
   Future<void> closeAllClients() async {
     methodCalls.add('closeAllClients');
     _mockClients.clear();

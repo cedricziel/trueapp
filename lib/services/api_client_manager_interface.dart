@@ -20,6 +20,13 @@ abstract class ApiClientManagerInterface {
   /// Close all active clients
   Future<void> closeAllClients();
 
+  /// Verifies every pooled client's connection and recovers the ones the OS
+  /// dropped while the app was suspended.
+  ///
+  /// One unreachable server never prevents the others from recovering, so
+  /// failures are returned per server id rather than thrown.
+  Future<Map<String, Object>> ensureAllConnectionsAlive();
+
   /// Get an existing client without creating a new one
   TrueNasApiClient? getExistingClient(String serverId);
 

@@ -158,6 +158,28 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   }
 
   @override
+  Future<Map<String, Object>> ensureAllConnectionsAlive() async {
+    final failures = <String, Object>{};
+
+    await Future.wait(
+      getActiveServerIds().map((serverId) async {
+        final client = getExistingClient(serverId);
+        if (client == null) return;
+        try {
+          await client.ensureConnectionAlive();
+        } catch (e) {
+          failures[serverId] = e;
+          if (kDebugMode) {
+            print('ApiClientManager: Recovery failed for $serverId: $e');
+          }
+        }
+      }),
+    );
+
+    return failures;
+  }
+
+  @override
   Future<void> closeAllClients() async {
     if (kDebugMode) {
       print('ApiClientManager: Closing all clients');

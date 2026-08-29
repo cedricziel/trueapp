@@ -132,6 +132,44 @@ void main() {
     },
   );
 
+  test('concurrent recovery attempts reconnect only once', () async {
+    await client.subscribeToSystemStats();
+    expect(server.loginCount, 1);
+
+    await server.dropConnections();
+
+    // The resume hook and the keepalive timer can both notice the dead socket
+    // at the same moment; that must not open two sessions.
+    await Future.wait([
+      client.ensureConnectionAlive(),
+      client.ensureConnectionAlive(),
+      client.ensureConnectionAlive(),
+    ]);
+
+    expect(
+      server.loginCount,
+      2,
+      reason: 'overlapping recovery attempts must share one reconnect',
+    );
+    expect(server.subscribeCount, 2);
+  });
+
+  test(
+    'ensureConnectionAlive reports a failed recovery to its caller',
+    () async {
+      await client.subscribeToSystemStats();
+
+      // The server is gone entirely - recovery cannot succeed, and the caller
+      // has to learn that instead of being told everything is fine.
+      await server.stop();
+
+      await expectLater(
+        client.ensureConnectionAlive(),
+        throwsA(isA<Exception>()),
+      );
+    },
+  );
+
   test(
     'subscribeToSystemStats re-subscribes after the connection was lost',
     () async {

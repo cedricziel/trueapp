@@ -46,7 +46,7 @@ class TrueNasApiClient implements ApiClientInterface {
   bool get _hasLiveConnection => _client != null && !_client!.isClosed;
 
   Future<void> _ensureConnected() async {
-    if (_client != null && !_client!.isClosed) {
+    if (_hasLiveConnection) {
       return;
     }
 
@@ -81,18 +81,34 @@ class TrueNasApiClient implements ApiClientInterface {
         protocols: ['json-rpc'],
       );
 
+      // WebSocketChannel.connect is lazy: without awaiting readiness a failed
+      // handshake surfaces as an unhandled asynchronous error instead of a
+      // failure the caller can act on.
+      await _wsChannel!.ready.timeout(const Duration(seconds: 15));
+
       _client = Peer(_wsChannel!.cast<String>());
 
       // Register method to handle collection_update notifications from server
       _setupCollectionUpdateHandler();
 
       // Start listening for responses with error handling
-      _client!.listen().catchError((error) {
-        if (kDebugMode) {
-          print('TrueNAS API: WebSocket error: $error');
-        }
-        throw _handleConnectionError(error);
-      });
+      // Socket-level failures arrive here asynchronously, with no caller to
+      // receive them: rethrowing would only produce an unhandled zone error.
+      // Record the state instead - the next request (or the resume hook) sees
+      // the closed client and recovers.
+      unawaited(
+        _client!.listen().catchError((error) {
+          if (kDebugMode) {
+            print('TrueNAS API: WebSocket error: $error');
+          }
+          _isAuthenticated = false;
+          _connectionStatusProvider?.updateConnectionState(
+            _server.id,
+            TrueNASConnectionState.error,
+            error: error.toString(),
+          );
+        }),
+      );
 
       _isAuthenticated = false;
       if (kDebugMode) {
@@ -102,6 +118,15 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: Connection failed: $e');
       }
+
+      // Drop the half-open channel. Keeping it means a later close() awaits a
+      // handshake that never completed, which never returns.
+      final failedChannel = _wsChannel;
+      _wsChannel = null;
+      _client = null;
+      _isAuthenticated = false;
+      unawaited(failedChannel?.sink.close().catchError((_) {}));
+
       _connectionStatusProvider?.updateConnectionState(
         _server.id,
         TrueNASConnectionState.error,
@@ -138,10 +163,6 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   Future<void> _sendKeepalivePing() async {
-    if (!_keepaliveEnabled) {
-      return;
-    }
-
     // A closed socket is precisely the case that needs recovering. Returning
     // here (as this used to) left the client dead until something else
     // happened to issue a request.
@@ -207,7 +228,17 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  Future<void> _handleKeepaliveTimeout() async {
+  /// Guards against two triggers (the keepalive timer and the app-resume
+  /// hook) starting overlapping reconnects, which would open two sessions.
+  Future<void>? _recovery;
+
+  Future<void> _handleKeepaliveTimeout() {
+    return _recovery ??= _recoverConnection().whenComplete(() {
+      _recovery = null;
+    });
+  }
+
+  Future<void> _recoverConnection() async {
     _awaitingPong = false;
 
     if (kDebugMode) {
@@ -263,12 +294,20 @@ class TrueNasApiClient implements ApiClientInterface {
   /// the process is suspended, so nothing else notices the dead socket.
   @override
   Future<void> ensureConnectionAlive() async {
-    if (_hasLiveConnection && _isAuthenticated) {
-      await _sendKeepalivePing();
-      return;
-    }
+    // _sendKeepalivePing already owns the "is this connection usable, and
+    // recover it if not" decision; don't restate it here.
+    await _sendKeepalivePing();
 
-    await _handleKeepaliveTimeout();
+    // Recovery reports its own failures to the connection status provider and
+    // does not rethrow, because the periodic timer must not die on a blip. A
+    // caller that asked for a usable connection needs the bad news.
+    if (!_hasLiveConnection || !_isAuthenticated) {
+      throw ConnectionException(
+        ConnectionError.networkUnreachable(
+          details: 'Could not restore the connection to ${_server.name}',
+        ),
+      );
+    }
   }
 
   /// Re-subscribes to the streams the UI had asked for before the connection
@@ -280,14 +319,18 @@ class TrueNasApiClient implements ApiClientInterface {
     if (wantsSystemStats) {
       _isSubscribedToRealtime = false;
       _realtimeSubscriptionId = null;
-      await subscribeToSystemStats();
     }
-
     if (wantsAppStats) {
       _isSubscribedToAppStats = false;
       _appStatsSubscriptionId = null;
-      await subscribeToAppStats();
     }
+
+    // Independent RPCs over an established session; no reason to serialise
+    // them on a path where round trips already stack up.
+    await Future.wait([
+      if (wantsSystemStats) subscribeToSystemStats(),
+      if (wantsAppStats) subscribeToAppStats(),
+    ]);
   }
 
   @override
@@ -1023,7 +1066,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
 
     try {
-      if (_client != null && !_client!.isClosed) {
+      if (_hasLiveConnection) {
         await _client!.sendRequest('core.unsubscribe', [
           _realtimeSubscriptionId!,
         ]);
@@ -1103,7 +1146,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
 
     try {
-      if (_client != null && !_client!.isClosed) {
+      if (_hasLiveConnection) {
         await _client!.sendRequest('core.unsubscribe', [
           _appStatsSubscriptionId!,
         ]);

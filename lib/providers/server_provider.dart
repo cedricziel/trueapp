@@ -366,18 +366,23 @@ class ServerProvider extends ChangeNotifier {
   /// Revives the connection after the app was suspended and refreshes what the
   /// screens display. Safe to call when nothing is connected.
   Future<void> refreshConnection() async {
-    final client = _apiClient;
-    if (client == null) return;
+    final server = _selectedServer;
+    if (_apiClient == null || server == null) return;
 
-    try {
-      await client.ensureConnectionAlive();
+    // Every pooled client matters, not just the selected server's: other
+    // providers hold clients the OS dropped just the same. One round of
+    // recovery covers them all and reports per-server failures.
+    final failures = await ApiClientManager.ensureAllConnectionsAlive();
+
+    final failure = failures[server.id];
+    if (failure == null) {
       _authState = AuthenticationState.authenticated;
       _authError = null;
-    } catch (e) {
+    } else {
       _authState = AuthenticationState.failed;
-      _authError = 'Connection lost: ${e.toString()}';
+      _authError = 'Connection lost: $failure';
       if (kDebugMode) {
-        print('ServerProvider: Failed to refresh connection: $e');
+        print('ServerProvider: Failed to refresh connection: $failure');
       }
     }
 
