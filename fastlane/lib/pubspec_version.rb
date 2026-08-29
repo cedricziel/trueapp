@@ -9,7 +9,11 @@
 module PubspecVersion
   VERSION_LINE = /\Aversion:\s*(\d+\.\d+\.\d+)(?:\+\S+)?\s*\z/
 
-  def self.read(path)
+  # Anchored here rather than in the Fastfile: fastlane evals the Fastfile,
+  # where __dir__ resolves to the repo root, not fastlane/.
+  DEFAULT_PATH = File.expand_path("../../pubspec.yaml", __dir__)
+
+  def self.read(path = DEFAULT_PATH)
     File.foreach(path) do |line|
       match = VERSION_LINE.match(line)
       return match[1] if match
