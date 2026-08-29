@@ -2,8 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/fake_api_client.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
@@ -194,6 +196,39 @@ void main() {
       // Selected server should be null after deletion
       expect(serverProvider.selectedServer, isNull);
     });
+
+    test(
+      'should close the cached API client when a server is deleted',
+      () async {
+        // Select the server first: `selectServer` unconditionally releases
+        // whatever client the *previous* selection held (see its "Release
+        // previous client if any" step), including when reselecting the
+        // already-selected server. Seeding the mock client before this call
+        // would have it wiped out by that release before the assertion below
+        // ever sees it.
+        await serverProvider.selectServer(testServer);
+
+        // Seed the mock manager with a cached client for this server, the way
+        // a real `getClient()` call from `selectServer` would. The mock's
+        // `getClient` does not itself register a client on a cache miss, so
+        // without this the `hasClient` assertion below would pass trivially
+        // regardless of whether `deleteServer` actually closes the client.
+        TestProviders.mockApiClientManager.addMockClient(
+          testServer.id,
+          FakeApiClient(),
+        );
+        expect(ApiClientManager.hasClient(testServer.id), isTrue);
+
+        // Deleting the server must not leave a stale client (and its
+        // websocket/keepalive timer) behind for a server that no longer exists.
+        await serverProvider.deleteServer(testServer.id);
+
+        expect(ApiClientManager.hasClient(testServer.id), isFalse);
+
+        // Restore the test server for other tests relying on setUp state.
+        await serverProvider.addServer(testServer, 'password');
+      },
+    );
 
     test('should update server and maintain consistency', () async {
       // Add another server

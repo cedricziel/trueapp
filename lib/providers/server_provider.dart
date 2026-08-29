@@ -212,6 +212,10 @@ class ServerProvider extends ChangeNotifier {
       throw Exception('Failed to delete server configuration');
     }
 
+    // The server no longer exists, so its cached client (and any live
+    // websocket/keepalive timer it holds) must not survive the deletion.
+    await ApiClientManager.closeClient(id);
+
     if (_selectedServer?.id == id) {
       _selectedServer = null;
       _clearAuthState();
