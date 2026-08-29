@@ -8,61 +8,15 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 
 ## Commands
 
-### Development
-- `flutter pub get` - Install dependencies
-- `flutter run` - Run on iOS (default)
-- `flutter run -d macos` - Run on macOS
-- `flutter analyze` - Run static analysis
-- `dart run build_runner build` - Generate database code (required after modifying database schema)
-- `dart format` - Run dart formatter before committing
+- `dart run build_runner build` - required after modifying the drift database schema
+- `dart format` - run before committing
 
-### Building
-- `flutter build ios` - Build iOS app
-- `flutter build macos` - Build macOS app
+## Key Implementation Notes
 
-### Testing
-- `flutter test` - Run all tests
-- `flutter test test/widget_test.dart` - Run specific test file
-
-## Architecture
-
-### State Management
-Uses Provider pattern. Providers are located in `lib/providers/` and manage application state:
-- `server_provider.dart` - Manages server connections and active server state
-- `pool_provider.dart` - Manages storage pool data
-- `dataset_provider.dart` - Manages dataset information
-
-### Data Layer
-Repository pattern with drift (SQLite) database:
-- `lib/services/database_service.dart` - Main database service using drift
-- `lib/models/` - Data models using Equatable for value equality
-- Database schema changes require running `dart run build_runner build`
-
-### UI Structure
-- `lib/screens/` - Full page views (e.g., server list, pool details, dataset management)
-- `lib/widgets/` - Reusable UI components
-- All UI uses Cupertino (iOS-style) widgets exclusively
-
-### Key Implementation Notes
-1. The app supports multiple TrueNAS server connections stored securely in SQLite
+1. All UI uses Cupertino (iOS-style) widgets exclusively - never Material
 2. Passwords live in the native Keychain via `NativeKeychainService`, never in the
    database. Server metadata, including the username, is stored by the repository
    layer: CloudKit on Apple platforms, SQLite elsewhere
-3. Uses dio for HTTP requests to TrueNAS API
-4. Native platform features through iOS/macOS specific implementations
-
-## Current Development Status
-- ✅ Completed: server management, JSON-RPC API client, CloudKit/SQLite repository layer,
-  Keychain + biometrics, pools & datasets, app catalog with live resource usage, file browsing,
-  system stats, macOS tray, `truenas_native_plugins` package, adaptive Cupertino sidebar
-  navigation with go_router (#54)
-- 🚧 In Progress: splitting large screens into smaller widgets (#35), raising test
-  coverage towards 80%
-- 📋 Planned: alerts & push notifications (#25), job monitor (#26), service management (#27),
-  dashboard widgets (#28), system updates (#29), network interfaces (#30), pool health/scrub (#31),
-  mDNS discovery (#39)
-
-See README.md for the user-facing version of this list.
 
 ## Tooling Notes
 - `gtimeout` is used for adding timeouts to bash commands
