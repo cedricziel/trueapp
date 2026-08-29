@@ -288,91 +288,43 @@ void main() {
   );
 
   group('DatasetDetailScreen - layout', () {
-    testWidgets(
-      'the General Information section does not overflow at iPhone width',
-      (WidgetTester tester) async {
-        // A short viewport, not just a narrow one: `ListView`'s sliver lays
-        // out (and therefore can overflow) every section that falls within
-        // its viewport plus cache extent, and the full 844pt-tall compact
-        // surface is tall enough to also lay out the later sections that
-        // carry the known bug documented below. Capping the height to just
-        // past the first section isolates this assertion to
-        // "General Information" alone, which has a short title and is not
-        // affected by that bug.
-        useSurface(
-          tester,
-          const TestSurface(
-            name: 'iPhone-width, short viewport',
-            size: Size(390, 260),
-            devicePixelRatio: 3.0,
-          ),
-        );
+    testWidgets('renders every section at iPhone width without layout overflow', (
+      WidgetTester tester,
+    ) async {
+      // `_buildSection`'s header Row (Icon + Text title) used to have no
+      // Expanded/Flexible around the title, so the two longer section
+      // titles - "Compression & Efficiency" and "Security & Permissions" -
+      // overflowed at iPhone width unconditionally, even for a totally
+      // empty dataset. Fixed by giving the title the same
+      // Expanded+ellipsis treatment as ServerDetailScreen's section
+      // headers (ticket #86).
+      useCompactSurface(tester);
 
-        final dataset = <String, dynamic>{
-          'name':
-              'tank/a-very-long-dataset-path/that/keeps/going/and/going/and/stresses/the/layout',
-          'type': 'FILESYSTEM',
-          'mountpoint':
-              '/mnt/tank/a-very-long-dataset-path/that/keeps/going/and/going',
-          'pool': 'tank',
-          'encrypted': true,
-          'creation': valueMap('2024-01-15 10:30:00'),
-        };
+      final dataset = <String, dynamic>{
+        'name':
+            'tank/a-very-long-dataset-path/that/keeps/going/and/going/and/stresses/the/layout',
+        'type': 'FILESYSTEM',
+        'mountpoint':
+            '/mnt/tank/a-very-long-dataset-path/that/keeps/going/and/going',
+        'pool': 'tank',
+        'encrypted': true,
+        'creation': valueMap('2024-01-15 10:30:00'),
+      };
 
-        await tester.pumpWidget(createTestApp(dataset));
-        await pumpUntilFound(tester, find.text('General Information'));
+      await tester.pumpWidget(createTestApp(dataset));
+      await pumpUntilFound(tester, find.text('General Information'));
 
-        // Confirms the short viewport is actually doing its job: the later
-        // sections must not have been laid out for this to be a meaningful
-        // "no overflow" assertion rather than a vacuous one.
-        expect(find.text('Storage Information'), findsNothing);
-        expectNoLayoutOverflow(tester);
-      },
-    );
+      await tester.scrollUntilVisible(
+        find.text('Advanced Properties'),
+        500,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pump();
 
-    // KNOWN BUG (not fixed here - this test file must not touch lib/):
-    // `_buildSection`'s header `Row` lays out an `Icon` followed by a bare
-    // `Text(title, ...)` with no `Expanded`/`Flexible` around it, so the
-    // title cannot shrink. At iPhone width (390pt) the two longer section
-    // titles - "Compression & Efficiency" and "Security & Permissions" -
-    // overflow that Row. This is the exact same missing-Expanded/Flexible
-    // pattern ticket #86 fixed for `ServerDetailScreen`'s section headers
-    // (see server_detail_screen_test.dart's doc comment); it just was never
-    // applied to `DatasetDetailScreen`. It reproduces unconditionally, even
-    // for a totally empty dataset with no optional rows at all - proving
-    // it's a structural defect in the fixed section titles themselves, not
-    // something triggered by any particular dataset's data. This test
-    // documents the current (broken) behavior rather than silently masking
-    // it; a future fix to `_buildSection` (wrapping the title in `Expanded`)
-    // should make it start failing, at which point it - and its "General
-    // Information" sibling above - should be merged back into one true
-    // "no overflow anywhere on the page" assertion.
-    testWidgets(
-      'reproduces a pre-existing section-header overflow at iPhone width '
-      '(see comment above - not something these tests can fix)',
-      (WidgetTester tester) async {
-        useCompactSurface(tester);
-
-        await tester.pumpWidget(createTestApp(const {}));
-        await pumpUntilFound(tester, find.text('General Information'));
-
-        // `expectNoLayoutOverflow`'s doc notes that `tester.takeException()`
-        // collapses more than one simultaneous exception into a single
-        // synthetic "Multiple exceptions (N)" object (both of the offending
-        // headers - "Compression & Efficiency" and "Security & Permissions"
-        // - are within the compact surface's viewport at once), so this only
-        // asserts that *some* exception fired rather than matching its text.
-        final exception = tester.takeException();
-        expect(
-          exception,
-          isNotNull,
-          reason:
-              'expected the known section-header RenderFlex overflow (see '
-              'comment above); if this starts failing, the bug has been '
-              'fixed and this test should be replaced with a real '
-              'expectNoLayoutOverflow assertion',
-        );
-      },
-    );
+      expect(find.text('Compression & Efficiency'), findsOneWidget);
+      expect(find.text('Security & Permissions'), findsOneWidget);
+      expect(find.text('Advanced Properties'), findsOneWidget);
+      expectNoLayoutOverflow(tester);
+    });
   });
 }
