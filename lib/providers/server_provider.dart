@@ -363,6 +363,32 @@ class ServerProvider extends ChangeNotifier {
     }
   }
 
+  /// Revives the connection after the app was suspended and refreshes what the
+  /// screens display. Safe to call when nothing is connected.
+  Future<void> refreshConnection() async {
+    final client = _apiClient;
+    if (client == null) return;
+
+    try {
+      await client.ensureConnectionAlive();
+      _authState = AuthenticationState.authenticated;
+      _authError = null;
+    } catch (e) {
+      _authState = AuthenticationState.failed;
+      _authError = 'Connection lost: ${e.toString()}';
+      if (kDebugMode) {
+        print('ServerProvider: Failed to refresh connection: $e');
+      }
+    }
+
+    _emitAuthStatus();
+    notifyListeners();
+
+    if (_authState == AuthenticationState.authenticated) {
+      await loadServerHealth();
+    }
+  }
+
   Future<void> loadServerHealth() async {
     if (_apiClient == null) return;
 
