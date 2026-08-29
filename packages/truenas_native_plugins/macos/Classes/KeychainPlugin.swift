@@ -121,7 +121,8 @@ public class KeychainPlugin: NSObject, FlutterPlugin {
             let updateQuery: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
-                kSecAttrAccount as String: account
+                kSecAttrAccount as String: account,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
             ]
             
             let updateAttributes: [String: Any] = [

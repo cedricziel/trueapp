@@ -131,7 +131,8 @@ public class KeychainPlugin: NSObject, FlutterPlugin {
             let updateQuery: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
-                kSecAttrAccount as String: account
+                kSecAttrAccount as String: account,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
             ]
             
             let updateAttributes: [String: Any] = [
@@ -166,7 +167,10 @@ public class KeychainPlugin: NSObject, FlutterPlugin {
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecReturnData as String: kCFBooleanTrue
+            kSecReturnData as String: kCFBooleanTrue,
+            // Items are stored with kSecAttrSynchronizable=true; a query without
+            // this key matches only non-synchronizable items and misses them.
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var dataTypeRef: AnyObject?
@@ -230,7 +234,8 @@ public class KeychainPlugin: NSObject, FlutterPlugin {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         let status = SecItemCopyMatching(query as CFDictionary, nil)
@@ -256,7 +261,8 @@ public class KeychainPlugin: NSObject, FlutterPlugin {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecReturnAttributes as String: kCFBooleanTrue
+            kSecReturnAttributes as String: kCFBooleanTrue,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
         
         var dataTypeRef: AnyObject?
