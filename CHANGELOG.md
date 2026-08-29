@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/cedricziel/trueapp/compare/v0.1.0...v0.1.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* close the [#84](https://github.com/cedricziel/trueapp/issues/84)-[#95](https://github.com/cedricziel/trueapp/issues/95) review batch - compact layout, deep-link routing, coverage ratchet and hygiene ([#114](https://github.com/cedricziel/trueapp/issues/114)) ([c15b6e9](https://github.com/cedricziel/trueapp/commit/c15b6e9bc9dab7d4b4c2c2e5fbbe0b04f027cc23)), closes [#85](https://github.com/cedricziel/trueapp/issues/85) [#86](https://github.com/cedricziel/trueapp/issues/86) [#87](https://github.com/cedricziel/trueapp/issues/87) [#88](https://github.com/cedricziel/trueapp/issues/88) [#89](https://github.com/cedricziel/trueapp/issues/89) [#90](https://github.com/cedricziel/trueapp/issues/90) [#91](https://github.com/cedricziel/trueapp/issues/91) [#92](https://github.com/cedricziel/trueapp/issues/92) [#93](https://github.com/cedricziel/trueapp/issues/93) [#110](https://github.com/cedricziel/trueapp/issues/110)
+
 ## [0.1.0](https://github.com/cedricziel/trueapp/compare/v0.0.1...v0.1.0) (2026-08-29)
 
 
