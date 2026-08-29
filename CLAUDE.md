@@ -11,6 +11,9 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 - `dart run build_runner build` - required after modifying the drift database schema
 - `dart format` - run before committing
 
+## Git Conventions
+- Always use semantic commits (e.g. `fix:`, `feat:`, `test:`, `refactor:`, `chore:`) for commit messages
+
 ## Key Implementation Notes
 
 1. All UI uses Cupertino (iOS-style) widgets exclusively - never Material
