@@ -57,6 +57,46 @@ The app follows a clean architecture pattern with:
    flutter run -d macos
    ```
 
+## Testing & Coverage
+
+Run the full test suite:
+```bash
+flutter test
+```
+
+Measure coverage locally the same way CI does:
+```bash
+flutter test --coverage
+dart run tool/check_coverage.dart
+```
+
+This parses `coverage/lcov.info`, excludes build-generated sources
+(`*.g.dart`, `*.freezed.dart`, `*.mocks.dart` - `lib/services/database.g.dart`
+is the current example) from the percentage, and fails if coverage drops
+below the floor recorded in `tool/coverage_floor.txt`. Generated code is
+excluded because nobody writes tests against it, and including it makes the
+number reflect how much drift generates rather than how much of the
+hand-written app is tested.
+
+The floor is a **ratchet**, not the 80% goal itself: it is set to the
+coverage measured on the branch that introduced the check, rounded down to a
+whole percent, so it can only move up as real coverage improves. Raise it
+when coverage rises; never lower it without a written reason.
+
+Two caveats worth knowing when reading the number:
+- `packages/truenas_native_plugins/lib` is a separate package and is not
+  included in the report at all.
+- lcov only contains records for `lib/` files a test actually imported, so
+  files nothing exercises are silently absent rather than counted as 0%.
+  `tool/check_coverage.dart` prints how many `lib/` files are missing from
+  the report for exactly this reason - the headline percentage is
+  optimistic, not exact.
+
+No coverage badge is published: every option (Codecov, Coveralls, a shields
+endpoint) needs an external service and a repository secret, which isn't
+justified yet. CI uploads `coverage/lcov.info` as a build artifact instead,
+so the report is inspectable per run.
+
 ## Project Structure
 
 ```

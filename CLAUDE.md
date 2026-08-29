@@ -32,6 +32,7 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 
 ## Testing Goals
 - We aim for 80% coverage
+- CI enforces a coverage ratchet (not yet 80%) via `dart run tool/check_coverage.dart`; see the README's "Testing & Coverage" section for how it works and what it excludes
 
 ## Dart Language Notes
 - We want to make use of dart's ability to trim down files with part of
