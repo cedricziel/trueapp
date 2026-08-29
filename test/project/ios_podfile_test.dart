@@ -69,8 +69,10 @@ void main() {
 
         // Pin the parse itself: three configs (Debug/Profile/Release) on the
         // Runner app target, all declaring the same value. This documents
-        // that the three PBXProject-level 12.0 defaults are deliberately
-        // excluded from this comparison.
+        // that the three PBXProject-level defaults are deliberately excluded
+        // from this comparison - they carry Flutter's template value, which
+        // moves independently of the app's real target (#99 raised it from
+        // 12.0 to 15.0 without touching the app target's 16.6).
         expect(appTargetVersions, hasLength(3));
         expect(appTargetVersions.toSet(), equals({'16.6'}));
 
