@@ -93,7 +93,9 @@ void main() {
         r'MACOSX_DEPLOYMENT_TARGET = (\S+);',
       ).allMatches(pbxproj).map((m) => m.group(1)!).toSet();
 
-      expect(versions, equals({'10.14'}));
+      // 12.0: raised from 10.14 by the dependency majors in #115
+      // (flutter_secure_storage 11 / local_auth 3 require it).
+      expect(versions, equals({'12.0'}));
       expect(_uncommentedOsxPlatform(podfile), equals(versions.single));
     });
   });
