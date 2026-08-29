@@ -60,6 +60,9 @@ set_secret MATCH_PASSWORD "$MATCH_PASSWORD"
 set_secret MATCH_KEYCHAIN_PASSWORD "$(openssl rand -base64 32)"
 set_secret MATCH_DEPLOY_KEY "$(cat "$tmp/key")"
 
+# Same override precedence as fastlane/Appfile.
+EFFECTIVE_APP_ID="${APP_IDENTIFIER:-$(grep -o 'com\.cedricziel\.[A-Za-z0-9.]*' fastlane/Appfile | head -1)}"
+
 cat <<MSG
 
 Done. Two manual steps remain:
@@ -69,7 +72,7 @@ Done. Two manual steps remain:
      gh secret set RELEASE_PLEASE_TOKEN --repo $REPO
 
 2. Create the App Store provisioning profile in the match repo (needs the
-   App ID $(grep -o 'com\.cedricziel\.[a-z]*' fastlane/Appfile | head -1) to exist with its capabilities enabled):
+   App ID $EFFECTIVE_APP_ID to exist with its capabilities enabled):
      cp fastlane/.env.default fastlane/.env   # fill in ASC_* and MATCH_PASSWORD
      bundle exec fastlane bootstrap_signing
 MSG
