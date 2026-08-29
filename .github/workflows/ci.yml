@@ -79,6 +79,9 @@ jobs:
       run: dart run tool/check_coverage.dart
 
     - name: Upload coverage report
+      # always(): the report is most useful precisely when the floor check
+      # above failed, so the upload must not be skipped by that failure.
+      if: always()
       uses: actions/upload-artifact@v5
       with:
         name: lcov-report

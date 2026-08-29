@@ -77,10 +77,14 @@ excluded because nobody writes tests against it, and including it makes the
 number reflect how much drift generates rather than how much of the
 hand-written app is tested.
 
-The floor is a **ratchet**, not the 80% goal itself: it is set to the
-coverage measured on the branch that introduced the check, rounded down to a
-whole percent, so it can only move up as real coverage improves. Raise it
-when coverage rises; never lower it without a written reason.
+The floor is a **ratchet**, not the 80% goal itself: it is set just below the
+coverage measured on the branch that introduced the check, so it can only move
+up as real coverage improves. It sits a little under the measured number rather
+than exactly at it because CI runs on macOS while most local runs are on Linux,
+and the app has `Platform.is*` branches whose lines are only reachable on one
+host - a floor pinned to the exact local measurement would fail CI for a
+platform difference rather than a real regression. Raise it when coverage
+rises; never lower it without a written reason.
 
 Two caveats worth knowing when reading the number:
 - `packages/truenas_native_plugins/lib` is a separate package and is not
