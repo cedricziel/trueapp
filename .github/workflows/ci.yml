@@ -64,5 +64,14 @@ jobs:
     - name: Build iOS (no codesign)
       run: flutter build ios --no-codesign
 
-    - name: Build macOS
+    # `flutter build macos` has no --no-codesign flag, and the runner has no
+    # signing identity, so the Release configuration's Manual signing fails
+    # with "No profiles for 'com.cedricziel.trueapp' were found". Flutter
+    # forwards FLUTTER_XCODE_<setting> to xcodebuild, which lets CI compile
+    # without signing - the same intent as --no-codesign on the iOS step.
+    - name: Build macOS (no codesign)
+      env:
+        FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
+        FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
+        FLUTTER_XCODE_CODE_SIGN_IDENTITY: ""
       run: flutter build macos
