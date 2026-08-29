@@ -192,10 +192,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          // Wrap rather than Row: two badges side by side can be wider than
+          // a narrow phone screen, and a Row has no way to shrink fixed-size
+          // badge chips - wrapping to a second line keeps both visible
+          // instead of overflowing.
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              if (user.isAdministrator) ...[
+              if (user.isAdministrator)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -225,9 +231,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-              ],
-              if (user.hasTwoFactor) ...[
+              if (user.hasTwoFactor)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -257,7 +261,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
-              ],
             ],
           ),
         ],
@@ -375,11 +378,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(icon, color: CupertinoColors.activeBlue, size: 20),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
