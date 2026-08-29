@@ -12,7 +12,7 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 class AppProvider extends ChangeNotifier {
-  final AppDatabase _database;
+  final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -24,11 +24,25 @@ class AppProvider extends ChangeNotifier {
   StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
   final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
+  /// [databaseRef] is looked up on every access instead of being captured
+  /// once, so callers that recreate the database (e.g. after a "clear
+  /// database" operation disposes [AppDatabase.instance]) are picked up
+  /// transparently instead of leaving this provider pinned to a closed
+  /// instance. [database] remains as a convenience for callers (mainly
+  /// tests) that already hold a fixed, never-disposed instance to inject;
+  /// prefer [databaseRef] for anything backed by the app-wide singleton.
   AppProvider({
-    required AppDatabase database,
+    AppDatabase Function()? databaseRef,
+    AppDatabase? database,
     required UnifiedServerService serverService,
-  }) : _database = database,
+  }) : assert(
+         databaseRef != null || database != null,
+         'AppProvider requires either databaseRef or database',
+       ),
+       _databaseRef = databaseRef ?? (() => database!),
        _serverService = serverService;
+
+  AppDatabase get _database => _databaseRef();
 
   List<AppConfig> get appConfigs => _appConfigs;
   List<String> get categories => _categories;
@@ -154,13 +168,15 @@ class AppProvider extends ChangeNotifier {
       _connectionError = null;
     } on ConnectionException catch (e) {
       _connectionError = e.error;
-      // Fall back to offline data if available
-      await _loadPersistedAppConfigs();
+      // Fall back to offline data if available. This fallback has its own
+      // try/catch so a failure here (e.g. a database that is unavailable)
+      // records a ConnectionError instead of escaping loadApps().
+      await _tryLoadPersistedAppConfigs();
     } catch (e) {
       // Handle unexpected errors
       _connectionError = ConnectionError.unknown(details: e.toString());
-      // Fall back to offline data if available
-      await _loadPersistedAppConfigs();
+      // Fall back to offline data if available. See note above.
+      await _tryLoadPersistedAppConfigs();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -254,6 +270,21 @@ class AppProvider extends ChangeNotifier {
 
     if (kDebugMode) {
       print('AppProvider: Loaded ${_appConfigs.length} persisted app configs');
+    }
+  }
+
+  /// Fallback wrapper around [_loadPersistedAppConfigs] used from the
+  /// catch blocks in [loadApps]. Swallows its own errors (recording a
+  /// ConnectionError instead) so a broken database doesn't let a failure
+  /// escape loadApps() while it is already handling one.
+  Future<void> _tryLoadPersistedAppConfigs() async {
+    try {
+      await _loadPersistedAppConfigs();
+    } catch (e) {
+      _connectionError = ConnectionError.unknown(details: e.toString());
+      if (kDebugMode) {
+        print('AppProvider: Failed to load persisted app configs: $e');
+      }
     }
   }
 
