@@ -95,12 +95,16 @@ private_lane :build_ios do
   # Compile Dart and stage assets; signing happens in build_app below.
   # --build-name/--build-number land in Flutter/Generated.xcconfig, which
   # the Xcode project reads as MARKETING_VERSION / CURRENT_PROJECT_VERSION.
+  # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
+  # against the system gems, not this bundle (where cocoapods isn't a dep).
   Dir.chdir("..") do
-    sh(
-      "flutter", "build", "ios", "--release", "--no-codesign",
-      "--build-name=#{marketing_version}",
-      "--build-number=#{commit_count_build_number}"
-    )
+    Bundler.with_unbundled_env do
+      sh(
+        "flutter", "build", "ios", "--release", "--no-codesign",
+        "--build-name=#{marketing_version}",
+        "--build-number=#{commit_count_build_number}"
+      )
+    end
   end
 
   build_app(
