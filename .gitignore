@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ruby / fastlane
+fastlane/.env
+fastlane/report.xml
+fastlane/README.md
+*.ipa
+*.dSYM.zip
+vendor/bundle/
+.bundle/
