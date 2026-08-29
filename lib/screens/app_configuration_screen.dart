@@ -77,6 +77,7 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
               setState(() {
                 _currentConfig = _currentConfig.copyWith(
                   displayName: value.isEmpty ? null : value,
+                  clearDisplayName: value.isEmpty,
                 );
               });
             },
@@ -326,6 +327,7 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
         // Update the primary port's custom URL
         ports[primaryPortIndex] = ports[primaryPortIndex].copyWith(
           customUrl: customUrl,
+          clearCustomUrl: customUrl == null,
         );
       }
 
@@ -515,9 +517,11 @@ class _PortEditModalState extends State<_PortEditModal> {
       serviceName: _serviceNameController.text.isEmpty
           ? null
           : _serviceNameController.text,
+      clearServiceName: _serviceNameController.text.isEmpty,
       customUrl: _customUrlController.text.isEmpty
           ? null
           : _customUrlController.text,
+      clearCustomUrl: _customUrlController.text.isEmpty,
       isEnabled: _isEnabled,
     );
 

@@ -32,8 +32,14 @@ class AppPortConfig extends Equatable {
     int? portNumber,
     String? protocol,
     String? serviceName,
+    // Special flag to explicitly clear serviceName
+    bool clearServiceName = false,
     String? customUrl,
+    // Special flag to explicitly clear customUrl
+    bool clearCustomUrl = false,
     String? apiUrl,
+    // Special flag to explicitly clear apiUrl
+    bool clearApiUrl = false,
     bool? isPrimary,
     bool? isEnabled,
   }) {
@@ -41,9 +47,9 @@ class AppPortConfig extends Equatable {
       id: id ?? this.id,
       portNumber: portNumber ?? this.portNumber,
       protocol: protocol ?? this.protocol,
-      serviceName: serviceName ?? this.serviceName,
-      customUrl: customUrl ?? this.customUrl,
-      apiUrl: apiUrl ?? this.apiUrl,
+      serviceName: clearServiceName ? null : (serviceName ?? this.serviceName),
+      customUrl: clearCustomUrl ? null : (customUrl ?? this.customUrl),
+      apiUrl: clearApiUrl ? null : (apiUrl ?? this.apiUrl),
       isPrimary: isPrimary ?? this.isPrimary,
       isEnabled: isEnabled ?? this.isEnabled,
     );
@@ -262,6 +268,8 @@ class AppConfig extends Equatable {
     String? serverId,
     String? appName,
     String? displayName,
+    // Special flag to explicitly clear displayName
+    bool clearDisplayName = false,
     String? iconUrl,
     bool? isEnabled,
     bool? isFavorite,
@@ -294,7 +302,7 @@ class AppConfig extends Equatable {
       id: id ?? this.id,
       serverId: serverId ?? this.serverId,
       appName: appName ?? this.appName,
-      displayName: displayName ?? this.displayName,
+      displayName: clearDisplayName ? null : (displayName ?? this.displayName),
       iconUrl: iconUrl ?? this.iconUrl,
       isEnabled: isEnabled ?? this.isEnabled,
       isFavorite: isFavorite ?? this.isFavorite,

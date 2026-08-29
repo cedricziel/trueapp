@@ -72,6 +72,32 @@ void main() {
       expect(updated.isEnabled, isTrue);
     });
 
+    test('copyWith clears serviceName/customUrl/apiUrl only when their '
+        'explicit clear flag is set', () {
+      const original = AppPortConfig(
+        portNumber: 80,
+        serviceName: 'svc',
+        customUrl: 'url',
+        apiUrl: 'api',
+      );
+
+      // Passing null without the flag leaves the field untouched - null
+      // is indistinguishable from "not provided" without it.
+      final untouched = original.copyWith();
+      expect(untouched.serviceName, equals('svc'));
+      expect(untouched.customUrl, equals('url'));
+      expect(untouched.apiUrl, equals('api'));
+
+      final cleared = original.copyWith(
+        clearServiceName: true,
+        clearCustomUrl: true,
+        clearApiUrl: true,
+      );
+      expect(cleared.serviceName, isNull);
+      expect(cleared.customUrl, isNull);
+      expect(cleared.apiUrl, isNull);
+    });
+
     test('equality holds for equal instances and differs on change', () {
       const a = AppPortConfig(portNumber: 80);
       const b = AppPortConfig(portNumber: 80);
@@ -410,6 +436,17 @@ void main() {
       expect(updated.isFavorite, isTrue);
       expect(updated.createdAt, equals(createdAt));
       expect(updated.isEnabled, equals(original.isEnabled));
+    });
+
+    test('copyWith clears displayName only when clearDisplayName is set', () {
+      final original = buildMinimal().copyWith(displayName: 'Custom');
+
+      // Passing null without the flag leaves displayName untouched.
+      final untouched = original.copyWith();
+      expect(untouched.displayName, equals('Custom'));
+
+      final cleared = original.copyWith(clearDisplayName: true);
+      expect(cleared.displayName, isNull);
     });
 
     test('equality holds for equal instances and differs on change', () {

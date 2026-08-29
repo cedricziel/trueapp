@@ -319,38 +319,28 @@ void main() {
       expect(saved!.displayName, 'Renamed App');
     });
 
-    testWidgets(
-      'clearing the display name field is a no-op because AppConfig.copyWith '
-      'cannot clear a nullable field',
-      (tester) async {
-        // `AppConfig.copyWith` resolves every nullable field with
-        // `x ?? this.x`, so `copyWith(displayName: null)` - exactly what
-        // `onChanged` below sends once the field is empty - falls straight
-        // back to the *old* displayName instead of clearing it. This is a
-        // real bug in the model, not a quirk of this test: clearing the
-        // field in the UI and tapping Save silently keeps the previous
-        // display name. Documented here rather than silently masked by a
-        // wrong assertion.
-        final config = await runRealAsync(
-          tester,
-          () => seedConfig(displayName: 'Original Name'),
-        );
+    testWidgets('clearing the display name field clears it on save', (
+      tester,
+    ) async {
+      final config = await runRealAsync(
+        tester,
+        () => seedConfig(displayName: 'Original Name'),
+      );
 
-        final closed = await openConfigScreen(tester, config!);
+      final closed = await openConfigScreen(tester, config!);
 
-        await tester.enterText(fieldForLabel('Display Name'), '');
-        await tester.pump();
+      await tester.enterText(fieldForLabel('Display Name'), '');
+      await tester.pump();
 
-        await tapWhenUnambiguous(tester, find.text('Save'));
-        await pumpUntilAsync(tester, () => closed.value);
+      await tapWhenUnambiguous(tester, find.text('Save'));
+      await pumpUntilAsync(tester, () => closed.value);
 
-        final saved = await runRealAsync(
-          tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
-        );
-        expect(saved!.displayName, 'Original Name');
-      },
-    );
+      final saved = await runRealAsync(
+        tester,
+        () => database.getFullAppConfig(testServer.id, config.appName),
+      );
+      expect(saved!.displayName, isNull);
+    });
 
     testWidgets('toggling the Enabled switch off persists on save', (
       tester,
@@ -422,47 +412,43 @@ void main() {
       },
     );
 
-    testWidgets('clearing an existing Primary URL is a no-op because '
-        'AppPortConfig.copyWith cannot clear a nullable field', (tester) async {
-      // Same underlying bug as the display-name case above:
-      // `_updatePrimaryCustomUrl(null)` calls
-      // `port.copyWith(customUrl: null)`, and `AppPortConfig.copyWith`
-      // also resolves with `x ?? this.x`, so the existing custom URL
-      // survives both the in-memory edit and the save untouched - the
-      // port row never falls back to its default URL the way a user
-      // clearing the field would expect.
-      const webPort = AppPortConfig(
-        portNumber: 8080,
-        protocol: 'http',
-        serviceName: 'Web UI',
-        customUrl: 'https://custom.example.com',
-        isPrimary: true,
-        isEnabled: true,
-      );
-      final config = await runRealAsync(
-        tester,
-        () => seedConfig(ports: [webPort]),
-      );
+    testWidgets(
+      'clearing an existing Primary URL falls back to the default URL and '
+      'clears the stored customUrl on save',
+      (tester) async {
+        const webPort = AppPortConfig(
+          portNumber: 8080,
+          protocol: 'http',
+          serviceName: 'Web UI',
+          customUrl: 'https://custom.example.com',
+          isPrimary: true,
+          isEnabled: true,
+        );
+        final config = await runRealAsync(
+          tester,
+          () => seedConfig(ports: [webPort]),
+        );
 
-      final closed = await openConfigScreen(tester, config!);
+        final closed = await openConfigScreen(tester, config!);
 
-      expect(staticText('https://custom.example.com'), findsOneWidget);
+        expect(staticText('https://custom.example.com'), findsOneWidget);
 
-      await tester.enterText(fieldForLabel('Primary URL'), '');
-      await tester.pump();
+        await tester.enterText(fieldForLabel('Primary URL'), '');
+        await tester.pump();
 
-      expect(staticText('https://custom.example.com'), findsOneWidget);
-      expect(find.text('http://localhost:8080'), findsNothing);
+        expect(staticText('https://custom.example.com'), findsNothing);
+        expect(find.text('http://localhost:8080'), findsOneWidget);
 
-      await tapWhenUnambiguous(tester, find.text('Save'));
-      await pumpUntilAsync(tester, () => closed.value);
+        await tapWhenUnambiguous(tester, find.text('Save'));
+        await pumpUntilAsync(tester, () => closed.value);
 
-      final saved = await runRealAsync(
-        tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
-      );
-      expect(saved!.ports.single.customUrl, 'https://custom.example.com');
-    });
+        final saved = await runRealAsync(
+          tester,
+          () => database.getFullAppConfig(testServer.id, config.appName),
+        );
+        expect(saved!.ports.single.customUrl, isNull);
+      },
+    );
 
     testWidgets(
       'typing a Primary URL with no existing ports creates a new primary '
@@ -630,6 +616,51 @@ void main() {
         expect(updated.portNumber, 9443);
         expect(updated.isEnabled, isFalse);
         expect(updated.isPrimary, isFalse);
+      },
+    );
+
+    testWidgets(
+      'clearing the Custom URL field in the edit-port modal clears it on '
+      'save',
+      (tester) async {
+        const webPort = AppPortConfig(
+          portNumber: 32400,
+          protocol: 'http',
+          serviceName: 'Web UI',
+          customUrl: 'https://custom.example.com',
+          isPrimary: true,
+          isEnabled: true,
+        );
+        final config = await runRealAsync(
+          tester,
+          () => seedConfig(ports: [webPort]),
+        );
+
+        final closed = await openConfigScreen(tester, config!);
+
+        await tester.tap(
+          find.descendant(
+            of: portRowFor('Web UI'),
+            matching: find.byIcon(CupertinoIcons.pencil),
+          ),
+        );
+        await settleRouteTransition(tester);
+
+        final modal = modalScaffoldWithTitle('Edit Port');
+        await tester.enterText(fieldForLabel('Custom URL', scope: modal), '');
+        await tester.pump();
+
+        await tester.tap(buttonWithText('Save', scope: modal));
+        await settleRouteTransition(tester);
+
+        await tapWhenUnambiguous(tester, find.text('Save'));
+        await pumpUntilAsync(tester, () => closed.value);
+
+        final saved = await runRealAsync(
+          tester,
+          () => database.getFullAppConfig(testServer.id, config.appName),
+        );
+        expect(saved!.ports.single.customUrl, isNull);
       },
     );
 
