@@ -74,6 +74,12 @@ private_lane :build_ios do
   api_key = load_app_store_connect_api_key
   sync_code_signing(type: "appstore", readonly: is_ci, api_key: api_key)
 
+  # update_code_signing_settings below rewrites project.pbxproj on disk.
+  # Restore it afterwards so a local build/beta leaves the tracked signing
+  # settings (automatic, for day-to-day Xcode use) untouched.
+  pbxproj = File.expand_path("../#{XCODEPROJ}/project.pbxproj", __dir__)
+  pbxproj_original = File.binread(pbxproj)
+
   # Flutter's Runner target uses automatic signing, which needs an
   # interactive Apple ID session. Switch to manual signing with the profile
   # match just installed so xcodebuild can sign headlessly.
@@ -113,6 +119,8 @@ private_lane :build_ios do
   )
 
   api_key
+ensure
+  File.binwrite(pbxproj, pbxproj_original) if pbxproj_original
 end
 
 # Loads an App Store Connect API key from one of:
