@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/cedricziel/trueapp/compare/v0.1.5...v0.2.0) (2026-08-30)
+
+
+### Features
+
+* add a Jobs view, nav bar job indicator, and a segmented memory bar ([#137](https://github.com/cedricziel/trueapp/issues/137)) ([7604fa7](https://github.com/cedricziel/trueapp/commit/7604fa719e0739edda4d84bd1b74a89f47d8f4fc))
+
+
+### Bug Fixes
+
+* parse App.last_update defensively instead of assuming Mongo-style JSON ([#139](https://github.com/cedricziel/trueapp/issues/139)) ([6318adc](https://github.com/cedricziel/trueapp/commit/6318adc307c68a6ad6e82765cb1dada093c29897))
+
 ## [0.1.5](https://github.com/cedricziel/trueapp/compare/v0.1.4...v0.1.5) (2026-08-30)
 
 
