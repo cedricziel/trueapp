@@ -259,6 +259,40 @@ class App extends Equatable {
     return null;
   }
 
+  /// TrueNAS has returned `last_update` in more than one shape across SCALE
+  /// versions: MongoDB-style extended JSON (`{"$date": <epoch ms>}`), a raw
+  /// epoch-millisecond number, or an ISO 8601 string. Parsing this
+  /// defensively (rather than indexing straight into `['\$date']`) keeps a
+  /// server on an unexpected shape from throwing a raw type error out of
+  /// [App.fromJson] - which previously surfaced to users as a generic
+  /// "Connection error" with no indication the app list itself parsed fine
+  /// except for this one field.
+  static DateTime? _parseLastUpdate(dynamic value) {
+    if (value == null) return null;
+    try {
+      if (value is Map) {
+        final epochMs = value['\$date'];
+        if (epochMs is num) {
+          return DateTime.fromMillisecondsSinceEpoch(epochMs.toInt());
+        }
+        return null;
+      }
+      if (value is num) {
+        return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+      }
+      if (value is String) {
+        return DateTime.tryParse(value) ??
+            (int.tryParse(value) != null
+                ? DateTime.fromMillisecondsSinceEpoch(int.parse(value))
+                : null);
+      }
+    } catch (_) {
+      // Fall through to null below - an unparseable date shouldn't break
+      // parsing the rest of the app's data.
+    }
+    return null;
+  }
+
   factory App.fromJson(Map<String, dynamic> json) {
     return App(
       name: json['name'] as String? ?? '',
@@ -296,11 +330,7 @@ class App extends Equatable {
               ?.map((e) => AppMaintainer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      lastUpdate: json['last_update'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              json['last_update']['\$date'] as int? ?? 0,
-            )
-          : null,
+      lastUpdate: _parseLastUpdate(json['last_update']),
       recommended: json['recommended'] as bool? ?? false,
       catalog: json['catalog'] as String? ?? '',
       train: json['train'] as String? ?? '',
