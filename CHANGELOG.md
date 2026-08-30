@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/cedricziel/trueapp/compare/v0.3.0...v0.4.0) (2026-08-30)
+
+
+### Features
+
+* wire OTel tracing into TrueNasApiClient's connection flow ([#144](https://github.com/cedricziel/trueapp/issues/144)) ([6738379](https://github.com/cedricziel/trueapp/commit/6738379628d0ce6273f85a58a0052a0d9f597d6e))
+
 ## [0.3.0](https://github.com/cedricziel/trueapp/compare/v0.2.0...v0.3.0) (2026-08-30)
 
 
