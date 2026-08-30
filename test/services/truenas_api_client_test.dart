@@ -803,5 +803,66 @@ void main() {
       await client.getCurrentUser();
       expect(client.isKeepaliveActive, isTrue);
     });
+
+    test('getAvailableApps produces a truenas.apps.available span with '
+        'StatusCode.ok', () async {
+      server.onMethod(
+        'app.available',
+        (_) => [
+          {'name': 'plex', 'title': 'Plex'},
+        ],
+      );
+
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(client.close);
+
+      await client.getAvailableApps();
+
+      final span = telemetry.spans.singleWhere(
+        (s) => s.name == 'truenas.apps.available',
+      );
+      expect(span.kind, SpanKind.client);
+      expect(span.attributes['server.id'], testServer.id);
+      expect(span.status, StatusCode.ok);
+      expect(span.isEnded, isTrue);
+    });
+
+    test(
+      'a response that fails to parse produces an error span and logs the '
+      'failure, instead of surfacing only as a generic connection error '
+      'with no diagnostic trail - this is the gap that let two separate '
+      "TrueNAS response-shape bugs (App.last_update, then "
+      'AppResourceUsage.last_updated) go unnoticed by the connect-only span',
+      () async {
+        server.onMethod(
+          'app.available',
+          // 'maintainers' entries are expected to be maps (see
+          // AppMaintainer.fromJson); a string here reproduces the same
+          // "unexpected response shape" class of failure as the
+          // last_update/last_updated bugs.
+          (_) => [
+            {
+              'name': 'plex',
+              'maintainers': ['not-a-map'],
+            },
+          ],
+        );
+
+        final telemetry = FakeTelemetryService();
+        final client = TrueNasApiClient(testServer, null, telemetry);
+        addTearDown(client.close);
+
+        await expectLater(client.getAvailableApps(), throwsException);
+
+        final span = telemetry.spans.singleWhere(
+          (s) => s.name == 'truenas.apps.available',
+        );
+        expect(span.status, StatusCode.error);
+        expect(span.exceptions, isNotEmpty);
+        expect(span.isEnded, isTrue);
+        expect(telemetry.loggerNames, isNotEmpty);
+      },
+    );
   });
 }
