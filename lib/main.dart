@@ -33,6 +33,7 @@ void main() async {
 
   // Initialize services
   ApiClientManager.setConnectionStatusProvider(connectionStatusProvider);
+  ApiClientManager.setTelemetryService(telemetryService);
 
   runApp(
     MultiProvider(

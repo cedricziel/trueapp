@@ -4,12 +4,14 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 
 /// Mock implementation of ApiClientManagerInterface for testing
 class MockApiClientManager implements ApiClientManagerInterface {
   final Map<String, ApiClientInterface?> _mockClients = {};
   final Map<String, int> _mockRefCounts = {};
   ConnectionStatusProvider? _connectionStatusProvider; // ignore: unused_field
+  TelemetryServiceInterface? _telemetry; // ignore: unused_field
 
   // Test control flags
   bool shouldFailConnection = false;
@@ -23,6 +25,12 @@ class MockApiClientManager implements ApiClientManagerInterface {
   void setConnectionStatusProvider(ConnectionStatusProvider? provider) {
     methodCalls.add('setConnectionStatusProvider');
     _connectionStatusProvider = provider;
+  }
+
+  @override
+  void setTelemetryService(TelemetryServiceInterface? telemetry) {
+    methodCalls.add('setTelemetryService');
+    _telemetry = telemetry;
   }
 
   @override
@@ -135,6 +143,7 @@ class MockApiClientManager implements ApiClientManagerInterface {
     _mockClients.clear();
     _mockRefCounts.clear();
     _connectionStatusProvider = null;
+    _telemetry = null;
     methodCalls.clear();
   }
 

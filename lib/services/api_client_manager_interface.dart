@@ -2,11 +2,16 @@ import 'dart:async';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 
 /// Interface for managing TrueNAS API client instances
 abstract class ApiClientManagerInterface {
   /// Set the connection status provider
   void setConnectionStatusProvider(ConnectionStatusProvider? provider);
+
+  /// Set the telemetry service used to instrument clients created from now
+  /// on (existing clients are unaffected).
+  void setTelemetryService(TelemetryServiceInterface? telemetry);
 
   /// Get or create a client for the given server
   Future<ApiClientInterface?> getClient(NasServer server);
