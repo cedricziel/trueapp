@@ -97,12 +97,15 @@ private_lane :build_ios do
   # the Xcode project reads as MARKETING_VERSION / CURRENT_PROJECT_VERSION.
   # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
   # against the system gems, not this bundle (where cocoapods isn't a dep).
+  dart_defines = telemetry_dart_defines
+
   Dir.chdir("..") do
     Bundler.with_unbundled_env do
       sh(
         "flutter", "build", "ios", "--release", "--no-codesign",
         "--build-name=#{marketing_version}",
-        "--build-number=#{commit_count_build_number}"
+        "--build-number=#{commit_count_build_number}",
+        *dart_defines
       )
     end
   end
@@ -125,6 +128,36 @@ private_lane :build_ios do
   api_key
 ensure
   File.binwrite(pbxproj, pbxproj_original) if pbxproj_original
+end
+
+# Builds the `--dart-define` flags that wire flutter_otel to SignalDB, from
+# OTLP_INGEST_URL / OTLP_INGEST_KEY (fastlane already loads fastlane/.env via
+# Dotenv locally, and CI secrets are exported as env vars). Either being
+# missing/blank just leaves telemetry disabled for this build
+# (TelemetryConfig.enabled) - it never fails the build. Both must be present
+# for telemetry to turn on: an endpoint with no key would otherwise compose
+# an empty bearer token, which is worse than just staying disabled.
+def telemetry_dart_defines
+  # fastlane auto-loads fastlane/.env.default, whose placeholder entries
+  # yield empty strings - treat those as unset, same helper pattern as
+  # load_app_store_connect_api_key below.
+  env = ->(name) {
+    value = ENV[name]
+    value.nil? || value.strip.empty? ? nil : value
+  }
+  endpoint = env.call("OTLP_INGEST_URL")
+  api_key  = env.call("OTLP_INGEST_KEY")
+
+  return [] if endpoint.nil? || api_key.nil?
+
+  headers = "authorization=Bearer #{api_key},x-tenant-id=homelab,x-dataset-id=apps"
+
+  [
+    "--dart-define=OTEL_EXPORTER_OTLP_ENDPOINT=#{endpoint}",
+    "--dart-define=OTEL_EXPORTER_OTLP_HEADERS=#{headers}",
+    "--dart-define=OTEL_SERVICE_NAME=truehub",
+    "--dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production"
+  ]
 end
 
 # Loads an App Store Connect API key from one of:

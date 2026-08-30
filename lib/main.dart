@@ -18,10 +18,14 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/telemetry_bootstrap.dart';
 import 'package:truehub/models/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final telemetryService = await bootstrapTelemetry();
 
   final database = AppDatabase.instance;
   final connectionStatusProvider = ConnectionStatusProvider();
@@ -33,6 +37,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        Provider<TelemetryServiceInterface>.value(value: telemetryService),
         Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: connectionStatusProvider),

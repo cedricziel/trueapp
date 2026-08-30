@@ -89,6 +89,16 @@ dependencies:
   truenas_native_plugins:
     path: packages/truenas_native_plugins
 
+  # OpenTelemetry SDK (logs signal). Pinned to a branch ref because
+  # flutter-otel isn't merged/published yet - remove the ref pin above and
+  # the dependency_overrides below, and pick a real published version, once
+  # it lands on `main` or pub.dev.
+  flutter_otel:
+    git:
+      url: https://github.com/cedricziel/flutter-otel.git
+      ref: main
+      path: packages/flutter_otel
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -149,6 +159,29 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# flutter_otel's own pubspec.yaml declares these three siblings as plain
+# `^0.1.0` version constraints, which only resolve automatically inside the
+# flutter-otel Dart workspace itself. trueapp is a separate workspace, so
+# without these overrides pub tries (and fails) to find them on pub.dev.
+# Pin all four to the same repo/ref/path as the `flutter_otel` dependency
+# above, and drop this block in the same cleanup mentioned there.
+dependency_overrides:
+  flutter_otel_api:
+    git:
+      url: https://github.com/cedricziel/flutter-otel.git
+      ref: main
+      path: packages/flutter_otel_api
+  flutter_otel_sdk:
+    git:
+      url: https://github.com/cedricziel/flutter-otel.git
+      ref: main
+      path: packages/flutter_otel_sdk
+  flutter_otel_exporter_otlp_http:
+    git:
+      url: https://github.com/cedricziel/flutter-otel.git
+      ref: main
+      path: packages/flutter_otel_exporter_otlp_http
 
 dart_pre_commit:
   format: true
