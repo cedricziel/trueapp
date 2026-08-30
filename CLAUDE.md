@@ -13,6 +13,7 @@ TrueNAS Manager - A Flutter application for managing TrueNAS servers on iOS and 
 
 ## Git Conventions
 - Always use semantic commits (e.g. `fix:`, `feat:`, `test:`, `refactor:`, `chore:`) for commit messages
+- Always use semantic PR titles (e.g. `fix:`, `feat:`, `test:`, `refactor:`, `chore:`)
 
 ## Key Implementation Notes
 
