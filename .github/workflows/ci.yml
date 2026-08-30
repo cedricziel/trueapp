@@ -75,6 +75,10 @@ jobs:
           --no-pub \
           --coverage
 
+    - name: Run truenas_native_plugins package tests
+      working-directory: packages/truenas_native_plugins
+      run: flutter test --reporter=expanded --timeout=30s
+
     - name: Enforce coverage floor
       run: dart run tool/check_coverage.dart
 

@@ -33,7 +33,7 @@ class TruenasPluginTestHelpers {
       final responses = keychainResponses ?? _defaultKeychainResponses;
 
       if (methodCall.method == 'getPassword') {
-        final args = methodCall.arguments as Map<String, dynamic>;
+        final args = (methodCall.arguments as Map).cast<String, dynamic>();
         final serverId = args['account'] as String;
         return responses['passwords']?[serverId];
       }
