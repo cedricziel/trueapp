@@ -313,9 +313,14 @@ void main() {
         expect(find.text('7.5 ops/s'), findsOneWidget);
         expect(find.text('2.0KB/s'), findsOneWidget);
         expect(find.text('4.0KB/s'), findsOneWidget);
-        // Physical: used 4000 / total 8000, ARC: 1000 / total 8000.
-        expect(find.text('3.9KB / 7.8KB'), findsOneWidget);
-        expect(find.text('1000B / 7.8KB'), findsOneWidget);
+        // Memory segmented bar legend: free = available(4000) - arc(1000)
+        // = 3000, apps = total(8000) - available(4000) = 4000, arc = 1000.
+        expect(find.text('Free'), findsOneWidget);
+        expect(find.text('ZFS ARC'), findsOneWidget);
+        expect(find.text('Apps & Services'), findsOneWidget);
+        expect(find.text('2.9KB'), findsOneWidget);
+        expect(find.text('1000B'), findsOneWidget);
+        expect(find.text('3.9KB'), findsOneWidget);
         // No cores, no network -> neither section renders.
         expect(find.text('Cores'), findsNothing);
         expect(find.text('Network'), findsNothing);

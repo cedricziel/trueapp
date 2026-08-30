@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/file_item.dart';
+import 'package:truehub/models/job.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/models/user_info.dart';
@@ -403,11 +404,57 @@ class FakeApiClient implements ApiClientInterface {
 
   bool isIxHardwareResult = false;
 
-  /// Closes the stream controllers backing [systemStatsStream] and
-  /// [appStatsStream]. Call from a test's `tearDown` if the fake was used
-  /// with subscriptions.
+  @override
+  Future<List<Job>> getJobs() async {
+    _recordAndMaybeThrow('getJobs');
+    return jobs;
+  }
+
+  List<Job> jobs = [];
+
+  final StreamController<List<Job>> _jobsController =
+      StreamController<List<Job>>.broadcast();
+
+  @override
+  Stream<List<Job>> get jobsStream => _jobsController.stream;
+
+  /// Pushes [jobList] to every current [jobsStream] listener.
+  void emitJobs(List<Job> jobList) => _jobsController.add(jobList);
+
+  @override
+  Future<void> subscribeToJobs() async {
+    _recordAndMaybeThrow('subscribeToJobs');
+  }
+
+  @override
+  Future<void> unsubscribeFromJobs() async {
+    _recordAndMaybeThrow('unsubscribeFromJobs');
+  }
+
+  @override
+  Future<void> abortJob(int jobId) async {
+    _recordAndMaybeThrow('abortJob');
+    lastAbortedJobId = jobId;
+  }
+
+  int? lastAbortedJobId;
+
+  @override
+  Future<int> rerunJob(Job job) async {
+    _recordAndMaybeThrow('rerunJob');
+    lastRerunJob = job;
+    return rerunJobResult;
+  }
+
+  Job? lastRerunJob;
+  int rerunJobResult = 0;
+
+  /// Closes the stream controllers backing [systemStatsStream],
+  /// [appStatsStream] and [jobsStream]. Call from a test's `tearDown` if the
+  /// fake was used with subscriptions.
   Future<void> dispose() async {
     await _systemStatsController.close();
     await _appStatsController.close();
+    await _jobsController.close();
   }
 }

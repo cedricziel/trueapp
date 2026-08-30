@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/screens/server_pools_screen.dart';
 import 'package:truehub/services/database.dart';
@@ -18,6 +19,7 @@ void main() {
   late UnifiedServerService serverService;
   late PoolProvider poolProvider;
   late DatasetProvider datasetProvider;
+  late JobsProvider jobsProvider;
   late FakeApiClient fakeClient;
   late NasServer testServer;
 
@@ -31,6 +33,7 @@ void main() {
     );
     poolProvider = PoolProvider(serverService);
     datasetProvider = DatasetProvider(serverService);
+    jobsProvider = JobsProvider(serverService);
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -52,6 +55,7 @@ void main() {
   tearDown(() async {
     poolProvider.dispose();
     datasetProvider.dispose();
+    jobsProvider.dispose();
     await fakeClient.dispose();
     await TestProviders.disposeTestStack(
       service: serverService,
@@ -64,6 +68,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<PoolProvider>.value(value: poolProvider),
         ChangeNotifierProvider<DatasetProvider>.value(value: datasetProvider),
+        ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
       ],
       child: CupertinoApp(home: ServerPoolsScreen(server: testServer)),
     );
@@ -91,6 +96,7 @@ void main() {
             ChangeNotifierProvider<DatasetProvider>.value(
               value: datasetProvider,
             ),
+            ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
           ],
           child: CupertinoApp(home: ServerPoolsScreen(server: testServer)),
         ),

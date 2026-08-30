@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class ServerFilesScreen extends StatelessWidget {
   final NasServer server;
@@ -12,6 +13,7 @@ class ServerFilesScreen extends StatelessWidget {
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Files'),
         previousPageTitle: server.name,
+        trailing: JobsBellButton(server: server),
       ),
       child: const SafeArea(
         child: Center(

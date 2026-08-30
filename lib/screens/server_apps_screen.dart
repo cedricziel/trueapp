@@ -4,6 +4,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
+import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -47,12 +48,18 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
           child: const Icon(CupertinoIcons.back),
           onPressed: () => Navigator.pop(context),
         ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.refresh),
-          onPressed: () {
-            context.read<AppProvider>().refreshApps();
-          },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            JobsBellButton(server: widget.server),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.refresh),
+              onPressed: () {
+                context.read<AppProvider>().refreshApps();
+              },
+            ),
+          ],
         ),
       ),
       child: SafeArea(

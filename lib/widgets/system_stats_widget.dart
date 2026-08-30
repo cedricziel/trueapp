@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/widgets/memory_segmented_bar.dart';
 import 'package:truehub/widgets/responsive_row.dart';
 import 'package:truehub/widgets/usage_bar.dart';
 
@@ -103,11 +104,7 @@ class SystemStatsWidget extends StatelessWidget {
               cores: statsProvider.cpuCores,
             ),
             _MemoryStatsCard(
-              memoryUsage: statsProvider.memoryUsage,
-              arcUsage: statsProvider.arcUsage,
-              totalMemory: statsProvider.physicalMemoryTotal,
-              availableMemory: statsProvider.physicalMemoryAvailable,
-              arcSize: statsProvider.arcSize,
+              stats: statsProvider.currentStats!.memory,
               formatBytes: statsProvider.formatBytes,
             ),
           ],
@@ -230,24 +227,15 @@ class _CpuStatsCard extends StatelessWidget {
 }
 
 class _MemoryStatsCard extends StatelessWidget {
-  final double memoryUsage;
-  final double arcUsage;
-  final int totalMemory;
-  final int availableMemory;
-  final int arcSize;
+  final MemoryStats stats;
   final String Function(int) formatBytes;
 
-  const _MemoryStatsCard({
-    required this.memoryUsage,
-    required this.arcUsage,
-    required this.totalMemory,
-    required this.availableMemory,
-    required this.arcSize,
-    required this.formatBytes,
-  });
+  const _MemoryStatsCard({required this.stats, required this.formatBytes});
 
   @override
   Widget build(BuildContext context) {
+    final memoryUsage = stats.physicalMemoryUsagePercent;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -281,60 +269,10 @@ class _MemoryStatsCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          UsageBar(
-            usage: memoryUsage,
-            color: _getMemoryUsageColor(memoryUsage),
-          ),
-          const SizedBox(height: 12),
-          _buildMemoryDetails(),
+          const SizedBox(height: 14),
+          MemorySegmentedBar(stats: stats, formatBytes: formatBytes),
         ],
       ),
-    );
-  }
-
-  Widget _buildMemoryDetails() {
-    return Column(
-      children: [
-        _buildMemoryRow(
-          'Physical',
-          formatBytes(totalMemory - availableMemory),
-          formatBytes(totalMemory),
-          CupertinoColors.systemPurple,
-        ),
-        const SizedBox(height: 6),
-        _buildMemoryRow(
-          'ARC Cache',
-          formatBytes(arcSize),
-          formatBytes(totalMemory),
-          CupertinoColors.systemBlue,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMemoryRow(String label, String used, String total, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.systemGrey,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          '$used / $total',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-        ),
-      ],
     );
   }
 

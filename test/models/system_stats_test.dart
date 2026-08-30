@@ -177,6 +177,49 @@ void main() {
       expect(mem.arcUsagePercent, equals(0.0));
     });
 
+    test('freeMemory/appsMemory split available/used around the ARC', () {
+      // total 1000, available 600 (of which 200 is ARC), so:
+      // apps = total - available = 400
+      // free = available - arc = 400
+      const mem = MemoryStats(
+        arcSize: 200,
+        arcFreeMemory: 0,
+        arcAvailableMemory: 0,
+        physicalMemoryTotal: 1000,
+        physicalMemoryAvailable: 600,
+      );
+      expect(mem.appsMemory, equals(400));
+      expect(mem.freeMemory, equals(400));
+    });
+
+    test(
+      'freeMemoryPercent + arcUsagePercent + appsMemoryPercent sum to 100',
+      () {
+        const mem = MemoryStats(
+          arcSize: 186,
+          arcFreeMemory: 0,
+          arcAvailableMemory: 0,
+          physicalMemoryTotal: 640,
+          physicalMemoryAvailable: 412,
+        );
+        final sum =
+            mem.freeMemoryPercent + mem.arcUsagePercent + mem.appsMemoryPercent;
+        expect(sum, closeTo(100.0, 0.0001));
+      },
+    );
+
+    test('freeMemory/appsMemory guard division by zero for percentages', () {
+      const mem = MemoryStats(
+        arcSize: 0,
+        arcFreeMemory: 0,
+        arcAvailableMemory: 0,
+        physicalMemoryTotal: 0,
+        physicalMemoryAvailable: 0,
+      );
+      expect(mem.freeMemoryPercent, equals(0.0));
+      expect(mem.appsMemoryPercent, equals(0.0));
+    });
+
     test('equality holds for equal instances and differs on change', () {
       const a = MemoryStats(
         arcSize: 1,

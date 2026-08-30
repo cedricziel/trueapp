@@ -3,6 +3,7 @@ import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/models/app.dart';
+import 'package:truehub/models/job.dart';
 import 'package:truehub/models/system_stats.dart';
 
 /// Interface for TrueNAS API clients to enable dependency injection and testing
@@ -88,4 +89,15 @@ abstract class ApiClientInterface {
   Future<Map<String, dynamic>> getSystemAdvancedConfig();
   Future<String> getSystemProductType();
   Future<bool> isIxHardware();
+
+  // Job management methods
+  Stream<List<Job>> get jobsStream;
+  Future<List<Job>> getJobs();
+  Future<void> subscribeToJobs();
+  Future<void> unsubscribeFromJobs();
+  Future<void> abortJob(int jobId);
+
+  /// Re-submits a finished job's original call, e.g. to retry a failed one.
+  /// Returns the new job's id.
+  Future<int> rerunJob(Job job);
 }

@@ -10,6 +10,7 @@ import 'package:truehub/screens/server_pools_screen.dart';
 import 'package:truehub/screens/server_apps_screen.dart';
 import 'package:truehub/screens/server_files_screen.dart';
 import 'package:truehub/screens/server_health_screen.dart';
+import 'package:truehub/screens/server_jobs_screen.dart';
 import 'package:truehub/navigation/adaptive_navigation_scaffold.dart';
 import 'package:truehub/navigation/server_route_host.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -125,6 +126,14 @@ GoRouter createAppRouter({String initialLocation = '/servers'}) => GoRouter(
               pageBuilder: (context, state) => _serverPage(
                 state,
                 (server) => ServerHealthScreen(server: server),
+              ),
+            ),
+            GoRoute(
+              path: 'jobs',
+              name: 'server-jobs',
+              pageBuilder: (context, state) => _serverPage(
+                state,
+                (server) => ServerJobsScreen(server: server),
               ),
             ),
           ],

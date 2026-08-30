@@ -4,6 +4,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 import 'package:truehub/widgets/connection_error_widget.dart';
+import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class ServerPoolsScreen extends StatefulWidget {
   final NasServer server;
@@ -37,6 +38,7 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
           child: const Text('Back'),
           onPressed: () => Navigator.pop(context),
         ),
+        trailing: JobsBellButton(server: widget.server),
       ),
       child: SafeArea(
         child: Consumer<PoolProvider>(

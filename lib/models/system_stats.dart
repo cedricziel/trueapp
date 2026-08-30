@@ -178,6 +178,29 @@ class MemoryStats extends Equatable {
     return (arcSize / physicalMemoryTotal) * 100;
   }
 
+  /// Memory neither held by apps/services nor cached in the ZFS ARC. TrueNAS
+  /// reports the ARC as reclaimable, i.e. included in
+  /// [physicalMemoryAvailable] alongside memory that is genuinely free - this
+  /// is the "genuinely free" remainder once the ARC is split out.
+  int get freeMemory =>
+      (physicalMemoryAvailable - arcSize).clamp(0, physicalMemoryTotal);
+
+  /// Memory held by apps and services: everything not currently available.
+  int get appsMemory => (physicalMemoryTotal - physicalMemoryAvailable).clamp(
+    0,
+    physicalMemoryTotal,
+  );
+
+  double get freeMemoryPercent {
+    if (physicalMemoryTotal == 0) return 0.0;
+    return (freeMemory / physicalMemoryTotal) * 100;
+  }
+
+  double get appsMemoryPercent {
+    if (physicalMemoryTotal == 0) return 0.0;
+    return (appsMemory / physicalMemoryTotal) * 100;
+  }
+
   @override
   List<Object?> get props => [
     arcSize,
