@@ -5,6 +5,7 @@ import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 
 import '../helpers/fake_telemetry_service.dart';
+import '../helpers/mock_api_client_manager.dart';
 
 void main() {
   group('ApiClientManager', () {
@@ -261,6 +262,18 @@ void main() {
         // cover the telemetry behaviour itself.
         final client = await ApiClientManager.getClient(testServer1);
         expect(client, isA<TrueNasApiClient>());
+      });
+
+      test('static facade delegates to the underlying instance', () {
+        final mock = MockApiClientManager();
+        ApiClientManager.setInstance(mock);
+        addTearDown(() => ApiClientManager.setInstance(null));
+
+        final telemetry = FakeTelemetryService();
+        ApiClientManager.setTelemetryService(telemetry);
+
+        expect(mock.methodCalls, contains('setTelemetryService'));
+        expect(mock.telemetry, same(telemetry));
       });
     });
 

@@ -11,7 +11,10 @@ class MockApiClientManager implements ApiClientManagerInterface {
   final Map<String, ApiClientInterface?> _mockClients = {};
   final Map<String, int> _mockRefCounts = {};
   ConnectionStatusProvider? _connectionStatusProvider; // ignore: unused_field
-  TelemetryServiceInterface? _telemetry; // ignore: unused_field
+
+  /// The last value passed to [setTelemetryService], exposed for tests that
+  /// verify `ApiClientManager`'s static facade actually delegates here.
+  TelemetryServiceInterface? telemetry;
 
   // Test control flags
   bool shouldFailConnection = false;
@@ -30,7 +33,7 @@ class MockApiClientManager implements ApiClientManagerInterface {
   @override
   void setTelemetryService(TelemetryServiceInterface? telemetry) {
     methodCalls.add('setTelemetryService');
-    _telemetry = telemetry;
+    this.telemetry = telemetry;
   }
 
   @override
@@ -143,7 +146,7 @@ class MockApiClientManager implements ApiClientManagerInterface {
     _mockClients.clear();
     _mockRefCounts.clear();
     _connectionStatusProvider = null;
-    _telemetry = null;
+    telemetry = null;
     methodCalls.clear();
   }
 
