@@ -23,14 +23,24 @@ void main() {
     );
   });
 
+  tearDown(() async {
+    await TestProviders.disposeTestStack(
+      service: unifiedServerService,
+      database: database,
+    );
+  });
+
   testWidgets('shows a loading indicator while servers are being fetched', (
     WidgetTester tester,
   ) async {
     final loadingProvider = _AlwaysLoadingServerProvider(unifiedServerService);
+    addTearDown(loadingProvider.dispose);
 
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider.value(value: loadingProvider)],
+        providers: [
+          ChangeNotifierProvider<ServerProvider>.value(value: loadingProvider),
+        ],
         child: const CupertinoApp(home: HomeScreen()),
       ),
     );
@@ -38,22 +48,19 @@ void main() {
 
     expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
     expect(find.text('No servers added yet'), findsNothing);
-
-    await TestProviders.disposeTestStack(
-      providers: [loadingProvider],
-      service: unifiedServerService,
-      database: database,
-    );
   });
 
   testWidgets('shows the empty state once loading finishes with no servers', (
     WidgetTester tester,
   ) async {
     final serverProvider = ServerProvider(unifiedServerService);
+    addTearDown(serverProvider.dispose);
 
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider.value(value: serverProvider)],
+        providers: [
+          ChangeNotifierProvider<ServerProvider>.value(value: serverProvider),
+        ],
         child: const CupertinoApp(home: HomeScreen()),
       ),
     );
@@ -65,12 +72,6 @@ void main() {
     expect(find.text('No servers added yet'), findsOneWidget);
     expect(find.text('Tap + to add your first TrueNAS server'), findsOneWidget);
     expect(find.byType(CupertinoActivityIndicator), findsNothing);
-
-    await TestProviders.disposeTestStack(
-      providers: [serverProvider],
-      service: unifiedServerService,
-      database: database,
-    );
   });
 }
 
