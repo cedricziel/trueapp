@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class ServerFilesScreen extends StatelessWidget {
@@ -16,34 +17,11 @@ class ServerFilesScreen extends StatelessWidget {
         trailing: JobsBellButton(server: server),
       ),
       child: const SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                CupertinoIcons.folder,
-                size: 64,
-                color: CupertinoColors.systemGrey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'File browsing coming soon',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: CupertinoColors.systemGrey,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'This feature will allow you to browse\nand manage files on your TrueNAS server',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: CupertinoColors.systemGrey2,
-                ),
-              ),
-            ],
-          ),
+        child: EmptyStateWidget(
+          icon: CupertinoIcons.folder,
+          title: 'File browsing coming soon',
+          message:
+              'This feature will allow you to browse\nand manage files on your TrueNAS server',
         ),
       ),
     );

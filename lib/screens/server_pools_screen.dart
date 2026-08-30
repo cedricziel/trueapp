@@ -4,7 +4,9 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 import 'package:truehub/widgets/connection_error_widget.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
+import 'package:truehub/widgets/loading_state_widget.dart';
 
 class ServerPoolsScreen extends StatefulWidget {
   final NasServer server;
@@ -44,7 +46,7 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
         child: Consumer<PoolProvider>(
           builder: (context, provider, child) {
             if (provider.isLoading) {
-              return const Center(child: CupertinoActivityIndicator());
+              return const LoadingStateWidget(message: 'Loading pools...');
             }
 
             if (provider.connectionError != null) {
@@ -61,25 +63,10 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
             }
 
             if (provider.pools.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.square_stack_3d_down_right,
-                      size: 48,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No pools found',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+              return const EmptyStateWidget(
+                icon: CupertinoIcons.square_stack_3d_down_right,
+                title: 'No pools found',
+                message: 'Storage pools configured on this server will appear here.',
               );
             }
 

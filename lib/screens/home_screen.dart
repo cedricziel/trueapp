@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
+import 'package:truehub/widgets/loading_state_widget.dart';
 import 'package:truehub/widgets/server_list_tile.dart';
 import 'package:truehub/widgets/session_indicator_widget.dart';
 
@@ -105,34 +107,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SafeArea(
         child: Consumer<ServerProvider>(
           builder: (context, serverProvider, child) {
+            if (serverProvider.isLoadingServers) {
+              return const LoadingStateWidget(message: 'Loading servers...');
+            }
+
             if (serverProvider.servers.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.desktopcomputer,
-                      size: 64,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No servers added yet',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: CupertinoColors.systemGrey,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Tap + to add your first TrueNAS server',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: CupertinoColors.systemGrey2,
-                      ),
-                    ),
-                  ],
-                ),
+              return const EmptyStateWidget(
+                icon: CupertinoIcons.desktopcomputer,
+                title: 'No servers added yet',
+                message: 'Tap + to add your first TrueNAS server',
               );
             }
 
