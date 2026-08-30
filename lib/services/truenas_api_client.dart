@@ -9,6 +9,7 @@ import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/app.dart';
+import 'package:truehub/models/job.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/api_client_interface.dart';
@@ -39,6 +40,17 @@ class TrueNasApiClient implements ApiClientInterface {
   String? _appStatsSubscriptionId;
   bool _isSubscribedToAppStats = false;
   bool _wantsAppStats = false;
+
+  // Job subscription management
+  StreamController<List<Job>>? _jobsController;
+  String? _jobsSubscriptionId;
+  bool _isSubscribedToJobs = false;
+  bool _wantsJobs = false;
+
+  /// Jobs seen so far, keyed by id. `core.get_jobs` collection_update events
+  /// carry one changed job at a time, so this is what turns those deltas into
+  /// the full list [jobsStream] emits.
+  final Map<int, Job> _jobsById = {};
 
   // Keepalive mechanism
   Timer? _keepaliveTimer;
@@ -264,6 +276,8 @@ class TrueNasApiClient implements ApiClientInterface {
     _realtimeSubscriptionId = null;
     _isSubscribedToAppStats = false;
     _appStatsSubscriptionId = null;
+    _isSubscribedToJobs = false;
+    _jobsSubscriptionId = null;
 
     try {
       // Close existing connection
@@ -307,7 +321,8 @@ class TrueNasApiClient implements ApiClientInterface {
   /// True when the UI asked for a stream that is not live on this socket.
   bool get _hasMissingSubscription =>
       (_wantsSystemStats && !_isSubscribedToRealtime) ||
-      (_wantsAppStats && !_isSubscribedToAppStats);
+      (_wantsAppStats && !_isSubscribedToAppStats) ||
+      (_wantsJobs && !_isSubscribedToJobs);
 
   @override
   Future<void> ensureConnectionAlive() async {
@@ -352,6 +367,7 @@ class TrueNasApiClient implements ApiClientInterface {
       if (_wantsSystemStats && !_isSubscribedToRealtime)
         subscribeToSystemStats(),
       if (_wantsAppStats && !_isSubscribedToAppStats) subscribeToAppStats(),
+      if (_wantsJobs && !_isSubscribedToJobs) subscribeToJobs(),
     ]);
   }
 
@@ -437,6 +453,17 @@ class TrueNasApiClient implements ApiClientInterface {
               'TrueNAS API: Received app stats for ${appStatsMap.length} apps',
             );
           }
+        } else if (collection == 'core.get_jobs') {
+          final fields = parameters['fields'].value as Map<String, dynamic>;
+          final job = Job.fromJson(fields);
+          _jobsById[job.id] = job;
+          _jobsController?.add(_jobsById.values.toList());
+
+          if (kDebugMode) {
+            print(
+              'TrueNAS API: Job #${job.id} (${job.method}) -> ${job.state}',
+            );
+          }
         }
       } catch (e) {
         if (kDebugMode) {
@@ -517,6 +544,7 @@ class TrueNasApiClient implements ApiClientInterface {
     );
     await unsubscribeFromSystemStats();
     await unsubscribeFromAppStats();
+    await unsubscribeFromJobs();
     await _client?.close();
     await _wsChannel?.sink.close();
   }
@@ -1244,6 +1272,121 @@ class TrueNasApiClient implements ApiClientInterface {
       await _ensureAuthenticated();
       final result = await _client!.sendRequest('truenas.is_ix_hardware');
       return result as bool;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Job management methods
+  @override
+  Future<List<Job>> getJobs() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('core.get_jobs');
+      final jobs = (result as List<dynamic>).cast<Map<String, dynamic>>().map(
+        Job.fromJson,
+      );
+      _jobsById
+        ..clear()
+        ..addEntries(jobs.map((job) => MapEntry(job.id, job)));
+      return _jobsById.values.toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Stream<List<Job>> get jobsStream {
+    _jobsController ??= StreamController<List<Job>>.broadcast();
+    return _jobsController!.stream;
+  }
+
+  @override
+  Future<void> subscribeToJobs() async {
+    _wantsJobs = true;
+
+    if (_isSubscribedToJobs && _hasLiveConnection) {
+      if (kDebugMode) {
+        print('TrueNAS API: Already subscribed to jobs');
+      }
+      return;
+    }
+
+    _isSubscribedToJobs = false;
+    _jobsSubscriptionId = null;
+
+    try {
+      await _ensureAuthenticated();
+
+      _jobsController ??= StreamController<List<Job>>.broadcast();
+
+      _jobsSubscriptionId =
+          await _client!.sendRequest('core.subscribe', ['core.get_jobs'])
+              as String;
+
+      _isSubscribedToJobs = true;
+
+      if (kDebugMode) {
+        print('TrueNAS API: Subscribed to jobs with ID: $_jobsSubscriptionId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Failed to subscribe to jobs: $e');
+      }
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<void> unsubscribeFromJobs() async {
+    if (!_isSubscribedToJobs || _jobsSubscriptionId == null) {
+      return;
+    }
+
+    try {
+      if (_hasLiveConnection) {
+        await _client!.sendRequest('core.unsubscribe', [_jobsSubscriptionId!]);
+
+        if (kDebugMode) {
+          print(
+            'TrueNAS API: Unsubscribed from jobs with ID: $_jobsSubscriptionId',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('TrueNAS API: Error unsubscribing from jobs: $e');
+      }
+    } finally {
+      _wantsJobs = false;
+      _isSubscribedToJobs = false;
+      _jobsSubscriptionId = null;
+      _jobsById.clear();
+      await _jobsController?.close();
+      _jobsController = null;
+
+      if (kDebugMode) {
+        print('TrueNAS API: Job subscription cleaned up');
+      }
+    }
+  }
+
+  @override
+  Future<void> abortJob(int jobId) async {
+    try {
+      await _ensureAuthenticated();
+      await _client!.sendRequest('core.job_abort', [jobId]);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<int> rerunJob(Job job) async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest(job.method, job.arguments);
+      return result as int;
     } catch (e) {
       throw _handleError(e);
     }

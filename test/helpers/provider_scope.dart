@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
@@ -13,10 +14,10 @@ import 'package:truehub/services/unified_server_service.dart';
 /// (`HomeScreen`, `SettingsScreen`, `ServerDetailScreen`) read from context.
 ///
 /// [ServerProvider] is the one provider every one of those screens needs, so
-/// it is required. [PoolProvider], [AppProvider], [SystemStatsProvider] and
-/// [ConnectionStatusProvider] are only read by `ServerDetailScreen`, and
-/// [TrayProvider] only by `SettingsScreen`; pass one in when a test pumps
-/// the screen that needs it, and leave it out otherwise - a
+/// it is required. [PoolProvider], [AppProvider], [SystemStatsProvider],
+/// [JobsProvider] and [ConnectionStatusProvider] are only read by
+/// `ServerDetailScreen`, and [TrayProvider] only by `SettingsScreen`; pass one
+/// in when a test pumps the screen that needs it, and leave it out otherwise - a
 /// `ChangeNotifierProvider(create: ...)` still backs every one of them by
 /// default so `Provider.of` never fails to resolve, but tests that need to
 /// inspect or seed one should build and pass it explicitly.
@@ -34,6 +35,7 @@ Widget provideAppProviders({
   PoolProvider? poolProvider,
   AppProvider? appProvider,
   SystemStatsProvider? systemStatsProvider,
+  JobsProvider? jobsProvider,
   ConnectionStatusProvider? connectionStatusProvider,
   TrayProvider? trayProvider,
 }) {
@@ -59,6 +61,11 @@ Widget provideAppProviders({
             )
           : ChangeNotifierProvider<SystemStatsProvider>(
               create: (_) => SystemStatsProvider(service),
+            ),
+      jobsProvider != null
+          ? ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider)
+          : ChangeNotifierProvider<JobsProvider>(
+              create: (_) => JobsProvider(service),
             ),
       connectionStatusProvider != null
           ? ChangeNotifierProvider<ConnectionStatusProvider>.value(

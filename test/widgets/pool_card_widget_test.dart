@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/widgets/pool_card_widget.dart';
@@ -23,6 +24,7 @@ void main() {
     Map<String, dynamic> pool, {
     double width = 375,
     DatasetProvider? datasetProvider,
+    JobsProvider? jobsProvider,
   }) {
     final card = PoolCardWidget(pool: pool, server: testServer);
     final home = Center(
@@ -32,11 +34,18 @@ void main() {
       ),
     );
 
-    if (datasetProvider == null) {
+    final providers = [
+      if (datasetProvider != null)
+        ChangeNotifierProvider<DatasetProvider>.value(value: datasetProvider),
+      if (jobsProvider != null)
+        ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
+    ];
+
+    if (providers.isEmpty) {
       return CupertinoApp(home: home);
     }
-    return ChangeNotifierProvider<DatasetProvider>.value(
-      value: datasetProvider,
+    return MultiProvider(
+      providers: providers,
       child: CupertinoApp(home: home),
     );
   }
@@ -259,6 +268,7 @@ void main() {
     late AppDatabase database;
     late UnifiedServerService unifiedServerService;
     late DatasetProvider datasetProvider;
+    late JobsProvider jobsProvider;
 
     setUp(() async {
       await TestProviders.cleanupTestEnvironment();
@@ -268,11 +278,12 @@ void main() {
         database: database,
       );
       datasetProvider = DatasetProvider(unifiedServerService);
+      jobsProvider = JobsProvider(unifiedServerService);
     });
 
     tearDown(() async {
       await TestProviders.disposeTestStack(
-        providers: [datasetProvider],
+        providers: [datasetProvider, jobsProvider],
         service: unifiedServerService,
         database: database,
       );
@@ -282,11 +293,11 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'status': 'ONLINE',
-          'healthy': true,
-        }, datasetProvider: datasetProvider),
+        wrap(
+          {'name': 'tank', 'status': 'ONLINE', 'healthy': true},
+          datasetProvider: datasetProvider,
+          jobsProvider: jobsProvider,
+        ),
       );
 
       await tester.tap(find.byType(PoolCardWidget));

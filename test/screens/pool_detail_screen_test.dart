@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/screens/dataset_detail_screen.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 import 'package:truehub/services/database.dart';
@@ -18,6 +19,7 @@ void main() {
   late AppDatabase database;
   late UnifiedServerService serverService;
   late DatasetProvider datasetProvider;
+  late JobsProvider jobsProvider;
   late FakeApiClient fakeClient;
   late NasServer testServer;
 
@@ -30,6 +32,7 @@ void main() {
       database: database,
     );
     datasetProvider = DatasetProvider(serverService);
+    jobsProvider = JobsProvider(serverService);
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -48,15 +51,18 @@ void main() {
 
   tearDown(() async {
     await TestProviders.disposeTestStack(
-      providers: [datasetProvider],
+      providers: [datasetProvider, jobsProvider],
       service: serverService,
       database: database,
     );
   });
 
   Widget wrap(Map<String, dynamic> pool, {NasServer? server}) {
-    return ChangeNotifierProvider<DatasetProvider>.value(
-      value: datasetProvider,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<DatasetProvider>.value(value: datasetProvider),
+        ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
+      ],
       child: CupertinoApp(
         home: PoolDetailScreen(server: server ?? testServer, pool: pool),
       ),

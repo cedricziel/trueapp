@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/screens/dataset_detail_screen.dart';
+import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class PoolDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -39,6 +40,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
           child: const Text('Back'),
           onPressed: () => Navigator.pop(context),
         ),
+        trailing: JobsBellButton(server: widget.server),
       ),
       child: SafeArea(
         child: CustomScrollView(

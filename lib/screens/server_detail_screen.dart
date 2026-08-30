@@ -7,6 +7,7 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/widgets/system_stats_widget.dart';
 import 'package:truehub/widgets/authentication_state_widget.dart';
 import 'package:truehub/widgets/action_button_widget.dart';
@@ -15,6 +16,7 @@ import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/connection_status_widget.dart';
+import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/section_header.dart';
 
 class ServerDetailScreen extends StatefulWidget {
@@ -28,6 +30,7 @@ class ServerDetailScreen extends StatefulWidget {
 
 class _ServerDetailScreenState extends State<ServerDetailScreen> {
   SystemStatsProvider? _systemStatsProvider;
+  JobsProvider? _jobsProvider;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       final poolProvider = context.read<PoolProvider>();
       final appProvider = context.read<AppProvider>();
       final systemStatsProvider = context.read<SystemStatsProvider>();
+      final jobsProvider = context.read<JobsProvider>();
 
       // Check if this server is already selected and authenticated
       if (serverProvider.selectedServer?.id != widget.server.id) {
@@ -57,6 +61,12 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
 
         await systemStatsProvider.setApiClient(widget.server);
         await systemStatsProvider.subscribeToStats();
+
+        // Subscribed here (rather than in ServerJobsScreen) so the nav bar
+        // bell keeps reflecting job state on every screen pushed on top of
+        // this one, not just while the Jobs screen itself is open.
+        await jobsProvider.setApiClient(widget.server);
+        await jobsProvider.subscribeToJobs();
       }
     });
   }
@@ -74,16 +84,18 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     // to a `late final` field here would throw a LateInitializationError the
     // first time the user navigated to any of this screen's sub-routes.
     _systemStatsProvider ??= context.read<SystemStatsProvider>();
+    _jobsProvider ??= context.read<JobsProvider>();
   }
 
   @override
   void dispose() {
-    // Unsubscribe from system stats when screen is disposed. The provider
-    // was captured synchronously in didChangeDependencies(), so this runs
-    // immediately and doesn't need a frame boundary or a `mounted` check -
-    // by the time dispose() runs the element is already unmounted, which
-    // made a post-frame callback here dead code.
+    // Unsubscribe from system stats and jobs when screen is disposed. The
+    // providers were captured synchronously in didChangeDependencies(), so
+    // this runs immediately and doesn't need a frame boundary or a `mounted`
+    // check - by the time dispose() runs the element is already unmounted,
+    // which made a post-frame callback here dead code.
     _systemStatsProvider?.unsubscribeFromStats();
+    _jobsProvider?.unsubscribeFromJobs();
     super.dispose();
   }
 
@@ -121,33 +133,39 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                 ),
               ],
             ),
-            trailing: CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.ellipsis),
-              onPressed: () {
-                showCupertinoModalPopup(
-                  context: context,
-                  builder: (context) => CupertinoActionSheet(
-                    actions: [
-                      CupertinoActionSheetAction(
-                        child: const Text('Edit Server'),
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          context.push(
-                            '/server/${currentServer.id}/edit',
-                            extra: currentServer,
-                          );
-                        },
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                JobsBellButton(server: currentServer),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.ellipsis),
+                  onPressed: () {
+                    showCupertinoModalPopup(
+                      context: context,
+                      builder: (context) => CupertinoActionSheet(
+                        actions: [
+                          CupertinoActionSheetAction(
+                            child: const Text('Edit Server'),
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              context.push(
+                                '/server/${currentServer.id}/edit',
+                                extra: currentServer,
+                              );
+                            },
+                          ),
+                        ],
+                        cancelButton: CupertinoActionSheetAction(
+                          isDefaultAction: true,
+                          child: const Text('Cancel'),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ),
-                    ],
-                    cancelButton: CupertinoActionSheetAction(
-                      isDefaultAction: true,
-                      child: const Text('Cancel'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           child: AuthenticationStateWidget(
@@ -200,6 +218,15 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
             subtitle: 'View system health and status',
             onTap: () {
               context.push('/server/${server.id}/health', extra: server);
+            },
+          ),
+          const SizedBox(height: 12),
+          ActionButtonWidget(
+            icon: CupertinoIcons.bell,
+            title: 'Jobs',
+            subtitle: 'View running, queued, and finished jobs',
+            onTap: () {
+              context.push('/server/${server.id}/jobs', extra: server);
             },
           ),
         ],

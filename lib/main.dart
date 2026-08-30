@@ -10,6 +10,7 @@ import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
+import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
@@ -52,6 +53,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => SystemStatsProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => JobsProvider(unifiedServerService),
         ),
         ChangeNotifierProvider(create: (context) => TrayProvider()),
       ],
