@@ -66,7 +66,8 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
               return const EmptyStateWidget(
                 icon: CupertinoIcons.square_stack_3d_down_right,
                 title: 'No pools found',
-                message: 'Storage pools configured on this server will appear here.',
+                message:
+                    'Storage pools configured on this server will appear here.',
               );
             }
 

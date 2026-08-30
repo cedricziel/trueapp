@@ -388,16 +388,19 @@ void main() {
   });
 
   group('Additional Coverage Tests', () {
-    test('isLoadingServers flips to false once the initial load completes', () async {
-      final freshProvider = ServerProvider(mockServerService);
-      addTearDown(freshProvider.dispose);
+    test(
+      'isLoadingServers flips to false once the initial load completes',
+      () async {
+        final freshProvider = ServerProvider(mockServerService);
+        addTearDown(freshProvider.dispose);
 
-      expect(freshProvider.isLoadingServers, isTrue);
+        expect(freshProvider.isLoadingServers, isTrue);
 
-      await freshProvider.loadServersAndAutoSelect();
+        await freshProvider.loadServersAndAutoSelect();
 
-      expect(freshProvider.isLoadingServers, isFalse);
-    });
+        expect(freshProvider.isLoadingServers, isFalse);
+      },
+    );
 
     test('should handle authentication state changes', () async {
       // Test authentication stream

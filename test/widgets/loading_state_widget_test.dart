@@ -7,17 +7,13 @@ void main() {
     testWidgets('shows an activity indicator with no message by default', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        const CupertinoApp(home: LoadingStateWidget()),
-      );
+      await tester.pumpWidget(const CupertinoApp(home: LoadingStateWidget()));
 
       expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
       expect(find.byType(Text), findsNothing);
     });
 
-    testWidgets('shows the message when provided', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('shows the message when provided', (WidgetTester tester) async {
       await tester.pumpWidget(
         const CupertinoApp(
           home: LoadingStateWidget(message: 'Loading pools...'),

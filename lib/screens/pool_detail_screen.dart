@@ -106,7 +106,8 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
                     child: EmptyStateWidget(
                       icon: CupertinoIcons.folder,
                       title: 'No datasets found',
-                      message: 'Datasets created in this pool will appear here.',
+                      message:
+                          'Datasets created in this pool will appear here.',
                     ),
                   );
                 }
