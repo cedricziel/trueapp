@@ -5,6 +5,7 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/api_client_manager_impl.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 
 /// Legacy static facade for ApiClientManager
 /// This maintains backward compatibility while allowing for dependency injection
@@ -26,6 +27,10 @@ class ApiClientManager {
   // Legacy static methods that delegate to instance
   static void setConnectionStatusProvider(ConnectionStatusProvider? provider) {
     instance.setConnectionStatusProvider(provider);
+  }
+
+  static void setTelemetryService(TelemetryServiceInterface? telemetry) {
+    instance.setTelemetryService(telemetry);
   }
 
   static Future<ApiClientInterface?> getClient(NasServer server) async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_otel/flutter_otel.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -14,11 +15,13 @@ import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 
 class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
   final ConnectionStatusProvider? _connectionStatusProvider;
+  final TelemetryServiceInterface? _telemetry;
   Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
@@ -58,7 +61,11 @@ class TrueNasApiClient implements ApiClientInterface {
   Duration _keepaliveInterval = const Duration(seconds: 30);
   bool _awaitingPong = false;
 
-  TrueNasApiClient(this._server, [this._connectionStatusProvider]);
+  TrueNasApiClient(
+    this._server, [
+    this._connectionStatusProvider,
+    this._telemetry,
+  ]);
 
   /// Whether the JSON-RPC socket is currently usable.
   bool get _hasLiveConnection => _client != null && !_client!.isClosed;
@@ -68,6 +75,24 @@ class TrueNasApiClient implements ApiClientInterface {
       return;
     }
 
+    final telemetry = _telemetry;
+    if (telemetry == null) {
+      return _ensureConnectedTraced(null);
+    }
+
+    return telemetry.getTracer().startActiveSpan(
+      'truenas.connect',
+      (span) => _ensureConnectedTraced(span),
+      kind: SpanKind.client,
+      attributes: {'server.id': _server.id},
+    );
+  }
+
+  /// The body of [_ensureConnected]. [span] is the active span for this
+  /// connection attempt when telemetry is wired up, or `null` when it isn't
+  /// - every telemetry touch below is guarded on it so this method's
+  /// behaviour is identical either way beyond that instrumentation.
+  Future<void> _ensureConnectedTraced(Span? span) async {
     _connectionStatusProvider?.updateConnectionState(
       _server.id,
       TrueNASConnectionState.connecting,
@@ -85,6 +110,10 @@ class TrueNasApiClient implements ApiClientInterface {
       final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/api/current';
       _currentConnectionUrl = baseUrl;
       _isLocalConnection = isOnTrustedNetwork;
+
+      // Not the URL itself - it can carry user-info/credentials-shaped query
+      // parameters - just whether this connection stayed on the trusted LAN.
+      span?.setAttribute('server.network.trusted', isOnTrustedNetwork);
 
       if (kDebugMode) {
         print('TrueNAS API: Connecting to WebSocket: $wsUrl');
@@ -132,7 +161,8 @@ class TrueNasApiClient implements ApiClientInterface {
       if (kDebugMode) {
         print('TrueNAS API: WebSocket connection established and listening');
       }
-    } catch (e) {
+      span?.setStatus(StatusCode.ok);
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('TrueNAS API: Connection failed: $e');
       }
@@ -149,6 +179,16 @@ class TrueNasApiClient implements ApiClientInterface {
         _server.id,
         TrueNASConnectionState.error,
         error: e.toString(),
+      );
+      // The span's own exception/error-status recording is handled by
+      // Tracer.startActiveSpan's contract (it records whatever this method
+      // throws and marks the span an error) - this only needs to get the
+      // failure into the logs signal too.
+      _telemetry?.getLogger().error(
+        'TrueNAS API: Connection failed',
+        error: e,
+        stackTrace: stackTrace,
+        attributes: {'server.id': _server.id},
       );
       throw _handleConnectionError(e);
     }

@@ -5,6 +5,7 @@ import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 
 /// Default implementation of ApiClientManagerInterface
 class ApiClientManagerImpl implements ApiClientManagerInterface {
@@ -12,10 +13,16 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   final Map<String, int> _refCounts = {};
   final Map<String, Completer<TrueNasApiClient>?> _connectionCompleters = {};
   ConnectionStatusProvider? _connectionStatusProvider;
+  TelemetryServiceInterface? _telemetry;
 
   @override
   void setConnectionStatusProvider(ConnectionStatusProvider? provider) {
     _connectionStatusProvider = provider;
+  }
+
+  @override
+  void setTelemetryService(TelemetryServiceInterface? telemetry) {
+    _telemetry = telemetry;
   }
 
   @override
@@ -59,7 +66,11 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
         );
       }
 
-      final client = TrueNasApiClient(server, _connectionStatusProvider);
+      final client = TrueNasApiClient(
+        server,
+        _connectionStatusProvider,
+        _telemetry,
+      );
       _clients[serverId] = client;
       _refCounts[serverId] = 1;
 
@@ -257,5 +268,6 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     _refCounts.clear();
     _connectionCompleters.clear();
     _connectionStatusProvider = null;
+    _telemetry = null;
   }
 }

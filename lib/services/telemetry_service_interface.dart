@@ -10,6 +10,11 @@ abstract class TelemetryServiceInterface {
   /// name/version pair.
   Logger getLogger({String name = 'truehub', String? version});
 
+  /// Returns a [Tracer] for the given instrumentation scope. Implementations
+  /// typically cache and return the same instance for a given
+  /// name/version pair.
+  Tracer getTracer({String name = 'truehub', String? version});
+
   /// Records an error and its stack trace as a log record - the intended
   /// target for `FlutterError.onError` / `PlatformDispatcher.instance.onError`
   /// hooks, and for any `catch` block that wants a caught error to surface

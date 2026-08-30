@@ -47,6 +47,24 @@ void main() {
     );
 
     test(
+      'getTracer returns a Tracer that can be used without throwing',
+      () async {
+        final service = await TelemetryService.initialize(disabledConfig);
+
+        final tracer = service.getTracer();
+
+        expect(tracer, isA<Tracer>());
+        await expectLater(
+          tracer.startActiveSpan(
+            'test-span',
+            (span) async => span.setStatus(StatusCode.ok),
+          ),
+          completes,
+        );
+      },
+    );
+
+    test(
       'recordError with fatal: false emits an ERROR-severity record via the logger',
       () async {
         final service = await TelemetryService.initialize(disabledConfig);
@@ -125,6 +143,62 @@ void main() {
 
       expect(logger, isA<Logger>());
       expect(fake.loggerNames, ['my-scope']);
+    });
+
+    test('getTracer is recorded and returns a Tracer', () {
+      final fake = FakeTelemetryService();
+
+      final tracer = fake.getTracer(name: 'my-scope');
+
+      expect(tracer, isA<Tracer>());
+      expect(fake.tracerNames, ['my-scope']);
+    });
+
+    test(
+      'a started span records attributes/status and is captured in spans',
+      () async {
+        final fake = FakeTelemetryService();
+        final tracer = fake.getTracer();
+
+        await tracer.startActiveSpan(
+          'my-span',
+          (span) async {
+            span.setAttribute('server.id', 'abc');
+            span.setStatus(StatusCode.ok);
+          },
+          kind: SpanKind.client,
+          attributes: {'initial': true},
+        );
+
+        expect(fake.spans, hasLength(1));
+        final span = fake.spans.single;
+        expect(span.name, 'my-span');
+        expect(span.kind, SpanKind.client);
+        expect(span.attributes, {'initial': true, 'server.id': 'abc'});
+        expect(span.status, StatusCode.ok);
+        expect(span.isEnded, isTrue);
+      },
+    );
+
+    test('a span whose body throws records the exception and an error status, '
+        'then rethrows', () async {
+      final fake = FakeTelemetryService();
+      final tracer = fake.getTracer();
+      final error = Exception('boom');
+
+      await expectLater(
+        tracer.startActiveSpan('failing-span', (span) async {
+          throw error;
+        }),
+        throwsA(same(error)),
+      );
+
+      expect(fake.spans, hasLength(1));
+      final span = fake.spans.single;
+      expect(span.status, StatusCode.error);
+      expect(span.exceptions, hasLength(1));
+      expect(span.exceptions.single.exception, same(error));
+      expect(span.isEnded, isTrue);
     });
 
     test(

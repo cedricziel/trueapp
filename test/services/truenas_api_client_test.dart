@@ -1,8 +1,10 @@
+import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/fake_truenas_server.dart';
 
 void main() {
@@ -719,5 +721,87 @@ void main() {
         expect(client.isKeepaliveActive, isTrue);
       },
     );
+  });
+
+  group('TrueNasApiClient connection telemetry', () {
+    late FakeTrueNasServer server;
+    late NasServer testServer;
+
+    NasServer serverFor(FakeTrueNasServer s) => NasServer(
+      id: 'telemetry-fake-server',
+      name: 'Telemetry Fake Server',
+      host: '127.0.0.1',
+      port: s.port,
+      useHttps: false,
+      username: 'root',
+      password: 'password',
+      localUrl: null,
+      trustedWifiSsids: const [],
+      isDefault: false,
+    );
+
+    setUp(() async {
+      server = await FakeTrueNasServer.start();
+      testServer = serverFor(server);
+    });
+
+    tearDown(() async {
+      await server.stop();
+    });
+
+    test('a successful connect produces a truenas.connect span with '
+        'StatusCode.ok and the expected attributes', () async {
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(client.close);
+
+      // getCurrentUser() drives _ensureAuthenticated -> _ensureConnected.
+      await client.getCurrentUser();
+
+      expect(telemetry.spans, hasLength(1));
+      final span = telemetry.spans.single;
+      expect(span.name, 'truenas.connect');
+      expect(span.kind, SpanKind.client);
+      expect(span.attributes['server.id'], testServer.id);
+      expect(span.attributes['server.network.trusted'], isFalse);
+      expect(span.status, StatusCode.ok);
+      expect(span.isEnded, isTrue);
+      expect(telemetry.tracerNames, isNotEmpty);
+    });
+
+    test(
+      'a failed connect produces an error span and still calls the logger',
+      () async {
+        // Nothing listens on this server's port once it has been stopped,
+        // so the connect attempt fails deterministically - same technique
+        // the plain (non-telemetry) failure test above uses.
+        await server.stop();
+
+        final telemetry = FakeTelemetryService();
+        final deadClient = TrueNasApiClient(testServer, null, telemetry);
+        addTearDown(deadClient.close);
+
+        final result = await deadClient.validateLogin('root', 'password');
+
+        expect(result, isFalse);
+        expect(telemetry.spans, hasLength(1));
+        final span = telemetry.spans.single;
+        expect(span.name, 'truenas.connect');
+        expect(span.status, StatusCode.error);
+        expect(span.exceptions, isNotEmpty);
+        expect(span.isEnded, isTrue);
+        // The catch block in _ensureConnectedTraced logs the failure too.
+        expect(telemetry.loggerNames, isNotEmpty);
+      },
+    );
+
+    test('passing telemetry: null behaves identically to the untraced client '
+        '(no crash, same success/failure outcomes)', () async {
+      final client = TrueNasApiClient(testServer);
+      addTearDown(client.close);
+
+      await client.getCurrentUser();
+      expect(client.isKeepaliveActive, isTrue);
+    });
   });
 }

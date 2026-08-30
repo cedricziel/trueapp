@@ -46,6 +46,10 @@ class TelemetryService implements TelemetryServiceInterface {
       _sdk.getLogger(name: name, version: version);
 
   @override
+  Tracer getTracer({String name = 'truehub', String? version}) =>
+      _sdk.getTracer(name: name, version: version);
+
+  @override
   void recordError(
     Object error,
     StackTrace stackTrace, {

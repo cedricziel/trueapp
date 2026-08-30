@@ -4,6 +4,9 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 
+import '../helpers/fake_telemetry_service.dart';
+import '../helpers/mock_api_client_manager.dart';
+
 void main() {
   group('ApiClientManager', () {
     late NasServer testServer1;
@@ -237,6 +240,40 @@ void main() {
           () => ApiClientManager.setConnectionStatusProvider(null),
           returnsNormally,
         );
+      });
+    });
+
+    group('setTelemetryService', () {
+      test('accepts a null service without throwing', () {
+        expect(
+          () => ApiClientManager.setTelemetryService(null),
+          returnsNormally,
+        );
+      });
+
+      test('is passed through to clients created afterwards', () async {
+        final telemetry = FakeTelemetryService();
+        ApiClientManager.setTelemetryService(telemetry);
+        addTearDown(() => ApiClientManager.setTelemetryService(null));
+
+        // Nothing observable on ApiClientManagerInterface exposes the
+        // telemetry service directly, so this only proves getClient()
+        // doesn't blow up with one wired in - TrueNasApiClient's own tests
+        // cover the telemetry behaviour itself.
+        final client = await ApiClientManager.getClient(testServer1);
+        expect(client, isA<TrueNasApiClient>());
+      });
+
+      test('static facade delegates to the underlying instance', () {
+        final mock = MockApiClientManager();
+        ApiClientManager.setInstance(mock);
+        addTearDown(() => ApiClientManager.setInstance(null));
+
+        final telemetry = FakeTelemetryService();
+        ApiClientManager.setTelemetryService(telemetry);
+
+        expect(mock.methodCalls, contains('setTelemetryService'));
+        expect(mock.telemetry, same(telemetry));
       });
     });
 
