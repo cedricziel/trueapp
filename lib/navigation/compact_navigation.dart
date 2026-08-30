@@ -26,7 +26,13 @@ class CompactNavigation extends StatelessWidget {
     return CupertinoPageScaffold(
       child: Column(
         children: [
-          Expanded(child: child),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeBottom: true,
+              child: child,
+            ),
+          ),
           CompactDestinationBar(
             selectedIndex: selectedIndex,
             onDestinationSelected: onDestinationSelected,
