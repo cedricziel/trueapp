@@ -232,6 +232,86 @@ void main() {
       );
     });
 
+    test('fromJson parses last_update from a raw epoch-millisecond number', () {
+      final json = {
+        'name': 'app',
+        'title': 'App',
+        'description': 'desc',
+        'recommended': false,
+        'catalog': 'TEST',
+        'train': 'stable',
+        'last_update': 1700000000000,
+      };
+
+      final app = App.fromJson(json);
+
+      expect(
+        app.lastUpdate,
+        equals(DateTime.fromMillisecondsSinceEpoch(1700000000000)),
+      );
+    });
+
+    test('fromJson parses last_update from an ISO 8601 string', () {
+      final json = {
+        'name': 'app',
+        'title': 'App',
+        'description': 'desc',
+        'recommended': false,
+        'catalog': 'TEST',
+        'train': 'stable',
+        'last_update': '2023-11-14T22:13:20.000Z',
+      };
+
+      final app = App.fromJson(json);
+
+      expect(
+        app.lastUpdate,
+        equals(DateTime.parse('2023-11-14T22:13:20.000Z')),
+      );
+    });
+
+    test(
+      'fromJson tolerates an unrecognized last_update shape instead of throwing',
+      () {
+        final json = {
+          'name': 'app',
+          'title': 'App',
+          'description': 'desc',
+          'recommended': false,
+          'catalog': 'TEST',
+          'train': 'stable',
+          // A shape this field has been observed to take on some TrueNAS
+          // SCALE versions - the parser must degrade to null rather than
+          // throw, or a single unexpected field shape breaks the entire
+          // app list load with a generic "Connection error".
+          'last_update': ['not', 'a', 'date'],
+        };
+
+        final app = App.fromJson(json);
+
+        expect(app.lastUpdate, isNull);
+      },
+    );
+
+    test(
+      'fromJson tolerates a Mongo-style payload with a non-numeric \$date instead of throwing',
+      () {
+        final json = {
+          'name': 'app',
+          'title': 'App',
+          'description': 'desc',
+          'recommended': false,
+          'catalog': 'TEST',
+          'train': 'stable',
+          'last_update': {'\$date': 'not-a-number'},
+        };
+
+        final app = App.fromJson(json);
+
+        expect(app.lastUpdate, isNull);
+      },
+    );
+
     test(
       'fromJson parses resource_usage, upgrade_info, used_ports and portals',
       () {
