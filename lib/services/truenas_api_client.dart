@@ -100,6 +100,11 @@ class TrueNasApiClient implements ApiClientInterface {
   /// In-flight authentication attempt, same coalescing as [_connecting].
   final _authenticating = _InFlight();
 
+  /// Set for good once [close] starts. Recovery triggers (keepalive timeout,
+  /// app-resume hook) check it so they cannot rebuild the session close is
+  /// tearing down; on-demand requests keep their reconnect behaviour.
+  bool _isClosing = false;
+
   Future<void> _ensureConnected() {
     if (_hasLiveConnection) {
       return Future.value();
@@ -368,6 +373,7 @@ class TrueNasApiClient implements ApiClientInterface {
   final _recovery = _InFlight();
 
   Future<void> _handleKeepaliveTimeout() {
+    if (_isClosing) return Future.value();
     return _recovery.run(_recoverConnection);
   }
 
@@ -394,6 +400,12 @@ class TrueNasApiClient implements ApiClientInterface {
     _jobsSubscriptionId = null;
 
     try {
+      // The session this recovery was invoked for is no longer trusted, even
+      // when its Peer hasn't noticed the death yet (a timed-out ping on a
+      // zombie socket leaves isClosed false). Only a login that completes
+      // during the settle below may vouch for the session again.
+      _isAuthenticated = false;
+
       // A connect or login already in flight is building the fresh session
       // this recovery wants. Let it settle instead of closing its socket
       // mid-handshake - tearing down here would kill the handshake, and
@@ -404,9 +416,15 @@ class TrueNasApiClient implements ApiClientInterface {
       if (!(_hasLiveConnection && _isAuthenticated)) {
         _isAuthenticated = false;
 
-        // Close existing connection
-        await _client?.close();
-        await _wsChannel?.sink.close();
+        // Detach and close only the stale session: awaiting a close yields,
+        // and a concurrent request may assign a fresh channel to these
+        // fields in the meantime - that one must survive.
+        final staleClient = _client;
+        final staleChannel = _wsChannel;
+        _client = null;
+        _wsChannel = null;
+        await staleClient?.close();
+        await staleChannel?.sink.close();
 
         // Re-establish connection
         await _ensureConnected();
@@ -451,6 +469,9 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> ensureConnectionAlive() async {
+    // A closing client has nothing to keep alive.
+    if (_isClosing) return;
+
     // _sendKeepalivePing already owns the "is this connection usable, and
     // recover it if not" decision; don't restate it here.
     await _sendKeepalivePing();
@@ -668,10 +689,17 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> close() async {
-    // Let an in-flight connect or login settle first, so this close tears
-    // down the socket that attempt produces instead of racing its handshake
-    // - which would leak the socket and the keepalive timer a successful
-    // login starts.
+    // Refuse recovery work from here on: a keepalive timeout or app-resume
+    // hook firing during the awaits below must not rebuild the session this
+    // close is tearing down. Set before the first await so nothing sneaks
+    // in between.
+    _isClosing = true;
+
+    // Let in-flight work settle first, so this close tears down the socket
+    // those attempts produce instead of racing their handshakes - which
+    // would leak the socket and the keepalive timer a successful login
+    // starts.
+    await _recovery.settle();
     await _connecting.settle();
     await _authenticating.settle();
 
@@ -683,11 +711,13 @@ class TrueNasApiClient implements ApiClientInterface {
     await unsubscribeFromSystemStats();
     await unsubscribeFromAppStats();
     await unsubscribeFromJobs();
-    await _client?.close();
-    await _wsChannel?.sink.close();
+    final staleClient = _client;
+    final staleChannel = _wsChannel;
     _client = null;
     _wsChannel = null;
     _isAuthenticated = false;
+    await staleClient?.close();
+    await staleChannel?.sink.close();
   }
 
   // Authentication methods
