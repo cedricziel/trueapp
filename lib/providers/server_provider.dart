@@ -41,6 +41,7 @@ class ServerProvider extends ChangeNotifier {
   AuthenticationState _authState = AuthenticationState.none;
   String? _authError;
 
+  bool _isLoadingServers = true;
   ServerHealth? _serverHealth;
   bool _isLoadingHealth = false;
   String? _healthError;
@@ -59,6 +60,7 @@ class ServerProvider extends ChangeNotifier {
     // Listen to server changes from the unified service
     _serversSubscription = _serverService.serversStream.listen((servers) {
       _servers = servers;
+      _isLoadingServers = false;
       notifyListeners();
 
       // Auto-select server if needed
@@ -70,6 +72,7 @@ class ServerProvider extends ChangeNotifier {
   }
 
   List<models.NasServer> get servers => _servers;
+  bool get isLoadingServers => _isLoadingServers;
   models.NasServer? get selectedServer => _selectedServer;
 
   // Stream for authentication state
@@ -102,11 +105,14 @@ class ServerProvider extends ChangeNotifier {
     try {
       _servers = await _serverService.getAllServers();
       if (_disposed) return;
+      _isLoadingServers = false;
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
         print('ServerProvider: Failed to load servers: $e');
       }
+      _isLoadingServers = false;
+      if (!_disposed) notifyListeners();
     }
   }
 

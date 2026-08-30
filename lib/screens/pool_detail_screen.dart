@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/screens/dataset_detail_screen.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
+import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
+import 'package:truehub/widgets/loading_state_widget.dart';
 
 class PoolDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -79,46 +82,16 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
               builder: (context, provider, child) {
                 if (provider.isLoading) {
                   return const SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CupertinoActivityIndicator(),
-                      ),
-                    ),
+                    child: LoadingStateWidget(message: 'Loading datasets...'),
                   );
                 }
 
                 if (provider.error != null) {
                   return SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            const Icon(
-                              CupertinoIcons.exclamationmark_triangle,
-                              size: 48,
-                              color: CupertinoColors.systemRed,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text('Error loading datasets'),
-                            const SizedBox(height: 8),
-                            Text(
-                              provider.error!,
-                              style: const TextStyle(
-                                color: CupertinoColors.systemGrey,
-                                fontSize: 14,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            CupertinoButton(
-                              onPressed: _loadDatasets,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      ),
+                    child: ErrorStateWidget(
+                      title: 'Error loading datasets',
+                      message: provider.error!,
+                      onRetry: _loadDatasets,
                     ),
                   );
                 }
@@ -130,21 +103,11 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
 
                 if (poolDatasets.isEmpty) {
                   return const SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              CupertinoIcons.folder,
-                              size: 48,
-                              color: CupertinoColors.systemGrey,
-                            ),
-                            SizedBox(height: 16),
-                            Text('No datasets found'),
-                          ],
-                        ),
-                      ),
+                    child: EmptyStateWidget(
+                      icon: CupertinoIcons.folder,
+                      title: 'No datasets found',
+                      message:
+                          'Datasets created in this pool will appear here.',
                     ),
                   );
                 }

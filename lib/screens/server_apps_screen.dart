@@ -4,7 +4,10 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
+import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
+import 'package:truehub/widgets/loading_state_widget.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -158,7 +161,7 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
               child: Consumer<AppProvider>(
                 builder: (context, appProvider, child) {
                   if (appProvider.isLoading) {
-                    return const Center(child: CupertinoActivityIndicator());
+                    return const LoadingStateWidget(message: 'Loading apps...');
                   }
 
                   if (appProvider.error != null) {
@@ -237,41 +240,12 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
   }
 
   Widget _buildErrorView(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              CupertinoIcons.exclamationmark_triangle,
-              size: 48,
-              color: CupertinoColors.systemRed,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load apps',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              style: const TextStyle(
-                fontSize: 14,
-                color: CupertinoColors.systemGrey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            CupertinoButton.filled(
-              child: const Text('Retry'),
-              onPressed: () {
-                context.read<AppProvider>().refreshApps();
-              },
-            ),
-          ],
-        ),
-      ),
+    return ErrorStateWidget(
+      title: 'Failed to load apps',
+      message: error,
+      onRetry: () {
+        context.read<AppProvider>().refreshApps();
+      },
     );
   }
 
@@ -307,34 +281,10 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
         icon = CupertinoIcons.app;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: CupertinoColors.systemGrey),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: CupertinoColors.systemGrey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _searchQuery.isNotEmpty ? 'No apps match your search' : subtitle,
-              style: const TextStyle(
-                fontSize: 14,
-                color: CupertinoColors.systemGrey2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateWidget(
+      icon: icon,
+      title: title,
+      message: _searchQuery.isNotEmpty ? 'No apps match your search' : subtitle,
     );
   }
 }

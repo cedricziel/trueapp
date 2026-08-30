@@ -15,6 +15,7 @@ import 'package:truehub/widgets/pool_card_widget.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
+import 'package:truehub/widgets/loading_state_widget.dart';
 import 'package:truehub/widgets/connection_status_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/section_header.dart';
@@ -254,12 +255,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               ),
               const SizedBox(height: 12),
               if (poolProvider.isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CupertinoActivityIndicator(),
-                  ),
-                )
+                const LoadingStateWidget(message: 'Loading pools...')
               else if (poolProvider.error != null)
                 ErrorStateWidget(
                   title: 'Pool Error',
@@ -342,12 +338,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               ),
               const SizedBox(height: 12),
               if (appProvider.isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CupertinoActivityIndicator(),
-                  ),
-                )
+                const LoadingStateWidget(message: 'Loading apps...')
               else if (appProvider.error != null)
                 ErrorStateWidget(
                   title: 'App Error',

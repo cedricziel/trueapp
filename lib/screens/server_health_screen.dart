@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 
 class ServerHealthScreen extends StatelessWidget {
@@ -16,34 +17,11 @@ class ServerHealthScreen extends StatelessWidget {
         trailing: JobsBellButton(server: server),
       ),
       child: const SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                CupertinoIcons.heart,
-                size: 64,
-                color: CupertinoColors.systemGrey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Health monitoring coming soon',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: CupertinoColors.systemGrey,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'This feature will show CPU, memory,\ndisk usage, and system temperatures',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: CupertinoColors.systemGrey2,
-                ),
-              ),
-            ],
-          ),
+        child: EmptyStateWidget(
+          icon: CupertinoIcons.heart,
+          title: 'Health monitoring coming soon',
+          message:
+              'This feature will show CPU, memory,\ndisk usage, and system temperatures',
         ),
       ),
     );
