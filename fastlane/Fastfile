@@ -134,7 +134,9 @@ end
 # OTLP_INGEST_URL / OTLP_INGEST_KEY (fastlane already loads fastlane/.env via
 # Dotenv locally, and CI secrets are exported as env vars). Either being
 # missing/blank just leaves telemetry disabled for this build
-# (TelemetryConfig.enabled) - it never fails the build.
+# (TelemetryConfig.enabled) - it never fails the build. Both must be present
+# for telemetry to turn on: an endpoint with no key would otherwise compose
+# an empty bearer token, which is worse than just staying disabled.
 def telemetry_dart_defines
   # fastlane auto-loads fastlane/.env.default, whose placeholder entries
   # yield empty strings - treat those as unset, same helper pattern as
@@ -146,14 +148,15 @@ def telemetry_dart_defines
   endpoint = env.call("OTLP_INGEST_URL")
   api_key  = env.call("OTLP_INGEST_KEY")
 
-  return [] if endpoint.nil?
+  return [] if endpoint.nil? || api_key.nil?
 
   headers = "authorization=Bearer #{api_key},x-tenant-id=homelab,x-dataset-id=apps"
 
   [
     "--dart-define=OTEL_EXPORTER_OTLP_ENDPOINT=#{endpoint}",
     "--dart-define=OTEL_EXPORTER_OTLP_HEADERS=#{headers}",
-    "--dart-define=OTEL_SERVICE_NAME=truehub"
+    "--dart-define=OTEL_SERVICE_NAME=truehub",
+    "--dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production"
   ]
 end
 

@@ -96,17 +96,25 @@ jobs:
 
     - name: Build iOS (no codesign)
       # OTLP_INGEST_URL/OTLP_INGEST_KEY may not be set as repo secrets yet -
-      # GitHub Actions substitutes an empty string for a missing secret,
-      # which leaves OTEL_EXPORTER_OTLP_ENDPOINT empty and telemetry disabled
+      # GitHub Actions substitutes an empty string for a missing secret. Both
+      # must be non-blank for telemetry to turn on: an endpoint with no key
+      # would otherwise compose an empty bearer token, which is worse than
+      # just leaving OTEL_EXPORTER_OTLP_ENDPOINT unset and telemetry disabled
       # for this build (TelemetryConfig.enabled), not the build failing.
       env:
         OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
         OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
       run: |
-        flutter build ios --no-codesign \
-          --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL" \
-          --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps" \
-          --dart-define=OTEL_SERVICE_NAME=truehub
+        DART_DEFINES=()
+        if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
+          DART_DEFINES+=(
+            --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
+            --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
+            --dart-define=OTEL_SERVICE_NAME=truehub
+            --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
+          )
+        fi
+        flutter build ios --no-codesign "${DART_DEFINES[@]}"
 
     # `flutter build macos` has no --no-codesign flag, and the runner has no
     # signing identity, so the Release configuration's Manual signing fails
@@ -121,7 +129,13 @@ jobs:
         OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
         OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
       run: |
-        flutter build macos \
-          --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL" \
-          --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps" \
-          --dart-define=OTEL_SERVICE_NAME=truehub
+        DART_DEFINES=()
+        if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
+          DART_DEFINES+=(
+            --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
+            --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
+            --dart-define=OTEL_SERVICE_NAME=truehub
+            --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
+          )
+        fi
+        flutter build macos "${DART_DEFINES[@]}"

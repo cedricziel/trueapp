@@ -86,6 +86,32 @@ void main() {
 
       await expectLater(service.shutdown(), completes);
     });
+
+    test('a malformed OTLP endpoint does not throw and falls back to a '
+        'disabled/no-op service instead of crashing app startup', () async {
+      // A build-time misconfiguration (e.g. a bad CI secret) could produce
+      // a string Uri.parse would reject with a FormatException. Since
+      // main() awaits telemetry bootstrap before runApp, that would crash
+      // the whole app before the UI ever renders - initialize must instead
+      // degrade to the same no-op path used when no endpoint is set.
+      const malformedConfig = TelemetryConfig(
+        otlpEndpoint: 'not a valid uri: ::://',
+        otlpHeaders: {},
+        serviceName: 'truehub-test',
+        deploymentEnvironment: 'test',
+      );
+
+      final service = await TelemetryService.initialize(malformedConfig);
+
+      expect(service, isA<TelemetryServiceInterface>());
+      // The service must still be safely usable, exactly like the
+      // disabled-config path above.
+      expect(
+        () => service.recordError(Exception('boom'), StackTrace.current),
+        returnsNormally,
+      );
+      await expectLater(service.flush(), completes);
+    });
   });
 
   // Exercises the interface contract itself via a fake, per this repo's

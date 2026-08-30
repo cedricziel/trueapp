@@ -16,15 +16,25 @@ class TelemetryService implements TelemetryServiceInterface {
 
   /// Initializes the underlying [OTelSdk] from [config] and returns a
   /// service wrapping it.
+  ///
+  /// [config.otlpEndpoint] is a build-time string (see [TelemetryConfig])
+  /// that could be malformed - e.g. a misconfigured CI secret. Parsing it
+  /// with [Uri.tryParse] instead of [Uri.parse] means a bad value falls back
+  /// to the same disabled/no-op SDK path used when no endpoint is configured
+  /// at all, rather than throwing a [FormatException] that would crash the
+  /// app on startup before the UI ever renders (`main()` awaits this before
+  /// `runApp`).
   static Future<TelemetryService> initialize(TelemetryConfig config) async {
+    final endpoint = config.enabled ? Uri.tryParse(config.otlpEndpoint) : null;
+
     final sdk = await OTelSdk.initialize(
       OTelSdkConfig(
         resource: OTelResource(
           serviceName: config.serviceName,
           deploymentEnvironment: config.deploymentEnvironment,
         ),
-        enabled: config.enabled,
-        otlpEndpoint: config.enabled ? Uri.parse(config.otlpEndpoint) : null,
+        enabled: config.enabled && endpoint != null,
+        otlpEndpoint: endpoint,
         otlpHeaders: config.otlpHeaders,
       ),
     );
