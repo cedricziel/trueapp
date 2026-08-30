@@ -27,6 +27,8 @@ class ServerDetailScreen extends StatefulWidget {
 }
 
 class _ServerDetailScreenState extends State<ServerDetailScreen> {
+  SystemStatsProvider? _systemStatsProvider;
+
   @override
   void initState() {
     super.initState();
@@ -60,13 +62,28 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // didChangeDependencies() runs after initState() and again any time an
+    // InheritedWidget this element depends on notifies - here that's the
+    // ModalRoute this screen builds against via
+    // ShellNavigationLeading.maybeBuild()'s `ModalRoute.of(context)`, which
+    // fires whenever a sub-route (Edit Server, Pools, Files, Health, ...)
+    // is pushed on top of or popped back to this screen. `??=` makes the
+    // capture idempotent across those repeat calls; assigning unconditionally
+    // to a `late final` field here would throw a LateInitializationError the
+    // first time the user navigated to any of this screen's sub-routes.
+    _systemStatsProvider ??= context.read<SystemStatsProvider>();
+  }
+
+  @override
   void dispose() {
-    // Unsubscribe from system stats when screen is disposed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<SystemStatsProvider>().unsubscribeFromStats();
-      }
-    });
+    // Unsubscribe from system stats when screen is disposed. The provider
+    // was captured synchronously in didChangeDependencies(), so this runs
+    // immediately and doesn't need a frame boundary or a `mounted` check -
+    // by the time dispose() runs the element is already unmounted, which
+    // made a post-frame callback here dead code.
+    _systemStatsProvider?.unsubscribeFromStats();
     super.dispose();
   }
 
