@@ -49,6 +49,7 @@ class ServerProvider extends ChangeNotifier {
   String? _userError;
 
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
+  bool _disposed = false;
 
   ServerProvider(this._serverService) {
     _initializeProvider();
@@ -100,6 +101,7 @@ class ServerProvider extends ChangeNotifier {
   Future<void> _loadServers() async {
     try {
       _servers = await _serverService.getAllServers();
+      if (_disposed) return;
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
@@ -114,12 +116,15 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<void> _autoSelectServer() async {
+    if (_disposed) return;
+
     if (_selectedServer != null) {
       return; // Don't auto-select if server already selected
     }
 
     // First check for default server
     final defaultServer = await _serverService.getDefaultServer();
+    if (_disposed) return;
     if (defaultServer != null) {
       await selectServer(defaultServer);
       return;
@@ -235,6 +240,7 @@ class ServerProvider extends ChangeNotifier {
     if (server != null) {
       await _authenticateAndConnect(server);
     }
+    if (_disposed) return;
     notifyListeners();
   }
 
@@ -249,6 +255,7 @@ class ServerProvider extends ChangeNotifier {
   }
 
   void _emitAuthStatus() {
+    if (_disposed || _authController.isClosed) return;
     final status = AuthenticationStatus(
       state: _authState,
       error: _authError,
@@ -267,6 +274,8 @@ class ServerProvider extends ChangeNotifier {
       // Get credentials from unified server service
       final (serverWithCreds, password) = await _serverService
           .getServerWithPassword(server.id);
+
+      if (_disposed) return;
 
       if (serverWithCreds != null && password != null) {
         // Create server with credentials for API client
@@ -515,6 +524,7 @@ class ServerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     if (_selectedServer != null) {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
       ApiClientManager.releaseClient(_selectedServer!.id);
