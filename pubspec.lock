@@ -343,8 +343,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/flutter_otel"
-      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
-      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      ref: main
+      resolved-ref: "87e3aa465e5102f96281ea0810cfd47f12223bf6"
       url: "https://github.com/cedricziel/flutter-otel.git"
     source: git
     version: "0.1.0"
@@ -352,8 +352,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/flutter_otel_api"
-      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
-      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      ref: main
+      resolved-ref: "87e3aa465e5102f96281ea0810cfd47f12223bf6"
       url: "https://github.com/cedricziel/flutter-otel.git"
     source: git
     version: "0.1.0"
@@ -361,8 +361,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/flutter_otel_exporter_otlp_http"
-      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
-      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      ref: main
+      resolved-ref: "87e3aa465e5102f96281ea0810cfd47f12223bf6"
       url: "https://github.com/cedricziel/flutter-otel.git"
     source: git
     version: "0.1.0"
@@ -370,8 +370,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/flutter_otel_sdk"
-      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
-      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      ref: main
+      resolved-ref: "87e3aa465e5102f96281ea0810cfd47f12223bf6"
       url: "https://github.com/cedricziel/flutter-otel.git"
     source: git
     version: "0.1.0"

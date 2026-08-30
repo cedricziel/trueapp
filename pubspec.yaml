@@ -96,7 +96,7 @@ dependencies:
   flutter_otel:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: claude/flutter-otel-sdk-bootstrap-vezelb
+      ref: main
       path: packages/flutter_otel
 
 dev_dependencies:
@@ -170,17 +170,17 @@ dependency_overrides:
   flutter_otel_api:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: claude/flutter-otel-sdk-bootstrap-vezelb
+      ref: main
       path: packages/flutter_otel_api
   flutter_otel_sdk:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: claude/flutter-otel-sdk-bootstrap-vezelb
+      ref: main
       path: packages/flutter_otel_sdk
   flutter_otel_exporter_otlp_http:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: claude/flutter-otel-sdk-bootstrap-vezelb
+      ref: main
       path: packages/flutter_otel_exporter_otlp_http
 
 dart_pre_commit:
