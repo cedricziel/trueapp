@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1](https://github.com/cedricziel/trueapp/compare/v0.4.0...v0.4.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* close the AppResourceUsage.last_updated parsing gap, and extend tracing to cover it ([#146](https://github.com/cedricziel/trueapp/issues/146)) ([8e6b4e8](https://github.com/cedricziel/trueapp/commit/8e6b4e8d1bb34a03b1d52e17c392f06059cf33f9))
+* coalesce concurrent connect and login attempts in TrueNasApiClient ([#147](https://github.com/cedricziel/trueapp/issues/147)) ([1a6af31](https://github.com/cedricziel/trueapp/commit/1a6af3154d6fa4a69ced0f51dee71acbdad1d53f))
+* harden session recovery and close() against races found in review ([#148](https://github.com/cedricziel/trueapp/issues/148)) ([d6d20f9](https://github.com/cedricziel/trueapp/commit/d6d20f9597b7a5d53c57c47e2350a8d7dde724d2))
+
 ## [0.4.0](https://github.com/cedricziel/trueapp/compare/v0.3.0...v0.4.0) (2026-08-30)
 
 
