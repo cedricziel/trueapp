@@ -339,6 +339,42 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_otel:
+    dependency: "direct main"
+    description:
+      path: "packages/flutter_otel"
+      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
+      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      url: "https://github.com/cedricziel/flutter-otel.git"
+    source: git
+    version: "0.1.0"
+  flutter_otel_api:
+    dependency: "direct overridden"
+    description:
+      path: "packages/flutter_otel_api"
+      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
+      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      url: "https://github.com/cedricziel/flutter-otel.git"
+    source: git
+    version: "0.1.0"
+  flutter_otel_exporter_otlp_http:
+    dependency: "direct overridden"
+    description:
+      path: "packages/flutter_otel_exporter_otlp_http"
+      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
+      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      url: "https://github.com/cedricziel/flutter-otel.git"
+    source: git
+    version: "0.1.0"
+  flutter_otel_sdk:
+    dependency: "direct overridden"
+    description:
+      path: "packages/flutter_otel_sdk"
+      ref: "claude/flutter-otel-sdk-bootstrap-vezelb"
+      resolved-ref: aa4f52ed3bfd47a962e88cc6d7988eed5664298a
+      url: "https://github.com/cedricziel/flutter-otel.git"
+    source: git
+    version: "0.1.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -461,6 +497,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  http:
+    dependency: transitive
+    description:
+      name: http
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   http_multi_server:
     dependency: transitive
     description:

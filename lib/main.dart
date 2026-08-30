@@ -18,10 +18,15 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/telemetry_config.dart';
+import 'package:truehub/services/telemetry_service.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/models/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final telemetryService = await _bootstrapTelemetry();
 
   final database = AppDatabase.instance;
   final connectionStatusProvider = ConnectionStatusProvider();
@@ -33,6 +38,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        Provider<TelemetryServiceInterface>.value(value: telemetryService),
         Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
@@ -62,6 +68,44 @@ void main() async {
       child: const TrueNASManagerApp(),
     ),
   );
+}
+
+/// Initializes telemetry from build-time config and wires uncaught Flutter
+/// framework errors and uncaught platform/async errors through to it, so
+/// crashes and unhandled exceptions turn into OTel log records automatically
+/// without every call site needing to know telemetry exists.
+///
+/// Always returns a usable [TelemetryServiceInterface] - when
+/// [TelemetryConfig.enabled] is `false` (no OTLP endpoint configured), the
+/// underlying SDK is initialized in its own no-op mode rather than skipped,
+/// so callers elsewhere in the app never need a null check.
+Future<TelemetryServiceInterface> _bootstrapTelemetry() async {
+  final telemetryService = await TelemetryService.initialize(
+    TelemetryConfig.fromEnvironment(),
+  );
+
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (FlutterErrorDetails details) {
+    telemetryService.recordError(
+      details.exception,
+      details.stack ?? StackTrace.current,
+      context: 'FlutterError.onError',
+    );
+    previousOnError?.call(details);
+  };
+
+  final previousPlatformOnError = PlatformDispatcher.instance.onError;
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    telemetryService.recordError(
+      error,
+      stack,
+      context: 'PlatformDispatcher.instance.onError',
+      fatal: true,
+    );
+    return previousPlatformOnError?.call(error, stack) ?? false;
+  };
+
+  return telemetryService;
 }
 
 class TrueNASManagerApp extends StatefulWidget {

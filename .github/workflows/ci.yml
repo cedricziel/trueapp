@@ -95,7 +95,18 @@ jobs:
       run: ruby fastlane/test/pubspec_version_test.rb
 
     - name: Build iOS (no codesign)
-      run: flutter build ios --no-codesign
+      # OTLP_INGEST_URL/OTLP_INGEST_KEY may not be set as repo secrets yet -
+      # GitHub Actions substitutes an empty string for a missing secret,
+      # which leaves OTEL_EXPORTER_OTLP_ENDPOINT empty and telemetry disabled
+      # for this build (TelemetryConfig.enabled), not the build failing.
+      env:
+        OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
+        OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
+      run: |
+        flutter build ios --no-codesign \
+          --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL" \
+          --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps" \
+          --dart-define=OTEL_SERVICE_NAME=truehub
 
     # `flutter build macos` has no --no-codesign flag, and the runner has no
     # signing identity, so the Release configuration's Manual signing fails
@@ -107,4 +118,10 @@ jobs:
         FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
         FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
         FLUTTER_XCODE_CODE_SIGN_IDENTITY: ""
-      run: flutter build macos
+        OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
+        OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
+      run: |
+        flutter build macos \
+          --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL" \
+          --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps" \
+          --dart-define=OTEL_SERVICE_NAME=truehub
