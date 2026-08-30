@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.5](https://github.com/cedricziel/trueapp/compare/v0.1.4...v0.1.5) (2026-08-30)
+
+
+### Bug Fixes
+
+* cast keychain mock arguments defensively and run package tests in CI ([#134](https://github.com/cedricziel/trueapp/issues/134)) ([c32eb70](https://github.com/cedricziel/trueapp/commit/c32eb7053cf59e39481ab7067352263b4cda2983)), closes [#105](https://github.com/cedricziel/trueapp/issues/105)
+* close cached API client when a server is deleted ([#131](https://github.com/cedricziel/trueapp/issues/131)) ([9f89451](https://github.com/cedricziel/trueapp/commit/9f89451c61396f7b0dce9a4613c417a8f5fec51e))
+* delete servers and Keychain passwords when clearing database ([#128](https://github.com/cedricziel/trueapp/issues/128)) ([9a80d1b](https://github.com/cedricziel/trueapp/commit/9a80d1b58b5c51270e2a1320f39fb56d52c2b599)), closes [#106](https://github.com/cedricziel/trueapp/issues/106)
+* guard ServerProvider auth emit after dispose ([#133](https://github.com/cedricziel/trueapp/issues/133)) ([f6a0571](https://github.com/cedricziel/trueapp/commit/f6a05719e38ad2a18bf688df9017a92bf84a0a48))
+* stop Clear Database success dialog from double-popping the router ([#129](https://github.com/cedricziel/trueapp/issues/129)) ([afb13cf](https://github.com/cedricziel/trueapp/commit/afb13cf5981e865fab641e905d7e26c1ef7b8bdf)), closes [#108](https://github.com/cedricziel/trueapp/issues/108)
+* stop CompactNavigation double-counting the bottom safe-area inset ([#135](https://github.com/cedricziel/trueapp/issues/135)) ([9d953a0](https://github.com/cedricziel/trueapp/commit/9d953a041b36d62f8c885fb6747498de2b3b2c97))
+* stop pinning AppProvider to a database instance closed by Clear Database ([#130](https://github.com/cedricziel/trueapp/issues/130)) ([32e43ed](https://github.com/cedricziel/trueapp/commit/32e43ed4aeb72a9904d45d6cf8ed0b50c29e0a7f)), closes [#107](https://github.com/cedricziel/trueapp/issues/107)
+* unsubscribe from system stats synchronously on dispose ([#132](https://github.com/cedricziel/trueapp/issues/132)) ([9d72051](https://github.com/cedricziel/trueapp/commit/9d72051c9c4b3ff78a57d7e73ad1611caca12edb))
+
 ## [0.1.4](https://github.com/cedricziel/trueapp/compare/v0.1.3...v0.1.4) (2026-08-29)
 
 
