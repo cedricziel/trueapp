@@ -1,5 +1,40 @@
 import 'package:equatable/equatable.dart';
 
+/// TrueNAS has returned datetime fields (`App.last_update`,
+/// `AppResourceUsage.last_updated`, ...) in more than one shape across SCALE
+/// versions: MongoDB-style extended JSON (`{"$date": <epoch ms>}`), a raw
+/// epoch-millisecond number, or an ISO 8601 string. Parsing defensively
+/// (rather than indexing straight into `['\$date']` or assuming a `String`)
+/// keeps a server on an unexpected shape from throwing a raw type error out
+/// of a model's `fromJson` - which previously surfaced to users as a generic
+/// "Connection error" with no indication the app list itself parsed fine
+/// except for this one field.
+DateTime? _parseTrueNasDate(dynamic value) {
+  if (value == null) return null;
+  try {
+    if (value is Map) {
+      final epochMs = value['\$date'];
+      if (epochMs is num) {
+        return DateTime.fromMillisecondsSinceEpoch(epochMs.toInt());
+      }
+      return null;
+    }
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    }
+    if (value is String) {
+      return DateTime.tryParse(value) ??
+          (int.tryParse(value) != null
+              ? DateTime.fromMillisecondsSinceEpoch(int.parse(value))
+              : null);
+    }
+  } catch (_) {
+    // Fall through to null below - an unparseable date shouldn't break
+    // parsing the rest of the app's data.
+  }
+  return null;
+}
+
 class AppMaintainer extends Equatable {
   final String name;
   final String email;
@@ -51,9 +86,7 @@ class AppResourceUsage extends Equatable {
       memoryLimit: (json['memory_limit'] as num?)?.toInt() ?? 0,
       networkRxBytes: (json['network_rx_bytes'] as num?)?.toDouble() ?? 0.0,
       networkTxBytes: (json['network_tx_bytes'] as num?)?.toDouble() ?? 0.0,
-      lastUpdated: json['last_updated'] != null
-          ? DateTime.tryParse(json['last_updated'] as String)
-          : null,
+      lastUpdated: _parseTrueNasDate(json['last_updated']),
     );
   }
 
@@ -259,40 +292,6 @@ class App extends Equatable {
     return null;
   }
 
-  /// TrueNAS has returned `last_update` in more than one shape across SCALE
-  /// versions: MongoDB-style extended JSON (`{"$date": <epoch ms>}`), a raw
-  /// epoch-millisecond number, or an ISO 8601 string. Parsing this
-  /// defensively (rather than indexing straight into `['\$date']`) keeps a
-  /// server on an unexpected shape from throwing a raw type error out of
-  /// [App.fromJson] - which previously surfaced to users as a generic
-  /// "Connection error" with no indication the app list itself parsed fine
-  /// except for this one field.
-  static DateTime? _parseLastUpdate(dynamic value) {
-    if (value == null) return null;
-    try {
-      if (value is Map) {
-        final epochMs = value['\$date'];
-        if (epochMs is num) {
-          return DateTime.fromMillisecondsSinceEpoch(epochMs.toInt());
-        }
-        return null;
-      }
-      if (value is num) {
-        return DateTime.fromMillisecondsSinceEpoch(value.toInt());
-      }
-      if (value is String) {
-        return DateTime.tryParse(value) ??
-            (int.tryParse(value) != null
-                ? DateTime.fromMillisecondsSinceEpoch(int.parse(value))
-                : null);
-      }
-    } catch (_) {
-      // Fall through to null below - an unparseable date shouldn't break
-      // parsing the rest of the app's data.
-    }
-    return null;
-  }
-
   factory App.fromJson(Map<String, dynamic> json) {
     return App(
       name: json['name'] as String? ?? '',
@@ -330,7 +329,7 @@ class App extends Equatable {
               ?.map((e) => AppMaintainer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      lastUpdate: _parseLastUpdate(json['last_update']),
+      lastUpdate: _parseTrueNasDate(json['last_update']),
       recommended: json['recommended'] as bool? ?? false,
       catalog: json['catalog'] as String? ?? '',
       train: json['train'] as String? ?? '',

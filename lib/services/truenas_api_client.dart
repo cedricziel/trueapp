@@ -194,6 +194,48 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
+  /// Runs [body] in a CLIENT span named [spanName] (a no-op wrapper when
+  /// telemetry isn't wired up) and logs a failure via the telemetry Logger
+  /// before rethrowing.
+  ///
+  /// `truenas.connect` (above) only covers establishing the socket and
+  /// authenticating - it was added to diagnose "failed to load apps"
+  /// reports, but a request that connects and authenticates fine and then
+  /// fails while parsing the *response* (e.g. an app whose `last_update`
+  /// or `resources` shape TrueNAS returns differently than expected) threw
+  /// past that span entirely, with nothing recording what broke. Wrapping
+  /// the request+parse methods themselves closes that gap.
+  Future<T> _traced<T>(String spanName, Future<T> Function() body) async {
+    final telemetry = _telemetry;
+    if (telemetry == null) {
+      return body();
+    }
+
+    return telemetry.getTracer().startActiveSpan(
+      spanName,
+      (span) async {
+        try {
+          final result = await body();
+          span.setStatus(StatusCode.ok);
+          return result;
+        } catch (e, stackTrace) {
+          // The span's own exception/error-status recording is handled by
+          // Tracer.startActiveSpan's contract - this only needs to get the
+          // failure into the logs signal too.
+          telemetry.getLogger().error(
+            'TrueNAS API: $spanName failed',
+            error: e,
+            stackTrace: stackTrace,
+            attributes: {'server.id': _server.id},
+          );
+          rethrow;
+        }
+      },
+      kind: SpanKind.client,
+      attributes: {'server.id': _server.id},
+    );
+  }
+
   void _startKeepalive() {
     if (!_keepaliveEnabled || _keepaliveTimer != null) {
       return;
@@ -862,11 +904,13 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<App>> getAvailableApps() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.available');
-      return (result as List<dynamic>)
-          .map((app) => App.fromJson(app as Map<String, dynamic>))
-          .toList();
+      return await _traced('truenas.apps.available', () async {
+        await _ensureAuthenticated();
+        final result = await _client!.sendRequest('app.available');
+        return (result as List<dynamic>)
+            .map((app) => App.fromJson(app as Map<String, dynamic>))
+            .toList();
+      });
     } catch (e) {
       throw _handleError(e);
     }
@@ -875,11 +919,13 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<App>> getInstalledApps() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.query');
-      return (result as List<dynamic>)
-          .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
-          .toList();
+      return await _traced('truenas.apps.installed', () async {
+        await _ensureAuthenticated();
+        final result = await _client!.sendRequest('app.query');
+        return (result as List<dynamic>)
+            .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
+            .toList();
+      });
     } catch (e) {
       throw _handleError(e);
     }
@@ -997,9 +1043,11 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<String>> getAppCategories() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.categories');
-      return (result as List<dynamic>).cast<String>();
+      return await _traced('truenas.apps.categories', () async {
+        await _ensureAuthenticated();
+        final result = await _client!.sendRequest('app.categories');
+        return (result as List<dynamic>).cast<String>();
+      });
     } catch (e) {
       throw _handleError(e);
     }

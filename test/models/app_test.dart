@@ -665,6 +665,54 @@ void main() {
       expect(usage.lastUpdated, isNull);
     });
 
+    // last_updated is the same kind of TrueNAS-supplied datetime as App's
+    // last_update, which has drifted across SCALE versions between
+    // Mongo-style extended JSON, a raw epoch number, and an ISO 8601 string
+    // (see the `App` group's last_update tests below). It must be parsed
+    // just as defensively instead of assuming a String, or a server on an
+    // unexpected shape throws a raw type error out of fromJson.
+    test('fromJson parses last_updated from a Mongo-style \$date payload', () {
+      final usage = AppResourceUsage.fromJson({
+        'last_updated': {'\$date': 1700000000000},
+      });
+
+      expect(
+        usage.lastUpdated,
+        equals(DateTime.fromMillisecondsSinceEpoch(1700000000000)),
+      );
+    });
+
+    test(
+      'fromJson parses last_updated from a raw epoch-millisecond number',
+      () {
+        final usage = AppResourceUsage.fromJson({
+          'last_updated': 1700000000000,
+        });
+
+        expect(
+          usage.lastUpdated,
+          equals(DateTime.fromMillisecondsSinceEpoch(1700000000000)),
+        );
+      },
+    );
+
+    test(
+      'fromJson tolerates an unrecognized last_updated shape instead of throwing',
+      () {
+        expect(
+          () => AppResourceUsage.fromJson({
+            'last_updated': ['not', 'a', 'date'],
+          }),
+          returnsNormally,
+        );
+
+        final usage = AppResourceUsage.fromJson({
+          'last_updated': ['not', 'a', 'date'],
+        });
+        expect(usage.lastUpdated, isNull);
+      },
+    );
+
     test('toJson round-trips', () {
       final usage = AppResourceUsage.fromJson({
         'cpu_usage': 1.0,
