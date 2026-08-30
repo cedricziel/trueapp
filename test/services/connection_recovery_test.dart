@@ -26,6 +26,10 @@ class FakeTrueNasServer {
   /// subscriptions for a while after a reconnect.
   bool failSubscribes = false;
 
+  /// Makes core.ping hang forever, the way a half-dead socket behaves: the
+  /// TCP connection looks open, but nothing ever comes back.
+  bool hangPings = false;
+
   static Future<FakeTrueNasServer> start() async {
     final httpServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final server = FakeTrueNasServer._(httpServer);
@@ -61,6 +65,7 @@ class FakeTrueNasServer {
       })
       ..registerMethod('core.unsubscribe', (json_rpc.Parameters _) => true)
       ..registerMethod('core.ping', (json_rpc.Parameters _) {
+        if (hangPings) return Completer<String>().future;
         pingCount++;
         return 'pong';
       });
@@ -208,6 +213,49 @@ void main() {
         client.ensureConnectionAlive(),
         throwsA(isA<Exception>()),
       );
+    },
+  );
+
+  test('a zombie socket that stops answering pings is torn down and '
+      're-authenticated', () async {
+    await client.subscribeToSystemStats();
+    expect(server.loginCount, 1);
+
+    // The socket stays open but stops answering - a half-dead connection
+    // the Peer cannot see (isClosed remains false), so recovery must not
+    // trust the session just because the socket still looks live.
+    server.hangPings = true;
+    unawaited(client.ensureConnectionAlive().catchError((_) {}));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    // The next resume finds the earlier ping still unanswered and has to
+    // recover with a fresh session, not vouch for the zombie.
+    server.hangPings = false;
+    await client.ensureConnectionAlive();
+
+    expect(
+      server.loginCount,
+      2,
+      reason:
+          'recovery must re-authenticate on a fresh socket instead of '
+          'reporting the unresponsive session as connected',
+    );
+  });
+
+  test(
+    'close() prevents later recovery from resurrecting the session',
+    () async {
+      await client.subscribeToSystemStats();
+      expect(server.loginCount, 1);
+
+      await client.close();
+
+      // The app-resume hook can still fire for a client that was just
+      // released; it must not rebuild the session close tore down, which
+      // would leak a socket and a keepalive timer nobody owns.
+      await client.ensureConnectionAlive();
+
+      expect(server.loginCount, 1, reason: 'a closed client must stay closed');
     },
   );
 
