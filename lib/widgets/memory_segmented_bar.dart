@@ -113,7 +113,7 @@ class _Segment extends StatelessWidget {
       // Expanded/Flexible require a strictly positive flex; a genuinely
       // empty segment (e.g. no ARC cache yet) still renders as a sliver
       // rather than crashing.
-      flex: flex.round().clamp(1, 100),
+      flex: flex.round().clamp(1, 100).toInt(),
       child: Container(
         color: color,
         alignment: Alignment.center,

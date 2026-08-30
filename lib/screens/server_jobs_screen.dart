@@ -122,6 +122,7 @@ class _ServerJobsScreenState extends State<ServerJobsScreen> {
       itemBuilder: (context, index) {
         final job = jobs[index];
         return Padding(
+          key: ValueKey(job.id),
           padding: const EdgeInsets.only(bottom: 12),
           child: JobCardWidget(
             job: job,

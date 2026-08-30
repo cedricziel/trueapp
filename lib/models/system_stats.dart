@@ -183,13 +183,12 @@ class MemoryStats extends Equatable {
   /// [physicalMemoryAvailable] alongside memory that is genuinely free - this
   /// is the "genuinely free" remainder once the ARC is split out.
   int get freeMemory =>
-      (physicalMemoryAvailable - arcSize).clamp(0, physicalMemoryTotal);
+      (physicalMemoryAvailable - arcSize).clamp(0, physicalMemoryTotal).toInt();
 
   /// Memory held by apps and services: everything not currently available.
-  int get appsMemory => (physicalMemoryTotal - physicalMemoryAvailable).clamp(
-    0,
-    physicalMemoryTotal,
-  );
+  int get appsMemory => (physicalMemoryTotal - physicalMemoryAvailable)
+      .clamp(0, physicalMemoryTotal)
+      .toInt();
 
   double get freeMemoryPercent {
     if (physicalMemoryTotal == 0) return 0.0;

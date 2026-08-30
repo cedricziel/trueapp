@@ -109,6 +109,34 @@ void main() {
       expect(provider.isSubscribed, isFalse);
       expect(provider.error, 'No API client configured');
     });
+
+    test('switching from a configured server to one without credentials '
+        'clears the previous client rather than keeping it live', () async {
+      // Regression test: setApiClient used to leave `_apiClient` pointed at
+      // the previous server whenever the new server had no credentials (or
+      // client creation failed), so abortJob/rerunJob/subscribeToJobs could
+      // silently keep acting on the old server after switching.
+      await provider.setApiClient(testServer);
+      await provider.subscribeToJobs();
+      expect(provider.isSubscribed, isTrue);
+
+      final orphanServer = NasServer.create(
+        name: 'No Credentials Server',
+        host: '192.168.1.200',
+        username: 'admin',
+        password: 'password',
+      );
+      await provider.setApiClient(orphanServer);
+
+      // The old client's subscription was torn down by setApiClient...
+      expect(provider.isSubscribed, isFalse);
+      // ...and nothing new is configured, so every action fails closed
+      // instead of quietly reaching the previous (Test Server) client.
+      final aborted = await provider.abortJob(1);
+      expect(aborted, isFalse);
+      expect(provider.error, 'No API client configured');
+      expect(fakeClient.lastAbortedJobId, isNull);
+    });
   });
 
   group('JobsProvider - subscribeToJobs', () {

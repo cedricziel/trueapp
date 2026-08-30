@@ -64,6 +64,11 @@ class JobsProvider extends ChangeNotifier {
       await ApiClientManager.releaseClient(_currentServerId!);
     }
 
+    // Cleared up front so a missing-credentials or getClient() failure below
+    // leaves this provider clientless rather than still pointed at the
+    // previous server - subscribeToJobs/abortJob/rerunJob must never act on
+    // the wrong server's jobs.
+    _apiClient = null;
     _currentServerId = server.id;
 
     try {
