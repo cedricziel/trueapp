@@ -17,6 +17,27 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 
+/// Coalesces concurrent launches of one async operation: while a run is in
+/// flight every caller shares its future, and completion (success or failure)
+/// re-arms the latch for the next run. Used for connect, authenticate and
+/// reconnect, where overlapping runs would clobber the shared socket state.
+class _InFlight {
+  Future<void>? _future;
+
+  Future<void> run(Future<void> Function() op) =>
+      _future ??= op().whenComplete(() => _future = null);
+
+  /// Waits for any in-flight run to settle, swallowing its error - the
+  /// callers that joined the run via [run] still receive it.
+  Future<void> settle() async {
+    try {
+      await _future;
+    } catch (_) {
+      // Reported to the run's own callers.
+    }
+  }
+}
+
 class TrueNasApiClient implements ApiClientInterface {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
@@ -70,11 +91,25 @@ class TrueNasApiClient implements ApiClientInterface {
   /// Whether the JSON-RPC socket is currently usable.
   bool get _hasLiveConnection => _client != null && !_client!.isClosed;
 
-  Future<void> _ensureConnected() async {
-    if (_hasLiveConnection) {
-      return;
-    }
+  /// In-flight connection attempt shared by concurrent callers. Without this,
+  /// parallel requests on a fresh client (e.g. AppProvider._loadAppsOnline's
+  /// Future.wait) each open their own WebSocket and clobber [_client] and
+  /// [_wsChannel] mid-handshake.
+  final _connecting = _InFlight();
 
+  /// In-flight authentication attempt, same coalescing as [_connecting].
+  final _authenticating = _InFlight();
+
+  Future<void> _ensureConnected() {
+    if (_hasLiveConnection) {
+      return Future.value();
+    }
+    return _connecting.run(_connect);
+  }
+
+  /// Only called through [_ensureConnected], which owns the already-connected
+  /// check and the coalescing of concurrent attempts.
+  Future<void> _connect() async {
     final telemetry = _telemetry;
     if (telemetry == null) {
       return _ensureConnectedTraced(null);
@@ -330,12 +365,10 @@ class TrueNasApiClient implements ApiClientInterface {
 
   /// Guards against two triggers (the keepalive timer and the app-resume
   /// hook) starting overlapping reconnects, which would open two sessions.
-  Future<void>? _recovery;
+  final _recovery = _InFlight();
 
   Future<void> _handleKeepaliveTimeout() {
-    return _recovery ??= _recoverConnection().whenComplete(() {
-      _recovery = null;
-    });
+    return _recovery.run(_recoverConnection);
   }
 
   Future<void> _recoverConnection() async {
@@ -353,7 +386,6 @@ class TrueNasApiClient implements ApiClientInterface {
     // Reset connection state. The subscriptions belonged to the socket that
     // just died; what the UI wants (_wantsSystemStats / _wantsAppStats) is
     // deliberately untouched so it can be restored below.
-    _isAuthenticated = false;
     _isSubscribedToRealtime = false;
     _realtimeSubscriptionId = null;
     _isSubscribedToAppStats = false;
@@ -362,13 +394,24 @@ class TrueNasApiClient implements ApiClientInterface {
     _jobsSubscriptionId = null;
 
     try {
-      // Close existing connection
-      await _client?.close();
-      await _wsChannel?.sink.close();
+      // A connect or login already in flight is building the fresh session
+      // this recovery wants. Let it settle instead of closing its socket
+      // mid-handshake - tearing down here would kill the handshake, and
+      // _ensureConnected below would then adopt that same doomed future.
+      await _connecting.settle();
+      await _authenticating.settle();
 
-      // Re-establish connection
-      await _ensureConnected();
-      await _ensureAuthenticated();
+      if (!(_hasLiveConnection && _isAuthenticated)) {
+        _isAuthenticated = false;
+
+        // Close existing connection
+        await _client?.close();
+        await _wsChannel?.sink.close();
+
+        // Re-establish connection
+        await _ensureConnected();
+        await _ensureAuthenticated();
+      }
       await _restoreSubscriptions();
 
       _connectionStatusProvider?.updateConnectionState(
@@ -555,10 +598,16 @@ class TrueNasApiClient implements ApiClientInterface {
     });
   }
 
-  Future<void> _ensureAuthenticated() async {
+  Future<void> _ensureAuthenticated() {
     // Authentication belongs to a socket: once that socket is gone, so is the
     // session, no matter what the flag from the previous connection says.
-    if (_isAuthenticated && _hasLiveConnection) return;
+    if (_isAuthenticated && _hasLiveConnection) return Future.value();
+    return _authenticating.run(_authenticate);
+  }
+
+  /// Only called through [_ensureAuthenticated], which owns the
+  /// already-authenticated check and the coalescing of concurrent attempts.
+  Future<void> _authenticate() async {
     _isAuthenticated = false;
 
     try {
@@ -619,6 +668,13 @@ class TrueNasApiClient implements ApiClientInterface {
 
   @override
   Future<void> close() async {
+    // Let an in-flight connect or login settle first, so this close tears
+    // down the socket that attempt produces instead of racing its handshake
+    // - which would leak the socket and the keepalive timer a successful
+    // login starts.
+    await _connecting.settle();
+    await _authenticating.settle();
+
     _stopKeepalive();
     _connectionStatusProvider?.updateConnectionState(
       _server.id,
@@ -629,6 +685,9 @@ class TrueNasApiClient implements ApiClientInterface {
     await unsubscribeFromJobs();
     await _client?.close();
     await _wsChannel?.sink.close();
+    _client = null;
+    _wsChannel = null;
+    _isAuthenticated = false;
   }
 
   // Authentication methods

@@ -555,6 +555,45 @@ void main() {
       expect(minimal.train, 'community');
     });
 
+    test('concurrent first calls share one connection and one login', () async {
+      // AppProvider._loadAppsOnline issues these three calls in a single
+      // Future.wait against a client that has never connected. Each call
+      // funnels through _ensureAuthenticated/_ensureConnected, which must
+      // coalesce into one WebSocket connection instead of racing and
+      // clobbering each other's socket state.
+      var loginCount = 0;
+      server
+        ..onMethod('auth.login', (_) {
+          loginCount++;
+          return true;
+        })
+        ..onMethod(
+          'app.available',
+          (_) => [
+            {'name': 'plex', 'title': 'Plex'},
+          ],
+        )
+        ..onMethod('app.categories', (_) => ['media'])
+        ..onMethod(
+          'app.query',
+          (_) => [
+            {'name': 'plex', 'state': 'RUNNING'},
+          ],
+        );
+
+      final results = await Future.wait([
+        client.getAvailableApps(),
+        client.getInstalledApps(),
+        client.getAppCategories(),
+      ]);
+
+      expect(results[0], hasLength(1));
+      expect(results[1], hasLength(1));
+      expect(results[2], ['media']);
+      expect(server.connectionCount, 1);
+      expect(loginCount, 1);
+    });
+
     test('getDockerStatus returns the raw map', () async {
       server.onMethod('docker.status', (_) => {'status': 'RUNNING'});
 
