@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/cedricziel/trueapp/compare/v0.2.0...v0.3.0) (2026-08-30)
+
+
+### Features
+
+* consolidate loading and empty states across screens ([#141](https://github.com/cedricziel/trueapp/issues/141)) ([8e653f5](https://github.com/cedricziel/trueapp/commit/8e653f563d96f547b7de2867b1b9bd80cfd9ea0a))
+* integrate flutter_otel OpenTelemetry SDK for logs ([#142](https://github.com/cedricziel/trueapp/issues/142)) ([3e8636e](https://github.com/cedricziel/trueapp/commit/3e8636e46ff4b0e783b2d8f0ee82ca92f0c95214))
+
 ## [0.2.0](https://github.com/cedricziel/trueapp/compare/v0.1.5...v0.2.0) (2026-08-30)
 
 
