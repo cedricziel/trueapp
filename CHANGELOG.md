@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/cedricziel/trueapp/compare/v0.4.1...v0.4.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* enable automatic dark mode by following system brightness ([#150](https://github.com/cedricziel/trueapp/issues/150)) ([cdf3100](https://github.com/cedricziel/trueapp/commit/cdf31001a9d413f84c13bbf75809a40721c8ad46))
+
 ## [0.4.1](https://github.com/cedricziel/trueapp/compare/v0.4.0...v0.4.1) (2026-08-30)
 
 
