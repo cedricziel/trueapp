@@ -197,7 +197,6 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
         title: 'TrueNAS Manager',
         theme: const CupertinoThemeData(
           primaryColor: CupertinoColors.systemBlue,
-          brightness: Brightness.light,
         ),
         routerConfig: appRouter,
       ),
