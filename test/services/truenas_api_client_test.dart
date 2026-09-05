@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
@@ -482,6 +484,40 @@ void main() {
 
       final categories = await client.getAppCategories();
       expect(categories, ['media', 'networking']);
+    });
+
+    test('getAvailableApps retries once when the socket is recycled while the '
+        'request is in flight', () async {
+      // Regression test: app.available is slow enough that a
+      // keepalive-triggered reconnect (or any other socket recycle) can
+      // land while it's still pending. json_rpc_2 then rejects it with
+      // `StateError('The client closed with pending request ...')`
+      // instead of a response - _sendRequest must retry it against the
+      // freshly reconnected client rather than surfacing that as a
+      // failure to the caller.
+      final pending = Completer<Object?>();
+      server.onMethod('app.available', (_) => pending.future);
+
+      final future = client.getAvailableApps();
+
+      // Give the request time to reach the server and register as
+      // pending before yanking the socket out from under it.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // The retry lands on a new connection, so arm it with a real
+      // response before dropping the one the first attempt is stuck on.
+      server.onMethod(
+        'app.available',
+        (_) => [
+          {'name': 'plex', 'title': 'Plex'},
+        ],
+      );
+      await server.dropConnections();
+
+      final apps = await future;
+      expect(apps, hasLength(1));
+      expect(apps.first.name, 'plex');
+      expect(server.connectionCount, 2);
     });
 
     test('getInstalledApps converts the full TrueNAS app shape', () async {

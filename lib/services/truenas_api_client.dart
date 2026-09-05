@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
@@ -626,6 +627,26 @@ class TrueNasApiClient implements ApiClientInterface {
     return _authenticating.run(_authenticate);
   }
 
+  /// Sends a read-only request, retrying once if the socket carrying it gets
+  /// recycled mid-flight - e.g. a keepalive-triggered [_recoverConnection]
+  /// or an explicit [close] racing a slow call like `app.available`. That
+  /// race surfaces as json_rpc_2 rejecting every pending request with
+  /// `StateError('The client closed with pending request "$method".')`, and
+  /// since it means no response was ever delivered for the first attempt,
+  /// retrying against the freshly (re)authenticated connection is safe.
+  Future<dynamic> _sendRequest(String method, [dynamic parameters]) async {
+    await _ensureAuthenticated();
+    try {
+      return await _client!.sendRequest(method, parameters);
+    } on StateError catch (e) {
+      if (!e.message.contains('client closed with pending request')) {
+        rethrow;
+      }
+      await _ensureAuthenticated();
+      return await _client!.sendRequest(method, parameters);
+    }
+  }
+
   /// Only called through [_ensureAuthenticated], which owns the
   /// already-authenticated check and the coalescing of concurrent attempts.
   Future<void> _authenticate() async {
@@ -750,8 +771,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<UserInfo> getCurrentUser() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('auth.me');
+      final result = await _sendRequest('auth.me');
       return UserInfo.fromJson(result as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
@@ -762,8 +782,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getSystemInfo() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.info');
+      final result = await _sendRequest('system.info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -773,8 +792,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getSystemCpuInfo() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.cpu_info');
+      final result = await _sendRequest('system.cpu_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -784,8 +802,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getSystemMemoryInfo() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.memory_info');
+      final result = await _sendRequest('system.memory_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -795,8 +812,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<double> getSystemTemperature() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.temperature');
+      final result = await _sendRequest('system.temperature');
       return (result as num).toDouble();
     } catch (e) {
       throw _handleError(e);
@@ -807,8 +823,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> queryPools() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.query');
+      final result = await _sendRequest('pool.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -818,8 +833,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getPoolById(String id) async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.query', {'id': id});
+      final result = await _sendRequest('pool.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -830,8 +844,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> queryDatasets() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.dataset.query');
+      final result = await _sendRequest('pool.dataset.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -841,10 +854,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getDatasetById(String id) async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.dataset.query', {
-        'id': id,
-      });
+      final result = await _sendRequest('pool.dataset.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -855,10 +865,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> listDirectory(String path) async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('filesystem.listdir', {
-        'path': path,
-      });
+      final result = await _sendRequest('filesystem.listdir', {'path': path});
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -868,10 +875,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getFileInfo(String path) async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('filesystem.stat', {
-        'path': path,
-      });
+      final result = await _sendRequest('filesystem.stat', {'path': path});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -882,8 +886,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> queryDisks() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('disk.query');
+      final result = await _sendRequest('disk.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -893,8 +896,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getDiskById(String id) async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('disk.query', {'id': id});
+      final result = await _sendRequest('disk.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -905,8 +907,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getNetworkInfo() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('network.general.summary');
+      final result = await _sendRequest('network.general.summary');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -916,8 +917,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('interface.query');
+      final result = await _sendRequest('interface.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -994,8 +994,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<App>> getAvailableApps() async {
     try {
       return await _traced('truenas.apps.available', () async {
-        await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.available');
+        final result = await _sendRequest('app.available');
         return (result as List<dynamic>)
             .map((app) => App.fromJson(app as Map<String, dynamic>))
             .toList();
@@ -1009,8 +1008,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<App>> getInstalledApps() async {
     try {
       return await _traced('truenas.apps.installed', () async {
-        await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.query');
+        final result = await _sendRequest('app.query');
         return (result as List<dynamic>)
             .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
             .toList();
@@ -1133,8 +1131,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<String>> getAppCategories() async {
     try {
       return await _traced('truenas.apps.categories', () async {
-        await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.categories');
+        final result = await _sendRequest('app.categories');
         return (result as List<dynamic>).cast<String>();
       });
     } catch (e) {
@@ -1145,8 +1142,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getDockerStatus() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('docker.status');
+      final result = await _sendRequest('docker.status');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1413,8 +1409,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getSystemGeneralConfig() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.general.config');
+      final result = await _sendRequest('system.general.config');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1424,8 +1419,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.advanced.config');
+      final result = await _sendRequest('system.advanced.config');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1435,8 +1429,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<String> getSystemProductType() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.product_type');
+      final result = await _sendRequest('system.product_type');
       return result as String;
     } catch (e) {
       throw _handleError(e);
@@ -1446,8 +1439,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<bool> isIxHardware() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('truenas.is_ix_hardware');
+      final result = await _sendRequest('truenas.is_ix_hardware');
       return result as bool;
     } catch (e) {
       throw _handleError(e);
@@ -1458,8 +1450,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Job>> getJobs() async {
     try {
-      await _ensureAuthenticated();
-      final result = await _client!.sendRequest('core.get_jobs');
+      final result = await _sendRequest('core.get_jobs');
       final jobs = (result as List<dynamic>).cast<Map<String, dynamic>>().map(
         Job.fromJson,
       );
