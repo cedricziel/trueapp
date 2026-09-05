@@ -1,61 +1,38 @@
 import 'package:flutter/foundation.dart';
-import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/connection_error.dart';
-import 'package:truehub/models/pool.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/server_health.dart';
+import 'package:truehub/models/service_status.dart';
+import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
 
-class PoolProvider extends ChangeNotifier {
+class HealthProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
-  List<Pool> _pools = [];
+  List<Alert> _alerts = [];
+  List<ServiceStatus> _services = [];
+  ServerHealth? _serverHealth;
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
-  PoolProvider(this._serverService);
+  HealthProvider(this._serverService);
 
-  List<Pool> get pools => _pools;
+  List<Alert> get alerts => _alerts;
+
+  /// Alerts the user has not dismissed - what a "N active alerts" banner
+  /// should count.
+  List<Alert> get activeAlerts =>
+      _alerts.where((alert) => !alert.dismissed).toList();
+
+  List<ServiceStatus> get services => _services;
+  ServerHealth? get serverHealth => _serverHealth;
   bool get isLoading => _isLoading;
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
-
-  Future<void> setServer(NasServer? server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
-    }
-
-    _currentServerId = server?.id;
-    _apiClient = null;
-    _pools = [];
-    _connectionError = null;
-
-    if (server != null) {
-      try {
-        // Load credentials for the server
-        final serverWithCredentials =
-            await ServerProvider.loadServerCredentials(server, _serverService);
-
-        if (serverWithCredentials != null) {
-          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
-        } else {
-          if (kDebugMode) {
-            print(
-              'PoolProvider: No credentials available for server ${server.id}',
-            );
-          }
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('PoolProvider: Failed to get API client: $e');
-        }
-      }
-    }
-    notifyListeners();
-  }
 
   Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
@@ -64,11 +41,13 @@ class PoolProvider extends ChangeNotifier {
     }
 
     _currentServerId = server.id;
-    _pools = [];
+    _apiClient = null;
+    _alerts = [];
+    _services = [];
+    _serverHealth = null;
     _connectionError = null;
 
     try {
-      // Load credentials for the server
       final serverWithCredentials = await ServerProvider.loadServerCredentials(
         server,
         _serverService,
@@ -79,19 +58,19 @@ class PoolProvider extends ChangeNotifier {
       } else {
         if (kDebugMode) {
           print(
-            'PoolProvider: No credentials available for server ${server.id}',
+            'HealthProvider: No credentials available for server ${server.id}',
           );
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        print('PoolProvider: Failed to get API client: $e');
+        print('HealthProvider: Failed to get API client: $e');
       }
     }
     notifyListeners();
   }
 
-  Future<void> loadPools() async {
+  Future<void> loadHealth() async {
     if (_apiClient == null) return;
 
     _isLoading = true;
@@ -99,14 +78,17 @@ class PoolProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final rawPools = await _apiClient!.getPools();
-      _pools = rawPools.map(Pool.fromJson).toList();
-      // Clear any previous errors on successful load
+      final rawAlerts = await _apiClient!.getAlerts();
+      final rawServices = await _apiClient!.getServices();
+      final serverHealth = await _apiClient!.getServerHealth();
+
+      _alerts = rawAlerts.map(Alert.fromJson).toList();
+      _services = rawServices.map(ServiceStatus.fromJson).toList();
+      _serverHealth = serverHealth;
       _connectionError = null;
     } on ConnectionException catch (e) {
       _connectionError = e.error;
     } catch (e) {
-      // Handle unexpected errors
       _connectionError = ConnectionError.unknown(details: e.toString());
     } finally {
       _isLoading = false;
@@ -114,8 +96,8 @@ class PoolProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshPools() async {
-    await loadPools();
+  Future<void> refreshHealth() async {
+    await loadHealth();
   }
 
   @override

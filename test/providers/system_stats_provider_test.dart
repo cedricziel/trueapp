@@ -403,4 +403,38 @@ void main() {
       );
     });
   });
+
+  group('SystemStatsProvider - history', () {
+    test('starts empty', () {
+      expect(provider.cpuHistory, isEmpty);
+      expect(provider.memoryHistory, isEmpty);
+    });
+
+    test('records samples in order, oldest first', () {
+      provider.debugRecordHistorySample(cpu: 10, memory: 20);
+      provider.debugRecordHistorySample(cpu: 30, memory: 40);
+
+      expect(provider.cpuHistory, [10, 30]);
+      expect(provider.memoryHistory, [20, 40]);
+    });
+
+    test('caps history at 30 samples, dropping the oldest', () {
+      for (var i = 0; i < 35; i++) {
+        provider.debugRecordHistorySample(cpu: i.toDouble());
+      }
+
+      expect(provider.cpuHistory, hasLength(30));
+      // The first 5 samples (0-4) should have been dropped.
+      expect(provider.cpuHistory.first, 5);
+      expect(provider.cpuHistory.last, 34);
+    });
+
+    test('tracks CPU and memory histories independently', () {
+      provider.debugRecordHistorySample(cpu: 15);
+      provider.debugRecordHistorySample(memory: 25);
+
+      expect(provider.cpuHistory, [15]);
+      expect(provider.memoryHistory, [25]);
+    });
+  });
 }

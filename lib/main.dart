@@ -8,6 +8,9 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/widgets/app_lifecycle_reconnector.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/dataset_provider.dart';
+import 'package:truehub/providers/file_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
+import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
@@ -50,6 +53,15 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => DatasetProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => FileProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => HealthProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => FleetStatusProvider(unifiedServerService),
         ),
         ChangeNotifierProvider(
           create: (context) => AppProvider(

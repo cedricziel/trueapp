@@ -8,9 +8,9 @@ import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/widgets/system_stats_widget.dart';
 import 'package:truehub/widgets/authentication_state_widget.dart';
-import 'package:truehub/widgets/action_button_widget.dart';
 import 'package:truehub/widgets/pool_card_widget.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
@@ -42,6 +42,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       final appProvider = context.read<AppProvider>();
       final systemStatsProvider = context.read<SystemStatsProvider>();
       final jobsProvider = context.read<JobsProvider>();
+      final healthProvider = context.read<HealthProvider>();
 
       // Check if this server is already selected and authenticated
       if (serverProvider.selectedServer?.id != widget.server.id) {
@@ -68,6 +69,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         // this one, not just while the Jobs screen itself is open.
         await jobsProvider.setApiClient(widget.server);
         await jobsProvider.subscribeToJobs();
+
+        await healthProvider.setApiClient(widget.server);
+        await healthProvider.loadHealth();
       }
     });
   }
@@ -174,6 +178,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               child: ListView(
                 children: [
                   const SizedBox(height: 20),
+                  _buildAlertBanner(context, currentServer),
                   _buildSystemStatsSection(currentServer),
                   const SizedBox(height: 20),
                   _buildPoolsSection(currentServer),
@@ -190,45 +195,143 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
     );
   }
 
+  Widget _buildAlertBanner(BuildContext context, NasServer server) {
+    return Consumer<HealthProvider>(
+      builder: (context, healthProvider, child) {
+        final activeAlerts = healthProvider.activeAlerts;
+        if (activeAlerts.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          child: GestureDetector(
+            onTap: () =>
+                context.push('/server/${server.id}/health', extra: server),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemRed.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.exclamationmark_triangle_fill,
+                    color: CupertinoColors.systemRed,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${activeAlerts.length} active '
+                          '${activeAlerts.length == 1 ? 'alert' : 'alerts'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.systemRed,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          activeAlerts.first.message,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: CupertinoColors.secondaryLabel,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 16,
+                    color: CupertinoColors.tertiaryLabel,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildActionButtons(BuildContext context, NasServer server) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
+      child: Row(
         children: [
-          ActionButtonWidget(
-            icon: CupertinoIcons.square_stack_3d_down_right,
-            title: 'Pools',
-            subtitle: 'View storage pools and datasets',
-            onTap: () {
-              context.push('/server/${server.id}/pools', extra: server);
-            },
+          Expanded(
+            child: Consumer<PoolProvider>(
+              builder: (context, poolProvider, child) {
+                final poolCount = poolProvider.pools.length;
+                return _QuickActionTile(
+                  icon: CupertinoIcons.square_stack_3d_down_right,
+                  title: 'Pools',
+                  subtitle: poolCount == 1 ? '1 pool' : '$poolCount pools',
+                  onTap: () =>
+                      context.push('/server/${server.id}/pools', extra: server),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 12),
-          ActionButtonWidget(
-            icon: CupertinoIcons.folder,
-            title: 'Files',
-            subtitle: 'Browse and manage files',
-            onTap: () {
-              context.push('/server/${server.id}/files', extra: server);
-            },
+          const SizedBox(width: 12),
+          Expanded(
+            child: _QuickActionTile(
+              icon: CupertinoIcons.folder,
+              title: 'Files',
+              subtitle: 'Browse',
+              onTap: () =>
+                  context.push('/server/${server.id}/files', extra: server),
+            ),
           ),
-          const SizedBox(height: 12),
-          ActionButtonWidget(
-            icon: CupertinoIcons.heart,
-            title: 'Health',
-            subtitle: 'View system health and status',
-            onTap: () {
-              context.push('/server/${server.id}/health', extra: server);
-            },
+          const SizedBox(width: 12),
+          Expanded(
+            child: Consumer<HealthProvider>(
+              builder: (context, healthProvider, child) {
+                final activeCount = healthProvider.activeAlerts.length;
+                return _QuickActionTile(
+                  icon: CupertinoIcons.heart,
+                  title: 'Health',
+                  subtitle: activeCount == 0
+                      ? 'All clear'
+                      : '$activeCount active',
+                  subtitleColor: activeCount == 0
+                      ? CupertinoColors.systemGreen
+                      : CupertinoColors.systemRed,
+                  showAlertDot: activeCount > 0,
+                  onTap: () => context.push(
+                    '/server/${server.id}/health',
+                    extra: server,
+                  ),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 12),
-          ActionButtonWidget(
-            icon: CupertinoIcons.bell,
-            title: 'Jobs',
-            subtitle: 'View running, queued, and finished jobs',
-            onTap: () {
-              context.push('/server/${server.id}/jobs', extra: server);
-            },
+          const SizedBox(width: 12),
+          Expanded(
+            child: Consumer<JobsProvider>(
+              builder: (context, jobsProvider, child) {
+                final runningCount = jobsProvider.runningCount;
+                return _QuickActionTile(
+                  icon: CupertinoIcons.bell,
+                  title: 'Jobs',
+                  subtitle: runningCount == 0
+                      ? 'None running'
+                      : '$runningCount running',
+                  subtitleColor: jobsProvider.needsAttention
+                      ? CupertinoColors.systemRed
+                      : null,
+                  showAlertDot: jobsProvider.needsAttention,
+                  onTap: () =>
+                      context.push('/server/${server.id}/jobs', extra: server),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -553,6 +656,86 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A compact, icon-led quick-action card - three of these side by side
+/// replace what used to be three full-width `ActionButtonWidget` rows,
+/// so the dashboard scans in one glance rather than a scroll.
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color? subtitleColor;
+  final bool showAlertDot;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.subtitleColor,
+    this.showAlertDot = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: CupertinoColors.activeBlue, size: 22),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: subtitleColor != null
+                        ? FontWeight.w500
+                        : FontWeight.w400,
+                    color: subtitleColor ?? CupertinoColors.systemGrey,
+                  ),
+                ),
+              ],
+            ),
+            if (showAlertDot)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: CupertinoColors.systemRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

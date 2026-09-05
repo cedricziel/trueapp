@@ -1,16 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/screens/dataset_detail_screen.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/section_card.dart';
 
 class PoolDetailScreen extends StatefulWidget {
   final NasServer server;
-  final Map<String, dynamic> pool;
+  final Pool pool;
 
   const PoolDetailScreen({super.key, required this.server, required this.pool});
 
@@ -33,7 +35,7 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final poolName = widget.pool['name'] as String? ?? 'Unknown Pool';
+    final poolName = widget.pool.name;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
@@ -52,15 +54,6 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: CupertinoColors.systemBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: CupertinoColors.separator,
-                    width: 0.5,
-                  ),
-                ),
                 child: _buildPoolInfo(),
               ),
             ),
@@ -127,61 +120,18 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
   }
 
   Widget _buildPoolInfo() {
-    final status = widget.pool['status'] as String? ?? 'Unknown';
-    final healthy = widget.pool['healthy'] as bool? ?? false;
-    final topology = widget.pool['topology'] as Map<String, dynamic>?;
+    final pool = widget.pool;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SectionCard(
+      title: 'Pool Information',
+      icon: CupertinoIcons.square_stack_3d_down_right,
+      iconColor: pool.healthy
+          ? CupertinoColors.systemGreen
+          : CupertinoColors.systemRed,
       children: [
-        Row(
-          children: [
-            Icon(
-              CupertinoIcons.square_stack_3d_down_right,
-              color: healthy
-                  ? CupertinoColors.systemGreen
-                  : CupertinoColors.systemRed,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Pool Information',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildInfoRow('Status', status),
-        const SizedBox(height: 8),
-        _buildInfoRow('Health', healthy ? 'Healthy' : 'Degraded'),
-        if (topology != null) ...[
-          const SizedBox(height: 8),
-          _buildInfoRow('Configuration', _getPoolTypeDescription(topology)),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: CupertinoColors.systemGrey,
-              fontSize: 14,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-        ),
+        InfoRow('Status', pool.status),
+        InfoRow('Health', pool.healthy ? 'Healthy' : 'Degraded'),
+        InfoRow('Configuration', pool.topologyDescription),
       ],
     );
   }
@@ -285,28 +235,5 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
         ),
       ),
     );
-  }
-
-  String _getPoolTypeDescription(Map<String, dynamic> topology) {
-    final data = topology['data'] as List<dynamic>?;
-    if (data == null || data.isEmpty) return 'Unknown configuration';
-
-    final firstVdev = data.first as Map<String, dynamic>?;
-    final type = firstVdev?['type'] as String?;
-    final children = firstVdev?['children'] as List<dynamic>?;
-
-    if (type == 'mirror' && children != null) {
-      return 'Mirror (${children.length} drives)';
-    } else if (type == 'raidz1') {
-      return 'RAID-Z1 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz2') {
-      return 'RAID-Z2 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz3') {
-      return 'RAID-Z3 (${children?.length ?? 0} drives)';
-    } else if (children != null && children.length == 1) {
-      return 'Single drive';
-    }
-
-    return 'Custom configuration';
   }
 }

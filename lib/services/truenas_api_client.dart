@@ -1000,6 +1000,28 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getAlerts() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('alert.list');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getServices() async {
+    try {
+      await _ensureAuthenticated();
+      final result = await _client!.sendRequest('service.query');
+      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
   Future<List<FileItem>> getDirectoryListing(String path) async {
     try {
       final response = await listDirectory(path);
