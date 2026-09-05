@@ -8,6 +8,7 @@
     }
   },
   "enabledPlugins": {
-    "common@cedricziel": true
+    "common@cedricziel": true,
+    "oss@cedricziel": true
   }
 }
