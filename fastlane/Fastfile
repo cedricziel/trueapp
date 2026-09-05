@@ -20,6 +20,8 @@ MAC_XCODEPROJ   = "macos/Runner.xcodeproj"
 MAC_SCHEME      = "Runner"
 MAC_OUTPUT_DIR  = "build/macos"
 PKG_NAME        = "TrueNASManager"
+# match suffixes non-iOS profile names with the platform.
+MAC_MATCH_PROFILE = "#{MATCH_PROFILE} macos"
 
 # Build number = number of commits reachable from HEAD. Reproducible from git
 # state alone — never committed back to pubspec.yaml.
@@ -69,6 +71,11 @@ desc "Bootstrap signing — creates the App Store profile in the match repo. Run
 lane :bootstrap_signing do
   api_key = load_app_store_connect_api_key
   match(type: "appstore", readonly: false, api_key: api_key)
+end
+
+desc "Build a signed Mac App Store pkg without uploading (sanity check)"
+lane :build_pkg do
+  build_mac
 end
 
 desc "Build and push a new beta build to TestFlight (macOS)"
@@ -197,7 +204,7 @@ private_lane :build_mac do
     path: MAC_XCODEPROJ,
     team_id: TEAM_ID,
     code_sign_identity: "Apple Distribution",
-    profile_name: ENV["sigh_#{APP_IDENTIFIER}_appstore_profile-name"] || MATCH_PROFILE,
+    profile_name: ENV["sigh_#{APP_IDENTIFIER}_appstore_macos_profile-name"] || MAC_MATCH_PROFILE,
     targets: [MAC_SCHEME]
   )
 
@@ -226,7 +233,7 @@ private_lane :build_mac do
     output_name: PKG_NAME,
     include_symbols: true,
     export_options: {
-      provisioningProfiles: { APP_IDENTIFIER => MATCH_PROFILE }
+      provisioningProfiles: { APP_IDENTIFIER => MAC_MATCH_PROFILE }
     }
   )
 
