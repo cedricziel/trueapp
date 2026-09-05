@@ -996,9 +996,7 @@ class TrueNasApiClient implements ApiClientInterface {
       return await _traced('truenas.apps.available', () async {
         await _ensureAuthenticated();
         final result = await _client!.sendRequest('app.available');
-        return (result as List<dynamic>)
-            .map((app) => App.fromJson(app as Map<String, dynamic>))
-            .toList();
+        return _parseAppList(result, App.fromJson, method: 'app.available');
       });
     } catch (e) {
       throw _handleError(e);
@@ -1011,13 +1009,75 @@ class TrueNasApiClient implements ApiClientInterface {
       return await _traced('truenas.apps.installed', () async {
         await _ensureAuthenticated();
         final result = await _client!.sendRequest('app.query');
-        return (result as List<dynamic>)
-            .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
-            .toList();
+        return _parseAppList(
+          result,
+          _convertTrueNasAppToApp,
+          method: 'app.query',
+        );
       });
     } catch (e) {
       throw _handleError(e);
     }
+  }
+
+  /// Parses a list-of-apps response entry by entry, so one app the server
+  /// describes in an unexpected shape doesn't take the whole list down with
+  /// it. TrueNAS has changed individual fields across releases more than
+  /// once (`last_update`, `last_updated`, ...) and every such change used to
+  /// surface as a bare "Connection error" for *all* apps. A skipped entry is
+  /// logged with its name and cause; only when nothing at all could be
+  /// parsed does this throw, since that means the whole response shape is
+  /// off rather than one entry.
+  List<App> _parseAppList(
+    Object? result,
+    App Function(Map<String, dynamic>) parse, {
+    required String method,
+  }) {
+    if (result is! List) {
+      throw FormatException(
+        '$method: expected a list of apps, got ${result.runtimeType}',
+      );
+    }
+
+    final apps = <App>[];
+    Object? firstFailure;
+    var skipped = 0;
+    for (final entry in result) {
+      try {
+        if (entry is! Map) {
+          throw FormatException(
+            'expected an app object, got ${entry.runtimeType}',
+          );
+        }
+        apps.add(parse(Map<String, dynamic>.from(entry)));
+      } catch (e, stackTrace) {
+        skipped++;
+        firstFailure ??= e;
+        final name = entry is Map ? entry['name'] : null;
+        if (kDebugMode) {
+          print('TrueNAS API: $method: skipping app "$name": $e');
+        }
+        _telemetry?.getLogger().error(
+          'TrueNAS API: $method returned an app entry that could not be '
+          'parsed; skipping it',
+          error: e,
+          stackTrace: stackTrace,
+          attributes: {
+            'server.id': _server.id,
+            'truenas.method': method,
+            'truenas.app.name': name?.toString() ?? '',
+          },
+        );
+      }
+    }
+
+    if (apps.isEmpty && skipped > 0) {
+      throw FormatException(
+        '$method: none of the $skipped app entries could be parsed: '
+        '$firstFailure',
+      );
+    }
+    return apps;
   }
 
   /// Convert TrueNAS app query response to our App model
@@ -1641,28 +1701,57 @@ class TrueNasApiClient implements ApiClientInterface {
       );
     }
 
-    // Authentication issues
+    // A JSON-RPC error from the middleware itself. TrueNAS attaches a
+    // `data` map ({error: errno, errname, reason, trace, extra}) to method
+    // call failures, and its message alone ("Method call error") says
+    // nothing - the reason is what the user needs to see.
     if (error is RpcException) {
+      final data = error.data;
+      final reason = data is Map ? data['reason']?.toString() : null;
+      final errname = data is Map ? data['errname']?.toString() : null;
+      final reasonLower = (reason ?? '').toLowerCase();
+      final details = reason == null || reason.isEmpty
+          ? 'JSON-RPC error ${error.code}: ${error.message}'
+          : reason;
+
+      if (errname == 'ENOTAUTHENTICATED' ||
+          reasonLower.contains('not authenticated') ||
+          reasonLower.contains('session is expired')) {
+        return ConnectionException(
+          ConnectionError.authenticationFailed(details: details),
+        );
+      }
+
       if (error.code == 401 ||
           errorString.contains('unauthorized') ||
           errorString.contains('authentication failed') ||
           errorString.contains('invalid credentials')) {
         return ConnectionException(
-          ConnectionError.invalidCredentials(details: error.message),
+          ConnectionError.invalidCredentials(details: details),
         );
       }
 
-      if (error.code == 403 || errorString.contains('forbidden')) {
+      if (error.code == 403 ||
+          errname == 'EACCES' ||
+          errname == 'EPERM' ||
+          errorString.contains('forbidden') ||
+          reasonLower.contains('not authorized')) {
         return ConnectionException(
-          ConnectionError.permissionDenied(details: error.message),
+          ConnectionError.permissionDenied(details: details),
         );
       }
 
-      if (error.code >= 500) {
-        return ConnectionException(
-          ConnectionError.serverError(details: error.message),
-        );
-      }
+      // Anything else the middleware rejected (a method that failed, a
+      // method that doesn't exist on this TrueNAS version, invalid params)
+      // happened on the server, and is not a connectivity problem.
+      return ConnectionException(ConnectionError.serverError(details: details));
+    }
+
+    // The server answered, but not in a shape this client understands.
+    if (error is FormatException || error is TypeError) {
+      return ConnectionException(
+        ConnectionError.invalidResponse(details: error.toString()),
+      );
     }
 
     // WebSocket specific errors
@@ -1682,13 +1771,15 @@ class TrueNasApiClient implements ApiClientInterface {
     );
   }
 
-  Exception _handleError(dynamic error) {
-    // For backward compatibility, convert ConnectionException to regular Exception
+  /// Normalises any failure into a [ConnectionException]. This used to
+  /// re-wrap the classified error as a plain `Exception(message)`, which
+  /// dropped both the [ConnectionErrorType] and the technical details on
+  /// the floor - so every failure reached the UI as a generic "Connection
+  /// error" with nothing to act on.
+  ConnectionException _handleError(dynamic error) {
     if (error is ConnectionException) {
-      return Exception(error.error.message);
+      return error;
     }
-
-    final connectionError = _handleConnectionError(error);
-    return Exception(connectionError.error.message);
+    return _handleConnectionError(error);
   }
 }

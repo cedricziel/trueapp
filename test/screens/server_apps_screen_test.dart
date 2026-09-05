@@ -523,7 +523,7 @@ void main() {
     testWidgets('shows an error view with Retry when loading fails', (
       WidgetTester tester,
     ) async {
-      fakeClient.failingMethods.add('getAvailableApps');
+      fakeClient.failingMethods.add('getInstalledApps');
 
       await tester.pumpWidget(createTestApp());
       await pumpUntilAsync(
@@ -533,6 +533,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('Failed to load apps'), findsOneWidget);
+      // The cause is shown, not just a generic short message.
+      expect(
+        find.textContaining('getInstalledApps configured to fail'),
+        findsOneWidget,
+      );
       expect(find.text('Retry'), findsOneWidget);
       expect(find.byType(AppCardWidget), findsNothing);
       expectNoLayoutOverflow(tester);
@@ -541,7 +546,7 @@ void main() {
     testWidgets('Retry re-attempts the load and can succeed', (
       WidgetTester tester,
     ) async {
-      fakeClient.failingMethods.add('getAvailableApps');
+      fakeClient.failingMethods.add('getInstalledApps');
 
       await tester.pumpWidget(createTestApp());
       await pumpUntilAsync(
@@ -551,7 +556,7 @@ void main() {
       await tester.pump();
       expect(find.text('Failed to load apps'), findsOneWidget);
 
-      fakeClient.failingMethods.remove('getAvailableApps');
+      fakeClient.failingMethods.remove('getInstalledApps');
       fakeClient.installedApps = [
         _app(name: 'plex', title: 'Plex', installed: true),
       ];
@@ -566,6 +571,86 @@ void main() {
       expect(find.text('Failed to load apps'), findsNothing);
       expect(find.byType(AppCardWidget), findsOneWidget);
     });
+  });
+
+  group('ServerAppsScreen - catalog failure', () {
+    testWidgets(
+      'installed apps stay usable when only the catalog fails to load',
+      (WidgetTester tester) async {
+        fakeClient.failingMethods.add('getAvailableApps');
+        fakeClient.installedApps = [
+          _app(name: 'plex', title: 'Plex', installed: true),
+        ];
+        fakeClient.appCategories = [];
+
+        await tester.pumpWidget(createTestApp());
+        await settleInitialLoad(tester);
+        await tester.pump();
+
+        expect(find.text('Failed to load apps'), findsNothing);
+        expect(find.byType(AppCardWidget), findsOneWidget);
+        expect(find.text('plex'), findsOneWidget);
+        expectNoLayoutOverflow(tester);
+      },
+    );
+
+    testWidgets('the Available tab reports the catalog failure with Retry', (
+      WidgetTester tester,
+    ) async {
+      fakeClient.failingMethods.add('getAvailableApps');
+      fakeClient.installedApps = [
+        _app(name: 'plex', title: 'Plex', installed: true),
+      ];
+      fakeClient.appCategories = [];
+
+      await tester.pumpWidget(createTestApp());
+      await settleInitialLoad(tester);
+      await tester.pump();
+
+      await tester.tap(find.text('Available'));
+      await tester.pump();
+
+      expect(find.text('Failed to load app catalog'), findsOneWidget);
+      expect(
+        find.textContaining('getAvailableApps configured to fail'),
+        findsOneWidget,
+      );
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.byType(AppCardWidget), findsNothing);
+      expectNoLayoutOverflow(tester);
+    });
+
+    testWidgets(
+      'a previously synced catalog stays listed with a stale notice',
+      (WidgetTester tester) async {
+        fakeClient.installedApps = [
+          _app(name: 'plex', title: 'Plex', installed: true),
+        ];
+        fakeClient.availableApps = [
+          _app(name: 'radarr', title: 'Radarr', installed: false),
+        ];
+        fakeClient.appCategories = [];
+
+        await tester.pumpWidget(createTestApp());
+        await settleInitialLoad(tester);
+        await tester.pump();
+
+        fakeClient.failingMethods.add('getAvailableApps');
+        await appProvider.refreshApps();
+        await tester.pump();
+
+        await tester.tap(find.text('Available'));
+        await tester.pump();
+
+        expect(find.text('Radarr'), findsOneWidget);
+        expect(
+          find.textContaining('Catalog could not be refreshed'),
+          findsOneWidget,
+        );
+        expect(find.text('Failed to load app catalog'), findsNothing);
+        expectNoLayoutOverflow(tester);
+      },
+    );
   });
 
   group('ServerAppsScreen - layout', () {

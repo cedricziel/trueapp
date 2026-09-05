@@ -5,6 +5,7 @@ enum ConnectionErrorType {
   invalidCredentials,
   serverError,
   permissionDenied,
+  invalidResponse,
   unknown,
 }
 
@@ -75,6 +76,19 @@ class ConnectionError {
     );
   }
 
+  /// The server answered, but with data this app could not read - a
+  /// response-shape mismatch between TrueNAS versions, or a parsing bug on
+  /// our side. Distinct from [ConnectionError.unknown] so it never shows up
+  /// as a generic "Connection error" that hides the actual cause.
+  factory ConnectionError.invalidResponse({String? details}) {
+    return ConnectionError(
+      type: ConnectionErrorType.invalidResponse,
+      message: 'Unexpected response from server',
+      technicalDetails: details,
+      isRetryable: true,
+    );
+  }
+
   factory ConnectionError.unknown({String? details}) {
     return ConnectionError(
       type: ConnectionErrorType.unknown,
@@ -116,6 +130,11 @@ class ConnectionError {
             '• User account permissions\n'
             '• Account is active\n'
             '• Required roles are assigned';
+      case ConnectionErrorType.invalidResponse:
+        return 'The server sent data this app could not read. Please:\n'
+            '• Update TrueNAS Manager to the latest version\n'
+            '• Check the TrueNAS version is supported\n'
+            '• Report the issue with the technical details';
       case ConnectionErrorType.unknown:
         return 'An unexpected error occurred. Please:\n'
             '• Try again\n'
@@ -138,6 +157,8 @@ class ConnectionError {
         return 'Server error';
       case ConnectionErrorType.permissionDenied:
         return 'Permission denied';
+      case ConnectionErrorType.invalidResponse:
+        return 'Unexpected server response';
       case ConnectionErrorType.unknown:
         return 'Connection error';
     }

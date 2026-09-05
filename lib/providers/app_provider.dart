@@ -11,6 +11,15 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
+/// The result of a settled future: exactly one of [value] or [error] is set.
+class _Outcome<T> {
+  final T? value;
+  final Object? error;
+
+  const _Outcome.success(this.value) : error = null;
+  const _Outcome.failure(this.error) : value = null;
+}
+
 class AppProvider extends ChangeNotifier {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
@@ -21,6 +30,7 @@ class AppProvider extends ChangeNotifier {
   List<String> _categories = [];
   bool _isLoading = false;
   ConnectionError? _connectionError;
+  ConnectionError? _catalogError;
   StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
   final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
@@ -50,6 +60,18 @@ class AppProvider extends ChangeNotifier {
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
+  /// The underlying cause of [error], when known - e.g. the middleware's
+  /// reason text or the parse failure - for showing alongside the short
+  /// message so a failure can actually be diagnosed from the screen.
+  String? get errorDetails => _connectionError?.technicalDetails;
+
+  /// Set when the installed apps loaded fine but the catalog side
+  /// (`app.available` / `app.categories`) failed. The load is then only
+  /// degraded, not failed: installed apps stay usable and any previously
+  /// synced catalog entries remain visible, so this is surfaced per-tab
+  /// rather than as [connectionError].
+  ConnectionError? get catalogError => _catalogError;
+
   List<AppConfig> get installedApps =>
       _appConfigs.where((app) => app.installed == true).toList();
   List<AppConfig> get availableApps =>
@@ -74,6 +96,7 @@ class AppProvider extends ChangeNotifier {
     _appConfigs = [];
     _categories = [];
     _connectionError = null;
+    _catalogError = null;
 
     if (server != null) {
       try {
@@ -114,6 +137,7 @@ class AppProvider extends ChangeNotifier {
     _appConfigs = [];
     _categories = [];
     _connectionError = null;
+    _catalogError = null;
 
     try {
       // Load credentials for the server
@@ -148,6 +172,7 @@ class AppProvider extends ChangeNotifier {
 
     _isLoading = true;
     _connectionError = null;
+    _catalogError = null;
     notifyListeners();
 
     try {
@@ -186,16 +211,39 @@ class AppProvider extends ChangeNotifier {
   Future<void> _loadAppsOnline() async {
     if (_apiClient == null || _currentServerId == null) return;
 
-    // Load available apps, installed apps, and categories in parallel
-    final results = await Future.wait([
-      _apiClient!.getAvailableApps(),
-      _apiClient!.getInstalledApps(),
-      _apiClient!.getAppCategories(),
-    ]);
+    // Load installed apps, available apps, and categories in parallel.
+    //
+    // Installed apps (`app.query`) are the essential part - if that fails
+    // the load fails. The catalog calls are allowed to fail on their own:
+    // `app.available` is by far the biggest and slowest response (the full
+    // catalog, readmes included) and depends on the NAS having synced its
+    // catalog, so a problem there must not hide the user's installed apps.
+    final installedFuture = _apiClient!.getInstalledApps();
+    final availableFuture = _settle(_apiClient!.getAvailableApps());
+    final categoriesFuture = _settle(_apiClient!.getAppCategories());
 
-    final availableApps = results[0] as List<App>;
-    final installedApps = results[1] as List<App>;
-    _categories = results[2] as List<String>;
+    // Await the settled catalog futures too, so their outcomes are consumed
+    // (never left as unhandled async errors) even when the installed call
+    // throws first.
+    final installedApps = await installedFuture;
+    final available = await availableFuture;
+    final categories = await categoriesFuture;
+
+    final availableApps = available.value ?? const <App>[];
+    if (categories.value != null) {
+      _categories = categories.value!;
+    }
+
+    final catalogFailure = available.error ?? categories.error;
+    if (catalogFailure != null) {
+      _catalogError = _toConnectionError(catalogFailure);
+      if (kDebugMode) {
+        print(
+          'AppProvider: catalog load failed, continuing with installed apps: '
+          '${_catalogError!.technicalDetails ?? _catalogError!.message}',
+        );
+      }
+    }
 
     // Merge installed and available apps, prioritizing installed app data
     final allApps = <String, App>{};
@@ -221,6 +269,17 @@ class AppProvider extends ChangeNotifier {
         'AppProvider: Synced ${allApps.length} apps to database (${installedApps.length} installed, ${availableApps.length} available)',
       );
     }
+  }
+
+  /// Turns [future] into one that never fails, capturing its outcome as an
+  /// [_Outcome] instead.
+  Future<_Outcome<T>> _settle<T>(Future<T> future) => future
+      .then<_Outcome<T>>(_Outcome.success)
+      .catchError((Object e) => _Outcome<T>.failure(e));
+
+  ConnectionError _toConnectionError(Object error) {
+    if (error is ConnectionException) return error.error;
+    return ConnectionError.unknown(details: error.toString());
   }
 
   Future<void> _syncAppsToDatabase(List<App> apps) async {

@@ -1,6 +1,7 @@
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 
@@ -555,6 +556,224 @@ void main() {
       expect(minimal.train, 'community');
     });
 
+    test(
+      'getAvailableApps skips an app entry it cannot parse and keeps the rest',
+      () async {
+        server.onMethod(
+          'app.available',
+          (_) => [
+            {'name': 'plex', 'title': 'Plex'},
+            // A malformed entry, of the "one field changed shape in a newer
+            // TrueNAS" kind: maintainers should be a list of objects.
+            {
+              'name': 'broken',
+              'maintainers': ['not-a-map'],
+            },
+            'not-even-an-object',
+            {'name': 'sonarr', 'title': 'Sonarr'},
+          ],
+        );
+
+        final apps = await client.getAvailableApps();
+
+        expect(apps.map((a) => a.name), ['plex', 'sonarr']);
+      },
+    );
+
+    test(
+      'getInstalledApps skips an app entry it cannot parse and keeps the rest',
+      () async {
+        server.onMethod(
+          'app.query',
+          (_) => [
+            {'name': 'plex', 'state': 'RUNNING'},
+            {
+              'name': 'broken',
+              'state': 'RUNNING',
+              'active_workloads': {
+                'used_ports': ['not-a-map'],
+              },
+            },
+          ],
+        );
+
+        final apps = await client.getInstalledApps();
+
+        expect(apps.map((a) => a.name), ['plex']);
+      },
+    );
+
+    test('a list where nothing parses is an invalidResponse error, with the '
+        'cause in the details', () async {
+      server.onMethod(
+        'app.available',
+        (_) => [
+          {
+            'name': 'broken',
+            'maintainers': ['not-a-map'],
+          },
+        ],
+      );
+
+      await expectLater(
+        client.getAvailableApps(),
+        throwsA(
+          isA<ConnectionException>()
+              .having(
+                (e) => e.error.type,
+                'type',
+                ConnectionErrorType.invalidResponse,
+              )
+              .having(
+                (e) => e.error.technicalDetails,
+                'details',
+                contains('app.available'),
+              ),
+        ),
+      );
+    });
+
+    test('a non-list app response is an invalidResponse error', () async {
+      server.onMethod('app.available', (_) => {'unexpected': 'shape'});
+
+      await expectLater(
+        client.getAvailableApps(),
+        throwsA(
+          isA<ConnectionException>().having(
+            (e) => e.error.type,
+            'type',
+            ConnectionErrorType.invalidResponse,
+          ),
+        ),
+      );
+    });
+
+    test('a "Not authorized" middleware error is a permissionDenied error '
+        'carrying the reason', () async {
+      // The shape TrueNAS's JSON-RPC handler emits for a CallError raised
+      // by authorize_method_call: CallError('Not authorized', EACCES).
+      server.onMethod(
+        'app.available',
+        (_) => throw json_rpc.RpcException(
+          -32001,
+          'Method call error',
+          data: {
+            'error': 13,
+            'errname': 'EACCES',
+            'reason': 'Not authorized',
+            'trace': null,
+            'extra': null,
+          },
+        ),
+      );
+
+      await expectLater(
+        client.getAvailableApps(),
+        throwsA(
+          isA<ConnectionException>()
+              .having(
+                (e) => e.error.type,
+                'type',
+                ConnectionErrorType.permissionDenied,
+              )
+              .having(
+                (e) => e.error.technicalDetails,
+                'details',
+                'Not authorized',
+              ),
+        ),
+      );
+    });
+
+    test(
+      'an expired-session middleware error is an authenticationFailed error',
+      () async {
+        server.onMethod(
+          'app.query',
+          (_) => throw json_rpc.RpcException(
+            -32001,
+            'Method call error',
+            data: {
+              'error': 13,
+              'errname': 'EACCES',
+              'reason': 'Session is expired',
+            },
+          ),
+        );
+
+        await expectLater(
+          client.getInstalledApps(),
+          throwsA(
+            isA<ConnectionException>().having(
+              (e) => e.error.type,
+              'type',
+              ConnectionErrorType.authenticationFailed,
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'any other middleware call error is a serverError carrying the reason',
+      () async {
+        server.onMethod(
+          'app.available',
+          (_) => throw json_rpc.RpcException(
+            -32001,
+            'Method call error',
+            data: {
+              'error': 14,
+              'errname': 'EFAULT',
+              'reason': 'Catalog is not synced yet',
+            },
+          ),
+        );
+
+        await expectLater(
+          client.getAvailableApps(),
+          throwsA(
+            isA<ConnectionException>()
+                .having(
+                  (e) => e.error.type,
+                  'type',
+                  ConnectionErrorType.serverError,
+                )
+                .having(
+                  (e) => e.error.technicalDetails,
+                  'details',
+                  'Catalog is not synced yet',
+                ),
+          ),
+        );
+      },
+    );
+
+    test('a middleware error without a reason keeps the JSON-RPC code and '
+        'message as details', () async {
+      server.onMethod(
+        'app.categories',
+        (_) => throw json_rpc.RpcException(-32601, 'Method does not exist'),
+      );
+
+      await expectLater(
+        client.getAppCategories(),
+        throwsA(
+          isA<ConnectionException>()
+              .having(
+                (e) => e.error.type,
+                'type',
+                ConnectionErrorType.serverError,
+              )
+              .having(
+                (e) => e.error.technicalDetails,
+                'details',
+                'JSON-RPC error -32601: Method does not exist',
+              ),
+        ),
+      );
+    });
+
     test('concurrent first calls share one connection and one login', () async {
       // AppProvider._loadAppsOnline issues these three calls in a single
       // Future.wait against a client that has never connected. Each call
@@ -892,7 +1111,16 @@ void main() {
         final client = TrueNasApiClient(testServer, null, telemetry);
         addTearDown(client.close);
 
-        await expectLater(client.getAvailableApps(), throwsException);
+        await expectLater(
+          client.getAvailableApps(),
+          throwsA(
+            isA<ConnectionException>().having(
+              (e) => e.error.type,
+              'type',
+              ConnectionErrorType.invalidResponse,
+            ),
+          ),
+        );
 
         final span = telemetry.spans.singleWhere(
           (s) => s.name == 'truenas.apps.available',

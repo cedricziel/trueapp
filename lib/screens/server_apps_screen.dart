@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/app.dart';
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
@@ -165,19 +166,39 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                   }
 
                   if (appProvider.error != null) {
-                    return _buildErrorView(appProvider.error!);
+                    return _buildErrorView(
+                      title: 'Failed to load apps',
+                      error: appProvider.error!,
+                      details: appProvider.errorDetails,
+                    );
                   }
 
                   final apps = _getFilteredApps(appProvider);
+                  final catalogError = _selectedSegment == 1
+                      ? appProvider.catalogError
+                      : null;
 
                   if (apps.isEmpty) {
+                    if (catalogError != null) {
+                      return _buildErrorView(
+                        title: 'Failed to load app catalog',
+                        error: catalogError.shortMessage,
+                        details: catalogError.technicalDetails,
+                      );
+                    }
                     return _buildEmptyView();
                   }
 
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: apps.length,
+                    itemCount: apps.length + (catalogError != null ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (catalogError != null) {
+                        if (index == 0) {
+                          return _buildCatalogNotice(catalogError);
+                        }
+                        index -= 1;
+                      }
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: AppCardWidget(app: apps[index]),
@@ -239,13 +260,39 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
     return apps;
   }
 
-  Widget _buildErrorView(String error) {
+  Widget _buildErrorView({
+    required String title,
+    required String error,
+    String? details,
+  }) {
     return ErrorStateWidget(
-      title: 'Failed to load apps',
-      message: error,
+      title: title,
+      message: details == null ? error : '$error\n$details',
       onRetry: () {
         context.read<AppProvider>().refreshApps();
       },
+    );
+  }
+
+  /// Shown above a stale catalog list when the catalog could not be
+  /// refreshed this time, so the user knows the entries may be outdated
+  /// without losing them.
+  Widget _buildCatalogNotice(ConnectionError catalogError) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemYellow.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          'Catalog could not be refreshed: ${catalogError.shortMessage}. '
+          'Showing the last synced apps.',
+          style: const TextStyle(fontSize: 13),
+        ),
+      ),
     );
   }
 
