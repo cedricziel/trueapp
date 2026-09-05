@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/fleet_server_status.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/server_health.dart';
 import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -187,17 +190,64 @@ void main() {
     });
 
     test('a superseded refresh does not overwrite the newer result', () async {
-      // Two overlapping refreshAll() calls for the same server - only the
-      // second (newer) one's result should stick, regardless of finishing
-      // order.
-      final first = provider.refreshAll([testServer]);
-      final second = provider.refreshAll([testServer]);
-      await Future.wait([first, second]);
+      // Two overlapping refreshAll() calls for the same server, with
+      // distinguishable outcomes: the older call's getServerHealth() is
+      // gated to resolve (and fail) only after the newer call has already
+      // completed successfully. Without the generation guard, the older
+      // call's failure would land last and flip the status back to
+      // offline; removing _refreshGenerations should make this test fail.
+      final gatedClient = _SequencedHealthClient();
+      TestProviders.mockApiClientManager.addMockClient(
+        testServer.id,
+        gatedClient,
+      );
+
+      final older = provider.refreshAll([testServer]);
+      final newer = provider.refreshAll([testServer]);
+
+      gatedClient.secondGate.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        provider.statusFor(testServer.id).connectivity,
+        FleetServerConnectivity.online,
+        reason: 'the newer refresh should have already landed',
+      );
+
+      gatedClient.firstGate.complete();
+      await Future.wait([older, newer]);
 
       expect(
         provider.statusFor(testServer.id).connectivity,
         FleetServerConnectivity.online,
+        reason:
+            'the older, now-failing refresh must not overwrite the newer '
+            'success',
       );
+
+      await gatedClient.dispose();
     });
   });
+}
+
+/// A [FakeApiClient] whose [getServerHealth] resolves calls in caller-
+/// controlled order: the first call awaits [firstGate] and then throws (as
+/// if the server had gone offline); every later call awaits [secondGate]
+/// and succeeds. Lets a test force an "older" refresh to fail only after a
+/// "newer" one for the same server has already succeeded.
+class _SequencedHealthClient extends FakeApiClient {
+  final Completer<void> firstGate = Completer<void>();
+  final Completer<void> secondGate = Completer<void>();
+  int _callCount = 0;
+
+  @override
+  Future<ServerHealth> getServerHealth() async {
+    final isFirstCall = _callCount == 0;
+    _callCount++;
+    if (isFirstCall) {
+      await firstGate.future;
+      throw Exception('older refresh: server went offline');
+    }
+    await secondGate.future;
+    return super.getServerHealth();
+  }
 }
