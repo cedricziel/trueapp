@@ -57,6 +57,10 @@ abstract class ApiClientInterface {
   // Higher-level methods
   Future<ServerHealth> getServerHealth();
 
+  // Health center methods
+  Future<List<Map<String, dynamic>>> getAlerts();
+  Future<List<Map<String, dynamic>>> getServices();
+
   // App management methods
   Future<List<App>> getAvailableApps();
   Future<List<App>> getInstalledApps();

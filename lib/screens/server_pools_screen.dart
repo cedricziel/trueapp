@@ -1,12 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 import 'package:truehub/widgets/connection_error_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/section_card.dart';
 
 class ServerPoolsScreen extends StatefulWidget {
   final NasServer server;
@@ -85,13 +87,10 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
     );
   }
 
-  Widget _buildPoolTile(Map<String, dynamic> pool) {
-    final name = pool['name'] as String? ?? 'Unknown';
-    final status = pool['status'] as String? ?? 'Unknown';
-    final healthy = pool['healthy'] as bool? ?? false;
-
-    // Calculate total space
-    final topology = pool['topology'] as Map<String, dynamic>?;
+  Widget _buildPoolTile(Pool pool) {
+    final healthy = pool.healthy;
+    final disks = pool.allDisks;
+    final unhealthyDisks = disks.where((disk) => !disk.isHealthy).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -111,65 +110,86 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
           decoration: BoxDecoration(
             color: CupertinoColors.systemBackground,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: CupertinoColors.separator, width: 0.5),
+            border: Border.all(
+              color: unhealthyDisks.isEmpty
+                  ? CupertinoColors.separator
+                  : CupertinoColors.systemRed.withValues(alpha: 0.35),
+              width: 0.5,
+            ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: healthy
-                      ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
-                      : CupertinoColors.systemRed.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  CupertinoIcons.square_stack_3d_down_right,
-                  color: healthy
-                      ? CupertinoColors.systemGreen
-                      : CupertinoColors.systemRed,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: healthy
+                          ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
+                          : CupertinoColors.systemRed.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Status: $status',
-                      style: const TextStyle(
-                        color: CupertinoColors.systemGrey,
-                        fontSize: 14,
-                      ),
+                    child: Icon(
+                      CupertinoIcons.square_stack_3d_down_right,
+                      color: healthy
+                          ? CupertinoColors.systemGreen
+                          : CupertinoColors.systemRed,
+                      size: 24,
                     ),
-                    if (topology != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _getPoolTypeDescription(topology),
-                        style: const TextStyle(
-                          color: CupertinoColors.systemGrey,
-                          fontSize: 14,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          pool.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 4),
+                        Text(
+                          pool.topologyDescription,
+                          style: const TextStyle(
+                            color: CupertinoColors.systemGrey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  StatusPill(
+                    label: pool.status,
+                    color: healthy
+                        ? CupertinoColors.systemGreen
+                        : CupertinoColors.systemRed,
+                  ),
+                ],
+              ),
+              if (disks.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [for (final disk in disks) _buildDriveBadge(disk)],
                 ),
-              ),
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: CupertinoColors.systemGrey3,
-                size: 16,
-              ),
+              ],
+              if (unhealthyDisks.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${unhealthyDisks.map((d) => d.name).join(', ')} '
+                  '${unhealthyDisks.length == 1 ? 'needs' : 'need'} attention',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: CupertinoColors.systemRed,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -177,26 +197,40 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
     );
   }
 
-  String _getPoolTypeDescription(Map<String, dynamic> topology) {
-    final data = topology['data'] as List<dynamic>?;
-    if (data == null || data.isEmpty) return 'Unknown configuration';
+  /// A small per-disk status chip - what turns "Mirror (2 drives)" from a
+  /// text description into something that says which specific drive, if
+  /// any, needs attention.
+  Widget _buildDriveBadge(VdevDisk disk) {
+    final (icon, color) = switch (disk.status) {
+      VdevDiskStatus.online => (
+        CupertinoIcons.checkmark,
+        CupertinoColors.systemGreen,
+      ),
+      VdevDiskStatus.degraded => (
+        CupertinoIcons.exclamationmark,
+        CupertinoColors.systemYellow,
+      ),
+      VdevDiskStatus.unknown => (
+        CupertinoIcons.minus,
+        CupertinoColors.systemGrey,
+      ),
+      VdevDiskStatus.faulted ||
+      VdevDiskStatus.offline ||
+      VdevDiskStatus.removed ||
+      VdevDiskStatus.unavail => (
+        CupertinoIcons.xmark,
+        CupertinoColors.systemRed,
+      ),
+    };
 
-    final firstVdev = data.first as Map<String, dynamic>?;
-    final type = firstVdev?['type'] as String?;
-    final children = firstVdev?['children'] as List<dynamic>?;
-
-    if (type == 'mirror' && children != null) {
-      return 'Mirror (${children.length} drives)';
-    } else if (type == 'raidz1') {
-      return 'RAID-Z1 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz2') {
-      return 'RAID-Z2 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz3') {
-      return 'RAID-Z3 (${children?.length ?? 0} drives)';
-    } else if (children != null && children.length == 1) {
-      return 'Single drive';
-    }
-
-    return 'Custom configuration';
+    return Container(
+      width: 26,
+      height: 34,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Icon(icon, size: 14, color: CupertinoColors.white),
+    );
   }
 }

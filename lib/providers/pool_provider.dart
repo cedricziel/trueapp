@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -10,13 +11,13 @@ class PoolProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
-  List<Map<String, dynamic>> _pools = [];
+  List<Pool> _pools = [];
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
   PoolProvider(this._serverService);
 
-  List<Map<String, dynamic>> get pools => _pools;
+  List<Pool> get pools => _pools;
   bool get isLoading => _isLoading;
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
@@ -98,7 +99,8 @@ class PoolProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _pools = await _apiClient!.getPools();
+      final rawPools = await _apiClient!.getPools();
+      _pools = rawPools.map(Pool.fromJson).toList();
       // Clear any previous errors on successful load
       _connectionError = null;
     } on ConnectionException catch (e) {

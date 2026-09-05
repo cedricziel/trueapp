@@ -1,77 +1,73 @@
+import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
-import 'package:truehub/providers/dataset_provider.dart';
-import 'package:truehub/providers/jobs_provider.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/pool_provider.dart';
+import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/server_pools_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
-
 import '../helpers/fake_api_client.dart';
+import '../helpers/layout_assertions.dart';
+import '../helpers/provider_scope.dart';
 import '../helpers/pump_helpers.dart';
-import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
+import '../helpers/test_surfaces.dart';
 
 void main() {
   late AppDatabase database;
-  late UnifiedServerService serverService;
-  late PoolProvider poolProvider;
-  late DatasetProvider datasetProvider;
-  late JobsProvider jobsProvider;
-  late FakeApiClient fakeClient;
+  late ServerProvider serverProvider;
+  late UnifiedServerService unifiedServerService;
   late NasServer testServer;
 
   setUp(() async {
     await TestProviders.cleanupTestEnvironment();
     TestProviders.setupTestEnvironment();
-
-    database = createTestDatabase();
-    serverService = await TestProviders.createMockUnifiedServerService(
+    database = AppDatabase.forTesting(NativeDatabase.memory());
+    unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    poolProvider = PoolProvider(serverService);
-    datasetProvider = DatasetProvider(serverService);
-    jobsProvider = JobsProvider(serverService);
-    fakeClient = FakeApiClient();
+    serverProvider = ServerProvider(unifiedServerService);
 
     testServer = NasServer.create(
       name: 'Test Server',
       host: '192.168.1.100',
+      port: 443,
       username: 'admin',
       password: 'password',
     );
-
-    // Store credentials so the screen's `setApiClient` call succeeds, and
-    // register the fake client so `ApiClientManager.getClient()` returns it.
-    await serverService.saveServerConfig(
-      server: testServer,
-      password: 'password',
-    );
-    TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
   });
 
   tearDown(() async {
-    poolProvider.dispose();
-    datasetProvider.dispose();
-    jobsProvider.dispose();
-    await fakeClient.dispose();
     await TestProviders.disposeTestStack(
-      service: serverService,
+      providers: [serverProvider],
+      service: unifiedServerService,
       database: database,
     );
   });
 
-  Widget createTestApp() {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<PoolProvider>.value(value: poolProvider),
-        ChangeNotifierProvider<DatasetProvider>.value(value: datasetProvider),
-        ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
-      ],
+  Widget createTestApp(PoolProvider poolProvider) {
+    return provideAppProviders(
+      database: database,
+      service: unifiedServerService,
+      serverProvider: serverProvider,
+      poolProvider: poolProvider,
       child: CupertinoApp(home: ServerPoolsScreen(server: testServer)),
     );
+  }
+
+  /// Registers [fakeClient] as the server's API client so the screen's own
+  /// `setApiClient` + `loadPools()` in `initState` drive a real
+  /// `PoolProvider` through the mocked network path, rather than seeding a
+  /// fake provider's getters directly.
+  Future<PoolProvider> realPoolProvider(FakeApiClient fakeClient) async {
+    await unifiedServerService.saveServerConfig(
+      server: testServer,
+      password: 'password',
+    );
+    TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
+    return PoolProvider(unifiedServerService);
   }
 
   group('ServerPoolsScreen - loading and empty states', () {
@@ -84,23 +80,12 @@ void main() {
       // exact transient frame would be racy. A provider whose `isLoading`
       // getter is pinned to `true` tests the screen's loading branch
       // directly and deterministically instead.
-      final loadingPoolProvider = _AlwaysLoadingPoolProvider(serverService);
+      final loadingPoolProvider = _AlwaysLoadingPoolProvider(
+        unifiedServerService,
+      );
       addTearDown(loadingPoolProvider.dispose);
 
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<PoolProvider>.value(
-              value: loadingPoolProvider,
-            ),
-            ChangeNotifierProvider<DatasetProvider>.value(
-              value: datasetProvider,
-            ),
-            ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider),
-          ],
-          child: CupertinoApp(home: ServerPoolsScreen(server: testServer)),
-        ),
-      );
+      await tester.pumpWidget(createTestApp(loadingPoolProvider));
       await tester.pump();
 
       expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
@@ -109,9 +94,11 @@ void main() {
     testWidgets('shows "No pools found" once loading finishes with none', (
       tester,
     ) async {
-      fakeClient.pools = [];
+      final fakeClient = FakeApiClient()..pools = [];
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
 
-      await tester.pumpWidget(createTestApp());
+      await tester.pumpWidget(createTestApp(poolProvider));
       await pumpUntilAsync(
         tester,
         () => find.text('No pools found').evaluate().isNotEmpty,
@@ -127,9 +114,11 @@ void main() {
     testWidgets('the navigation bar shows the server name and pops on Back', (
       tester,
     ) async {
-      fakeClient.pools = [];
+      final fakeClient = FakeApiClient()..pools = [];
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
 
-      await tester.pumpWidget(createTestApp());
+      await tester.pumpWidget(createTestApp(poolProvider));
       await pumpUntilAsync(
         tester,
         () => find.text('No pools found').evaluate().isNotEmpty,
@@ -146,66 +135,22 @@ void main() {
   });
 
   group('ServerPoolsScreen - populated list', () {
-    testWidgets('renders a tile per pool with its name and status', (
-      tester,
-    ) async {
-      fakeClient.pools = [
-        {
-          'name': 'tank',
-          'status': 'ONLINE',
-          'healthy': true,
-          'topology': <String, dynamic>{},
-        },
-        {
-          'name': 'backup',
-          'status': 'DEGRADED',
-          'healthy': false,
-          'topology': <String, dynamic>{},
-        },
-      ];
-
-      await tester.pumpWidget(createTestApp());
-      await pumpUntilAsync(
-        tester,
-        () => find.text('tank').evaluate().isNotEmpty,
-      );
-
-      expect(find.text('tank'), findsOneWidget);
-      expect(find.text('Status: ONLINE'), findsOneWidget);
-      expect(find.text('backup'), findsOneWidget);
-      expect(find.text('Status: DEGRADED'), findsOneWidget);
-    });
-
-    testWidgets('a pool with no name or status falls back to "Unknown"', (
-      tester,
-    ) async {
-      fakeClient.pools = [
-        <String, dynamic>{'healthy': true},
-      ];
-
-      await tester.pumpWidget(createTestApp());
-      await pumpUntilAsync(
-        tester,
-        () => find.text('Unknown').evaluate().isNotEmpty,
-      );
-
-      expect(find.text('Unknown'), findsOneWidget);
-      expect(find.text('Status: Unknown'), findsOneWidget);
-    });
-
     testWidgets('tapping a pool tile navigates to its detail screen', (
       tester,
     ) async {
-      fakeClient.pools = [
-        {
-          'name': 'tank',
-          'status': 'ONLINE',
-          'healthy': true,
-          'topology': <String, dynamic>{},
-        },
-      ];
+      final fakeClient = FakeApiClient()
+        ..pools = [
+          {
+            'name': 'tank',
+            'status': 'ONLINE',
+            'healthy': true,
+            'topology': <String, dynamic>{},
+          },
+        ];
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
 
-      await tester.pumpWidget(createTestApp());
+      await tester.pumpWidget(createTestApp(poolProvider));
       await pumpUntilAsync(
         tester,
         () => find.text('tank').evaluate().isNotEmpty,
@@ -226,15 +171,19 @@ void main() {
         WidgetTester tester,
         Map<String, dynamic> topology,
       ) async {
-        fakeClient.pools = [
-          {
-            'name': 'tank',
-            'status': 'ONLINE',
-            'healthy': true,
-            'topology': topology,
-          },
-        ];
-        await tester.pumpWidget(createTestApp());
+        final fakeClient = FakeApiClient()
+          ..pools = [
+            {
+              'name': 'tank',
+              'status': 'ONLINE',
+              'healthy': true,
+              'topology': topology,
+            },
+          ];
+        final poolProvider = await realPoolProvider(fakeClient);
+        addTearDown(poolProvider.dispose);
+
+        await tester.pumpWidget(createTestApp(poolProvider));
         await pumpUntilAsync(
           tester,
           () => find.text('tank').evaluate().isNotEmpty,
@@ -328,7 +277,10 @@ void main() {
           'vdev shape', (tester) async {
         await pumpWithTopology(tester, {
           'data': [
-            {'type': 'draid'},
+            {
+              'type': 'draid',
+              'children': [<String, dynamic>{}, <String, dynamic>{}],
+            },
           ],
         });
         expect(find.text('Custom configuration'), findsOneWidget);
@@ -341,19 +293,23 @@ void main() {
         expect(find.text('Unknown configuration'), findsOneWidget);
       });
 
-      testWidgets('is omitted entirely when topology is absent', (
+      testWidgets('shows "Unknown configuration" when topology is absent', (
         tester,
       ) async {
-        fakeClient.pools = [
-          {'name': 'tank', 'status': 'ONLINE', 'healthy': true},
-        ];
-        await tester.pumpWidget(createTestApp());
+        final fakeClient = FakeApiClient()
+          ..pools = [
+            {'name': 'tank', 'status': 'ONLINE', 'healthy': true},
+          ];
+        final poolProvider = await realPoolProvider(fakeClient);
+        addTearDown(poolProvider.dispose);
+
+        await tester.pumpWidget(createTestApp(poolProvider));
         await pumpUntilAsync(
           tester,
           () => find.text('tank').evaluate().isNotEmpty,
         );
 
-        expect(find.text('Unknown configuration'), findsNothing);
+        expect(find.text('Unknown configuration'), findsOneWidget);
         expect(find.text('Custom configuration'), findsNothing);
       });
     });
@@ -363,9 +319,11 @@ void main() {
     testWidgets('shows a retryable connection error and can retry', (
       tester,
     ) async {
-      fakeClient.failingMethods.add('getPools');
+      final fakeClient = FakeApiClient()..failingMethods.add('getPools');
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
 
-      await tester.pumpWidget(createTestApp());
+      await tester.pumpWidget(createTestApp(poolProvider));
       await pumpUntilAsync(
         tester,
         () => find
@@ -402,9 +360,11 @@ void main() {
     });
 
     testWidgets('"Check Settings" pops the screen', (tester) async {
-      fakeClient.failingMethods.add('getPools');
+      final fakeClient = FakeApiClient()..failingMethods.add('getPools');
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
 
-      await tester.pumpWidget(createTestApp());
+      await tester.pumpWidget(createTestApp(poolProvider));
       await pumpUntilAsync(
         tester,
         () => find
@@ -419,6 +379,114 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('ServerPoolsScreen - per-drive topology visualization', () {
+    testWidgets('renders a healthy pool with a drive badge per disk', (
+      WidgetTester tester,
+    ) async {
+      useCompactSurface(tester);
+      final poolProvider = _FakePoolProvider(unifiedServerService, [
+        Pool.fromJson({
+          'name': 'tank',
+          'status': 'ONLINE',
+          'healthy': true,
+          'allocated': 1200,
+          'free': 2600,
+          'topology': {
+            'data': [
+              {
+                'type': 'MIRROR',
+                'children': [
+                  {'disk': 'ada0', 'status': 'ONLINE'},
+                  {'disk': 'ada1', 'status': 'ONLINE'},
+                ],
+              },
+            ],
+          },
+        }),
+      ]);
+      addTearDown(poolProvider.dispose);
+
+      await tester.pumpWidget(createTestApp(poolProvider));
+      await tester.pump();
+
+      expectNoLayoutOverflow(tester);
+      expect(find.text('tank'), findsOneWidget);
+      expect(find.text('Mirror (2 drives)'), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.checkmark), findsNWidgets(2));
+      expect(find.textContaining('needs attention'), findsNothing);
+    });
+
+    testWidgets('flags the specific offline disk in a degraded pool', (
+      WidgetTester tester,
+    ) async {
+      useCompactSurface(tester);
+      final poolProvider = _FakePoolProvider(unifiedServerService, [
+        Pool.fromJson({
+          'name': 'backup',
+          'status': 'DEGRADED',
+          'healthy': false,
+          'allocated': 3100,
+          'free': 4900,
+          'topology': {
+            'data': [
+              {
+                'type': 'RAIDZ1',
+                'children': [
+                  {'disk': 'ada0', 'status': 'ONLINE'},
+                  {'disk': 'ada1', 'status': 'ONLINE'},
+                  {'disk': 'ada2', 'status': 'ONLINE'},
+                  {'disk': 'ada3', 'status': 'OFFLINE'},
+                ],
+              },
+            ],
+          },
+        }),
+      ]);
+      addTearDown(poolProvider.dispose);
+
+      await tester.pumpWidget(createTestApp(poolProvider));
+      await tester.pump();
+
+      expectNoLayoutOverflow(tester);
+      expect(find.text('ada3 needs attention'), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.checkmark), findsNWidgets(3));
+      expect(find.byIcon(CupertinoIcons.xmark), findsOneWidget);
+    });
+
+    testWidgets('does not overflow with a wide RAID-Z2 vdev at iPhone width', (
+      WidgetTester tester,
+    ) async {
+      useCompactSurface(tester);
+      final poolProvider = _FakePoolProvider(unifiedServerService, [
+        Pool.fromJson({
+          'name': 'archive',
+          'status': 'ONLINE',
+          'healthy': true,
+          'allocated': 0,
+          'free': 0,
+          'topology': {
+            'data': [
+              {
+                'type': 'RAIDZ2',
+                'children': [
+                  for (var i = 0; i < 10; i++)
+                    {'disk': 'ada$i', 'status': 'ONLINE'},
+                ],
+              },
+            ],
+          },
+        }),
+      ]);
+      addTearDown(poolProvider.dispose);
+
+      await tester.pumpWidget(createTestApp(poolProvider));
+      await tester.pump();
+
+      expectNoLayoutOverflow(tester);
+      expect(find.byIcon(CupertinoIcons.checkmark), findsNWidgets(10));
+    });
+  });
 }
 
 /// A [PoolProvider] whose [isLoading] is pinned to `true`, so a widget test
@@ -429,4 +497,19 @@ class _AlwaysLoadingPoolProvider extends PoolProvider {
 
   @override
   bool get isLoading => true;
+}
+
+/// A [PoolProvider] whose [pools] is seeded directly, bypassing the network
+/// and credential flow so a widget test can render `ServerPoolsScreen` with
+/// realistic data without a live API client.
+class _FakePoolProvider extends PoolProvider {
+  _FakePoolProvider(super.service, this._seedPools);
+
+  final List<Pool> _seedPools;
+
+  @override
+  List<Pool> get pools => _seedPools;
+
+  @override
+  bool get isLoading => false;
 }

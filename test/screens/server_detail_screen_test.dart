@@ -1,10 +1,13 @@
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
@@ -105,12 +108,12 @@ void main() {
       useCompactSurface(tester);
 
       final poolProvider = _FakePoolProvider(unifiedServerService, [
-        {
+        Pool.fromJson({
           'name': 'a-very-long-storage-pool-name-that-stresses-the-card',
           'status': 'ONLINE',
           'healthy': true,
           'topology': <String, dynamic>{},
-        },
+        }),
       ]);
       addTearDown(poolProvider.dispose);
 
@@ -313,6 +316,67 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(systemStatsProvider.unsubscribeCallCount, 0);
   });
+
+  // A phone-width but very tall surface: same 390pt width as
+  // kCompactSurface (so the compact layout and its overflow behavior are
+  // still what's under test), but tall enough that every dashboard section
+  // - alert banner, System Stats, Pools, Apps, Quick Actions - fits without
+  // scrolling. Simpler and less brittle than driving the ListView's scroll
+  // position to bring the last section into view.
+  const tallCompactSurface = TestSurface(
+    name: 'iPhone-width, tall (390x2200)',
+    size: Size(390, 2200),
+    devicePixelRatio: 3.0,
+  );
+
+  testWidgets('shows an alert banner and a Health quick-action badge when '
+      'there are active alerts', (WidgetTester tester) async {
+    useSurface(tester, tallCompactSurface);
+
+    final healthProvider = _FakeHealthProvider(unifiedServerService, [
+      const Alert(
+        id: '1',
+        level: AlertLevel.critical,
+        message: 'Pool "tank" is degraded',
+      ),
+    ]);
+    addTearDown(healthProvider.dispose);
+
+    await tester.pumpWidget(
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
+        healthProvider: healthProvider,
+        child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('1 active'));
+
+    expectNoLayoutOverflow(tester);
+    expect(find.text('1 active alert'), findsOneWidget);
+    expect(find.textContaining('Pool "tank" is degraded'), findsWidgets);
+    expect(find.text('1 active'), findsOneWidget);
+  });
+
+  testWidgets('hides the alert banner and shows "All clear" when there are '
+      'no active alerts', (WidgetTester tester) async {
+    useSurface(tester, tallCompactSurface);
+
+    await tester.pumpWidget(
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
+        child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('All clear'));
+
+    expectNoLayoutOverflow(tester);
+    expect(find.textContaining('active alert'), findsNothing);
+    expect(find.text('All clear'), findsOneWidget);
+  });
 }
 
 /// A [SystemStatsProvider] that records how many times
@@ -328,6 +392,25 @@ class _RecordingSystemStatsProvider extends SystemStatsProvider {
     unsubscribeCallCount++;
     await super.unsubscribeFromStats();
   }
+}
+
+/// A [HealthProvider] whose [alerts] is seeded directly, bypassing the
+/// network and credential flow so a widget test can render the dashboard's
+/// alert banner and quick-action badge without a live API client.
+class _FakeHealthProvider extends HealthProvider {
+  _FakeHealthProvider(super.service, this._seedAlerts);
+
+  final List<Alert> _seedAlerts;
+
+  @override
+  List<Alert> get alerts => _seedAlerts;
+
+  @override
+  List<Alert> get activeAlerts =>
+      _seedAlerts.where((alert) => !alert.dismissed).toList();
+
+  @override
+  bool get isLoading => false;
 }
 
 /// An [AppProvider] whose [apps] and [favoriteApps] are seeded directly,
@@ -365,10 +448,10 @@ class _FakeAppProvider extends AppProvider {
 class _FakePoolProvider extends PoolProvider {
   _FakePoolProvider(super.service, this._seedPools);
 
-  final List<Map<String, dynamic>> _seedPools;
+  final List<Pool> _seedPools;
 
   @override
-  List<Map<String, dynamic>> get pools => _seedPools;
+  List<Pool> get pools => _seedPools;
 
   @override
   bool get isLoading => false;

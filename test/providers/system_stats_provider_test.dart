@@ -195,6 +195,52 @@ void main() {
         isTrue,
       );
     });
+
+    test('clears history left behind by a stream that already ended on its '
+        'own', () async {
+      // Regression coverage: if the stream completes on its own (server
+      // disconnect) before the caller switches servers, _isSubscribed is
+      // already false, so unsubscribeFromStats()'s own early-return guard
+      // would otherwise skip clearing history entirely.
+      await provider.setApiClient(testServer);
+      await provider.subscribeToStats();
+      fakeClient.emitSystemStats(_sampleStats(cpuUsage: 80));
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.cpuHistory, isNotEmpty);
+
+      await fakeClient.dispose();
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.isSubscribed, isFalse);
+
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        FakeApiClient(),
+      );
+
+      var notified = false;
+      provider.addListener(() => notified = true);
+
+      await provider.setApiClient(secondServer);
+
+      expect(provider.cpuHistory, isEmpty);
+      expect(provider.memoryHistory, isEmpty);
+      expect(provider.currentStats, isNull);
+      expect(
+        notified,
+        isTrue,
+        reason: 'the UI must be told the stale stats were cleared',
+      );
+    });
   });
 
   group('SystemStatsProvider - subscribeToStats', () {
@@ -401,6 +447,40 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  group('SystemStatsProvider - history', () {
+    test('starts empty', () {
+      expect(provider.cpuHistory, isEmpty);
+      expect(provider.memoryHistory, isEmpty);
+    });
+
+    test('records samples in order, oldest first', () {
+      provider.debugRecordHistorySample(cpu: 10, memory: 20);
+      provider.debugRecordHistorySample(cpu: 30, memory: 40);
+
+      expect(provider.cpuHistory, [10, 30]);
+      expect(provider.memoryHistory, [20, 40]);
+    });
+
+    test('caps history at 30 samples, dropping the oldest', () {
+      for (var i = 0; i < 35; i++) {
+        provider.debugRecordHistorySample(cpu: i.toDouble());
+      }
+
+      expect(provider.cpuHistory, hasLength(30));
+      // The first 5 samples (0-4) should have been dropped.
+      expect(provider.cpuHistory.first, 5);
+      expect(provider.cpuHistory.last, 34);
+    });
+
+    test('tracks CPU and memory histories independently', () {
+      provider.debugRecordHistorySample(cpu: 15);
+      provider.debugRecordHistorySample(memory: 25);
+
+      expect(provider.cpuHistory, [15]);
+      expect(provider.memoryHistory, [25]);
     });
   });
 }

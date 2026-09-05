@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
@@ -40,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final serverProvider = Provider.of<ServerProvider>(
         context,
         listen: false,
@@ -72,7 +74,19 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       // Load servers but don't auto-select for multi-server scenarios
-      serverProvider.loadServersAndAutoSelect();
+      await serverProvider.loadServersAndAutoSelect();
+
+      // One-shot fleet health snapshot so servers needing attention sort
+      // to the top - fire-and-forget, since a slow or unreachable server
+      // must never hold up rendering the list itself.
+      if (mounted) {
+        unawaited(
+          Provider.of<FleetStatusProvider>(
+            context,
+            listen: false,
+          ).refreshAll(serverProvider.servers),
+        );
+      }
     });
   }
 
@@ -105,8 +119,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       child: SafeArea(
-        child: Consumer<ServerProvider>(
-          builder: (context, serverProvider, child) {
+        child: Consumer2<ServerProvider, FleetStatusProvider>(
+          builder: (context, serverProvider, fleetStatusProvider, child) {
             if (serverProvider.isLoadingServers) {
               return const LoadingStateWidget(message: 'Loading servers...');
             }
@@ -119,83 +133,152 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
 
-            return ListView.builder(
-              itemCount: serverProvider.servers.length,
-              itemBuilder: (context, index) {
-                final server = serverProvider.servers[index];
-                return ServerListTile(
-                  server: server,
-                  onTap: () async {
-                    // Select first, same as before #85 - this is what
-                    // guarantees `serverProvider.selectedServer` already
-                    // matches by the time `ServerDetailScreen` builds, so
-                    // its own `initState` (which only selects when the
-                    // selection doesn't already match) skips calling
-                    // `selectServer` a second time. That matters here
-                    // because Cupertino's page-transition machinery can
-                    // transiently build more than one `ServerDetailScreen`
-                    // for the same push, and two concurrent `selectServer`
-                    // calls race each other.
-                    //
-                    // `_selectingServerId`, set synchronously first, stops
-                    // the authentication-stream listener above from
-                    // reacting to this same select with its own `go` (see
-                    // its comment).
-                    // A selection already in flight owns the navigation.
-                    // `selectServer` is a real round-trip, so a second tap
-                    // lands long before the first resolves; letting it
-                    // through would run two continuations that each
-                    // `push`, stacking two identical detail routes the
-                    // user has to pop twice for one tap.
-                    if (_selectingServerId != null) {
-                      return;
-                    }
-                    _selectingServerId = server.id;
-                    var pushed = false;
-                    try {
-                      await serverProvider.selectServer(server);
-                      if (context.mounted) {
-                        // push, not go: the detail screen (and its own
-                        // forward navigations) needs a stack to pop back
-                        // through, otherwise there is nothing left to
-                        // return to the server list with (ticket #85).
-                        context.push('/server/${server.id}', extra: server);
-                        pushed = true;
-                      }
-                    } finally {
-                      if (pushed) {
-                        // One-shot: only the window up to and including
-                        // this tap's own push needs guarding (see the
-                        // field's doc comment) - clearing it synchronously
-                        // right after `push` would reopen exactly the race
-                        // it exists to close, since `push` inserts the new
-                        // route before the widget tree (and therefore
-                        // `ModalRoute.isCurrent`) reflects that; deferring
-                        // the clear to a post-frame callback gives the
-                        // pushed route a frame to actually land, so the
-                        // `isCurrent` guard is reliably in place by the
-                        // time the flag stops covering the race.
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _selectingServerId = null;
-                        });
-                      } else {
-                        // No push happened - `selectServer` threw, or the
-                        // tile left the tree mid-await. Clear immediately:
-                        // there is no pushed route for the deferred clear
-                        // to wait on, and a stuck flag would silently
-                        // suppress single-server auto-navigation for this
-                        // id for as long as HomeScreen stays mounted, as
-                        // well as blocking every later tap by the guard
-                        // above.
-                        _selectingServerId = null;
-                      }
-                    }
-                  },
-                );
-              },
+            // Servers needing attention (offline, or with active alerts)
+            // sort to the top - the relative order within each group is
+            // otherwise left exactly as loaded/added.
+            final needsAttention = <NasServer>[];
+            final rest = <NasServer>[];
+            for (final server in serverProvider.servers) {
+              if (fleetStatusProvider.statusFor(server.id).needsAttention) {
+                needsAttention.add(server);
+              } else {
+                rest.add(server);
+              }
+            }
+            final sortedServers = [...needsAttention, ...rest];
+
+            return Column(
+              children: [
+                _buildFleetBanner(needsAttention),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: sortedServers.length,
+                    itemBuilder: (context, index) {
+                      final server = sortedServers[index];
+                      return ServerListTile(
+                        server: server,
+                        status: fleetStatusProvider.statusFor(server.id),
+                        onTap: () async {
+                          // Select first, same as before #85 - this is what
+                          // guarantees `serverProvider.selectedServer`
+                          // already matches by the time `ServerDetailScreen`
+                          // builds, so its own `initState` (which only
+                          // selects when the selection doesn't already
+                          // match) skips calling `selectServer` a second
+                          // time. That matters here because Cupertino's
+                          // page-transition machinery can transiently build
+                          // more than one `ServerDetailScreen` for the same
+                          // push, and two concurrent `selectServer` calls
+                          // race each other.
+                          //
+                          // `_selectingServerId`, set synchronously first,
+                          // stops the authentication-stream listener above
+                          // from reacting to this same select with its own
+                          // `go` (see its comment).
+                          // A selection already in flight owns the
+                          // navigation. `selectServer` is a real round trip,
+                          // so a second tap lands long before the first
+                          // resolves; letting it through would run two
+                          // continuations that each `push`, stacking two
+                          // identical detail routes the user has to pop
+                          // twice for one tap.
+                          if (_selectingServerId != null) {
+                            return;
+                          }
+                          _selectingServerId = server.id;
+                          var pushed = false;
+                          try {
+                            await serverProvider.selectServer(server);
+                            if (context.mounted) {
+                              // push, not go: the detail screen (and its
+                              // own forward navigations) needs a stack to
+                              // pop back through, otherwise there is
+                              // nothing left to return to the server list
+                              // with (ticket #85).
+                              context.push(
+                                '/server/${server.id}',
+                                extra: server,
+                              );
+                              pushed = true;
+                            }
+                          } finally {
+                            if (pushed) {
+                              // One-shot: only the window up to and
+                              // including this tap's own push needs
+                              // guarding (see the field's doc comment) -
+                              // clearing it synchronously right after
+                              // `push` would reopen exactly the race it
+                              // exists to close, since `push` inserts the
+                              // new route before the widget tree (and
+                              // therefore `ModalRoute.isCurrent`) reflects
+                              // that; deferring the clear to a post-frame
+                              // callback gives the pushed route a frame to
+                              // actually land, so the `isCurrent` guard is
+                              // reliably in place by the time the flag
+                              // stops covering the race.
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _selectingServerId = null;
+                              });
+                            } else {
+                              // No push happened - `selectServer` threw, or
+                              // the tile left the tree mid-await. Clear
+                              // immediately: there is no pushed route for
+                              // the deferred clear to wait on, and a stuck
+                              // flag would silently suppress single-server
+                              // auto-navigation for this id for as long as
+                              // HomeScreen stays mounted, as well as
+                              // blocking every later tap by the guard
+                              // above.
+                              _selectingServerId = null;
+                            }
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildFleetBanner(List<NasServer> needsAttention) {
+    if (needsAttention.isEmpty) return const SizedBox.shrink();
+
+    final isSingle = needsAttention.length == 1;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            CupertinoIcons.exclamationmark_triangle_fill,
+            color: CupertinoColors.systemRed,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isSingle
+                  ? '${needsAttention.first.name} needs attention'
+                  : '${needsAttention.length} servers need attention',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: CupertinoColors.systemRed,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

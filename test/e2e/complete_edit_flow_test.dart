@@ -9,6 +9,9 @@ import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/file_provider.dart';
+import 'package:truehub/providers/fleet_status_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/database.dart';
@@ -94,6 +97,15 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => JobsProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FileProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HealthProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FleetStatusProvider(unifiedServerService),
         ),
         ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
       ],
