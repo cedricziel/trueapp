@@ -227,11 +227,19 @@ void main() {
         FakeApiClient(),
       );
 
+      var notified = false;
+      provider.addListener(() => notified = true);
+
       await provider.setApiClient(secondServer);
 
       expect(provider.cpuHistory, isEmpty);
       expect(provider.memoryHistory, isEmpty);
       expect(provider.currentStats, isNull);
+      expect(
+        notified,
+        isTrue,
+        reason: 'the UI must be told the stale stats were cleared',
+      );
     });
   });
 

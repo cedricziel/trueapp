@@ -61,6 +61,7 @@ class SystemStatsProvider extends ChangeNotifier {
     _currentStats = null;
     _cpuHistory.clear();
     _memoryHistory.clear();
+    notifyListeners();
 
     try {
       // Load credentials for the server
