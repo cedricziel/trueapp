@@ -94,7 +94,8 @@ lane :bootstrap_signing_mac do
   # installer that wraps it (mac_installer_distribution). Only the former
   # needs/gets a provisioning profile.
   match(type: "appstore", platform: "macos", readonly: false, api_key: api_key)
-  match(type: "mac_installer_distribution", platform: "macos", readonly: false, api_key: api_key)
+  match(type: "mac_installer_distribution", platform: "macos", readonly: false, api_key: api_key,
+        skip_provisioning_profiles: true)
 end
 
 # ---------------------------------------------------------------------------
@@ -168,8 +169,11 @@ private_lane :build_mac do
   sync_code_signing(type: "appstore", platform: "macos", readonly: is_ci, api_key: api_key)
   # Signs the .pkg installer that wraps the .app; setup_ci's temp keychain
   # holds exactly this one installer identity, so gym finds it without
-  # needing an explicit installer_cert_name.
-  sync_code_signing(type: "mac_installer_distribution", platform: "macos", readonly: is_ci, api_key: api_key)
+  # needing an explicit installer_cert_name. This cert type has no
+  # provisioning profile, so skip_provisioning_profiles avoids sigh
+  # searching for one that will never exist.
+  sync_code_signing(type: "mac_installer_distribution", platform: "macos", readonly: is_ci, api_key: api_key,
+                     skip_provisioning_profiles: true)
 
   # update_code_signing_settings below rewrites project.pbxproj on disk.
   # Restore it afterwards so a local build/beta leaves the tracked signing
