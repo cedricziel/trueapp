@@ -1003,7 +1003,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> getAlerts() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('alert.list');
+      final result = await _request('alert.list');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -1014,7 +1014,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> getServices() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('service.query');
+      final result = await _request('service.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);

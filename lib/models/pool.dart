@@ -146,8 +146,8 @@ class Pool extends Equatable {
       name: json['name'] as String? ?? 'Unknown',
       status: json['status'] as String? ?? 'Unknown',
       healthy: json['healthy'] as bool? ?? false,
-      allocatedBytes: json['allocated'] as int? ?? 0,
-      freeBytes: json['free'] as int? ?? 0,
+      allocatedBytes: (json['allocated'] as num?)?.toInt() ?? 0,
+      freeBytes: (json['free'] as num?)?.toInt() ?? 0,
       dataVdevs: dataJson == null
           ? const []
           : dataJson

@@ -111,4 +111,27 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('shows a dash instead of 0% for an unreported metric', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      await wrap(
+        ServerListTile(
+          server: server,
+          onTap: () {},
+          status: const FleetServerStatus(
+            serverId: 'x',
+            connectivity: FleetServerConnectivity.online,
+            cpuUsage: null,
+            storageUsage: 50,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('–'), findsOneWidget);
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.text('0%'), findsNothing);
+  });
 }

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/fleet_server_status.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -19,6 +22,13 @@ class FleetStatusProvider extends ChangeNotifier {
 
   final UnifiedServerService _serverService;
   final Map<String, FleetServerStatus> _statuses = {};
+
+  /// Bumped each time a server's refresh starts, so a `_refreshOne` call
+  /// superseded by a newer one for the same server (an overlapping
+  /// `refreshAll`, or a manual refresh firing mid-flight) can tell its own
+  /// result is stale and skip writing it - otherwise the older call can
+  /// finish last and overwrite the newer, correct status.
+  final Map<String, int> _refreshGenerations = {};
 
   FleetStatusProvider(this._serverService);
 
@@ -44,6 +54,10 @@ class FleetStatusProvider extends ChangeNotifier {
   }
 
   Future<void> _refreshOne(NasServer server, Duration timeout) async {
+    final generation = (_refreshGenerations[server.id] ?? 0) + 1;
+    _refreshGenerations[server.id] = generation;
+    bool isCurrent() => _refreshGenerations[server.id] == generation;
+
     String? checkedOutServerId;
     try {
       final serverWithCredentials = await ServerProvider.loadServerCredentials(
@@ -51,21 +65,41 @@ class FleetStatusProvider extends ChangeNotifier {
         _serverService,
       );
       if (serverWithCredentials == null) {
-        _statuses[server.id] = FleetServerStatus(
-          serverId: server.id,
-          connectivity: FleetServerConnectivity.offline,
-        );
+        if (isCurrent()) {
+          _statuses[server.id] = FleetServerStatus(
+            serverId: server.id,
+            connectivity: FleetServerConnectivity.offline,
+          );
+        }
         return;
       }
 
-      final client = await ApiClientManager.getClient(
-        serverWithCredentials,
-      ).timeout(timeout);
-      if (client == null) {
-        _statuses[server.id] = FleetServerStatus(
-          serverId: server.id,
-          connectivity: FleetServerConnectivity.offline,
+      final clientFuture = ApiClientManager.getClient(serverWithCredentials);
+      final ApiClientInterface? client;
+      try {
+        client = await clientFuture.timeout(timeout);
+      } on TimeoutException {
+        // timeout() doesn't cancel the underlying call - if it checks out a
+        // client after we've already given up, release it here so the
+        // reference count doesn't leak a live connection.
+        unawaited(
+          clientFuture
+              .then((lateClient) async {
+                if (lateClient != null) {
+                  await ApiClientManager.releaseClient(server.id);
+                }
+              })
+              .catchError((_) {}),
         );
+        rethrow;
+      }
+      if (client == null) {
+        if (isCurrent()) {
+          _statuses[server.id] = FleetServerStatus(
+            serverId: server.id,
+            connectivity: FleetServerConnectivity.offline,
+          );
+        }
         return;
       }
       checkedOutServerId = server.id;
@@ -91,18 +125,22 @@ class FleetStatusProvider extends ChangeNotifier {
         }
       }
 
-      _statuses[server.id] = FleetServerStatus(
-        serverId: server.id,
-        connectivity: FleetServerConnectivity.online,
-        cpuUsage: health.cpuUsage,
-        storageUsage: health.diskUsage,
-        activeAlertCount: activeAlertCount,
-      );
+      if (isCurrent()) {
+        _statuses[server.id] = FleetServerStatus(
+          serverId: server.id,
+          connectivity: FleetServerConnectivity.online,
+          cpuUsage: health.cpuUsage,
+          storageUsage: health.diskUsage,
+          activeAlertCount: activeAlertCount,
+        );
+      }
     } catch (e) {
-      _statuses[server.id] = FleetServerStatus(
-        serverId: server.id,
-        connectivity: FleetServerConnectivity.offline,
-      );
+      if (isCurrent()) {
+        _statuses[server.id] = FleetServerStatus(
+          serverId: server.id,
+          connectivity: FleetServerConnectivity.offline,
+        );
+      }
       if (kDebugMode) {
         print('FleetStatusProvider: Failed to refresh ${server.id}: $e');
       }

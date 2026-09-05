@@ -196,8 +196,13 @@ class ServerListTile extends StatelessWidget {
   }
 
   Widget _buildMiniMetric(String label, double? value) {
-    final percent = (value ?? 0).clamp(0, 100).toDouble();
-    final color = percent > 85
+    // `value == null` means the server never reported this metric - distinct
+    // from a genuine 0% reading, so it renders as "unavailable" (an empty
+    // bar and a dash) rather than a misleadingly healthy-looking 0% bar.
+    final percent = value?.clamp(0, 100).toDouble();
+    final color = percent == null
+        ? CupertinoColors.systemGrey4
+        : percent > 85
         ? CupertinoColors.systemRed
         : percent > 65
         ? CupertinoColors.systemOrange
@@ -221,7 +226,7 @@ class ServerListTile extends StatelessWidget {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: percent / 100,
+              widthFactor: (percent ?? 0) / 100,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
@@ -233,7 +238,7 @@ class ServerListTile extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(
-          '${percent.toStringAsFixed(0)}%',
+          percent == null ? '–' : '${percent.toStringAsFixed(0)}%',
           style: const TextStyle(
             fontSize: 10,
             color: CupertinoColors.systemGrey,

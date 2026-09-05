@@ -19,6 +19,12 @@ class HealthProvider extends ChangeNotifier {
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
+  /// Bumped by every [setApiClient] call, so a client lookup or
+  /// [loadHealth] call for a server the caller has already switched away
+  /// from can tell its own result is stale and discard it instead of
+  /// overwriting the newer selection's client, alerts, or services.
+  int _generation = 0;
+
   HealthProvider(this._serverService);
 
   List<Alert> get alerts => _alerts;
@@ -35,6 +41,8 @@ class HealthProvider extends ChangeNotifier {
   String? get error => _connectionError?.shortMessage;
 
   Future<void> setApiClient(NasServer server) async {
+    final generation = ++_generation;
+
     // Release previous client if any
     if (_currentServerId != null) {
       await ApiClientManager.releaseClient(_currentServerId!);
@@ -54,7 +62,17 @@ class HealthProvider extends ChangeNotifier {
       );
 
       if (serverWithCredentials != null) {
-        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        final client = await ApiClientManager.getClient(serverWithCredentials);
+        if (generation != _generation) {
+          // A later setApiClient() call already superseded this one while
+          // we awaited - release what we just checked out rather than
+          // installing a client for a server the caller has moved on from.
+          if (client != null) {
+            await ApiClientManager.releaseClient(server.id);
+          }
+          return;
+        }
+        _apiClient = client;
       } else {
         if (kDebugMode) {
           print(
@@ -71,27 +89,33 @@ class HealthProvider extends ChangeNotifier {
   }
 
   Future<void> loadHealth() async {
-    if (_apiClient == null) return;
+    final generation = _generation;
+    final client = _apiClient;
+    if (client == null) return;
 
     _isLoading = true;
     _connectionError = null;
     notifyListeners();
 
     try {
-      final rawAlerts = await _apiClient!.getAlerts();
-      final rawServices = await _apiClient!.getServices();
-      final serverHealth = await _apiClient!.getServerHealth();
+      final rawAlerts = await client.getAlerts();
+      final rawServices = await client.getServices();
+      final serverHealth = await client.getServerHealth();
+
+      if (generation != _generation) return;
 
       _alerts = rawAlerts.map(Alert.fromJson).toList();
       _services = rawServices.map(ServiceStatus.fromJson).toList();
       _serverHealth = serverHealth;
       _connectionError = null;
     } on ConnectionException catch (e) {
-      _connectionError = e.error;
+      if (generation == _generation) _connectionError = e.error;
     } catch (e) {
-      _connectionError = ConnectionError.unknown(details: e.toString());
+      if (generation == _generation) {
+        _connectionError = ConnectionError.unknown(details: e.toString());
+      }
     } finally {
-      _isLoading = false;
+      if (generation == _generation) _isLoading = false;
       notifyListeners();
     }
   }

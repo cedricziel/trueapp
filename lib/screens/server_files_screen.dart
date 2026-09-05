@@ -76,6 +76,15 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
     );
   }
 
+  /// Navigates to [path] and clears the search field to match -
+  /// `FileProvider.navigateToPath` resets its own `searchQuery`, and
+  /// leaving the text field showing a stale query after the file list has
+  /// already gone unfiltered would be misleading.
+  void _navigateToPath(FileProvider provider, String path) {
+    _searchController.clear();
+    provider.navigateToPath(path);
+  }
+
   Widget _buildBreadcrumbs(FileProvider provider) {
     final segments = provider.currentPath
         .split('/')
@@ -92,7 +101,7 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
             'Home',
             '/',
             isCurrent: segments.isEmpty,
-            onTap: () => provider.navigateToPath('/'),
+            onTap: () => _navigateToPath(provider, '/'),
           ),
           for (var i = 0; i < segments.length; i++) ...[
             const Padding(
@@ -107,7 +116,8 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
               segments[i],
               '/${segments.sublist(0, i + 1).join('/')}',
               isCurrent: i == segments.length - 1,
-              onTap: () => provider.navigateToPath(
+              onTap: () => _navigateToPath(
+                provider,
                 '/${segments.sublist(0, i + 1).join('/')}',
               ),
             ),
@@ -193,7 +203,7 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       onPressed: file.isDirectory
-          ? () => provider.navigateToPath(file.path)
+          ? () => _navigateToPath(provider, file.path)
           : null,
       child: Row(
         children: [

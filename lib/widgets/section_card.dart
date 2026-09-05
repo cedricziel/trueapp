@@ -23,19 +23,36 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `Container`/`BoxDecoration`/`Icon` don't resolve a CupertinoDynamicColor
+    // on their own the way native Cupertino widgets do - left unresolved, it
+    // always paints its light-mode variant, so cards would stay light-colored
+    // in dark mode.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.systemGrey6,
+          context,
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(
+            CupertinoColors.separator,
+            context,
+          ),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: iconColor, size: 20),
+              Icon(
+                icon,
+                color: CupertinoDynamicColor.resolve(iconColor, context),
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -69,6 +86,10 @@ class InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedValueColor = valueColor == null
+        ? null
+        : CupertinoDynamicColor.resolve(valueColor!, context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -78,8 +99,11 @@ class InfoRow extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: const TextStyle(
-                color: CupertinoColors.systemGrey,
+              style: TextStyle(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.systemGrey,
+                  context,
+                ),
                 fontSize: 14,
               ),
             ),
@@ -90,7 +114,7 @@ class InfoRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: valueColor,
+                color: resolvedValueColor,
               ),
             ),
           ),
@@ -116,17 +140,19 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedColor = CupertinoDynamicColor.resolve(color, context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: resolvedColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
+            Icon(icon, size: 14, color: resolvedColor),
             const SizedBox(width: 4),
           ],
           Text(
@@ -134,7 +160,7 @@ class StatusPill extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: resolvedColor,
             ),
           ),
         ],

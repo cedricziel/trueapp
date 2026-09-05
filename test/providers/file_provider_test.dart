@@ -2,11 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/providers/file_provider.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
+  late UnifiedServerService service;
   late FileProvider provider;
 
   FileItem file(String name, {bool isDirectory = false}) {
@@ -24,7 +26,7 @@ void main() {
 
   setUp(() async {
     database = createTestDatabase();
-    final service = await TestProviders.createMockUnifiedServerService(
+    service = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
     provider = FileProvider(service);
@@ -33,6 +35,7 @@ void main() {
   tearDown(() async {
     await TestProviders.disposeTestStack(
       providers: [provider],
+      service: service,
       database: database,
     );
   });
