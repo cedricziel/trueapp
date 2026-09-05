@@ -15,6 +15,12 @@ OUTPUT_DIR      = "build"
 IPA_NAME        = "TrueNASManager.ipa"
 MATCH_PROFILE   = "match AppStore #{APP_IDENTIFIER}"
 
+MAC_WORKSPACE   = "macos/Runner.xcworkspace"
+MAC_XCODEPROJ   = "macos/Runner.xcodeproj"
+MAC_SCHEME      = "Runner"
+MAC_OUTPUT_DIR  = "build/macos"
+PKG_NAME        = "TrueNASManager"
+
 # Build number = number of commits reachable from HEAD. Reproducible from git
 # state alone — never committed back to pubspec.yaml.
 def commit_count_build_number
@@ -63,6 +69,32 @@ desc "Bootstrap signing — creates the App Store profile in the match repo. Run
 lane :bootstrap_signing do
   api_key = load_app_store_connect_api_key
   match(type: "appstore", readonly: false, api_key: api_key)
+end
+
+desc "Build and push a new beta build to TestFlight (macOS)"
+lane :beta_mac do |options|
+  ensure_git_status_clean unless options[:allow_dirty]
+  api_key = build_mac
+
+  upload_to_testflight(
+    api_key: api_key,
+    app_identifier: APP_IDENTIFIER,
+    app_platform: "osx",
+    pkg: File.join(MAC_OUTPUT_DIR, "#{PKG_NAME}.pkg"),
+    skip_waiting_for_build_processing: true,
+    changelog: options[:changelog] || "Beta build #{Time.now.strftime('%Y-%m-%d %H:%M')}"
+  )
+end
+
+desc "Bootstrap signing for macOS — creates the App Store app + installer certs/profile in the match repo. Run once."
+lane :bootstrap_signing_mac do
+  api_key = load_app_store_connect_api_key
+  # Two certs are needed for a Mac App Store submission: one to sign the .app
+  # (appstore, same cert type as iOS) and a separate one to sign the .pkg
+  # installer that wraps it (mac_installer_distribution). Only the former
+  # needs/gets a provisioning profile.
+  match(type: "appstore", platform: "macos", readonly: false, api_key: api_key)
+  match(type: "mac_installer_distribution", platform: "macos", readonly: false, api_key: api_key)
 end
 
 # ---------------------------------------------------------------------------
@@ -120,6 +152,67 @@ private_lane :build_ios do
     include_symbols: true,
     include_bitcode: false,
     destination: "generic/platform=iOS",
+    export_options: {
+      provisioningProfiles: { APP_IDENTIFIER => MATCH_PROFILE }
+    }
+  )
+
+  api_key
+ensure
+  File.binwrite(pbxproj, pbxproj_original) if pbxproj_original
+end
+
+desc "match + Flutter build + xcodebuild archive for macOS. Returns the ASC API key."
+private_lane :build_mac do
+  api_key = load_app_store_connect_api_key
+  sync_code_signing(type: "appstore", platform: "macos", readonly: is_ci, api_key: api_key)
+  # Signs the .pkg installer that wraps the .app; setup_ci's temp keychain
+  # holds exactly this one installer identity, so gym finds it without
+  # needing an explicit installer_cert_name.
+  sync_code_signing(type: "mac_installer_distribution", platform: "macos", readonly: is_ci, api_key: api_key)
+
+  # update_code_signing_settings below rewrites project.pbxproj on disk.
+  # Restore it afterwards so a local build/beta leaves the tracked signing
+  # settings (automatic, for day-to-day Xcode use) untouched.
+  pbxproj = File.expand_path("../#{MAC_XCODEPROJ}/project.pbxproj", __dir__)
+  pbxproj_original = File.binread(pbxproj)
+
+  # Flutter's Runner target uses automatic signing, which needs an
+  # interactive Apple ID session. Switch to manual signing with the profile
+  # match just installed so xcodebuild can sign headlessly.
+  update_code_signing_settings(
+    use_automatic_signing: false,
+    path: MAC_XCODEPROJ,
+    team_id: TEAM_ID,
+    code_sign_identity: "Apple Distribution",
+    profile_name: ENV["sigh_#{APP_IDENTIFIER}_appstore_profile-name"] || MATCH_PROFILE,
+    targets: [MAC_SCHEME]
+  )
+
+  # Compile Dart and stage assets; signing happens in build_mac_app below.
+  # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
+  # against the system gems, not this bundle (where cocoapods isn't a dep).
+  dart_defines = telemetry_dart_defines
+
+  Dir.chdir("..") do
+    Bundler.with_unbundled_env do
+      sh(
+        "flutter", "build", "macos", "--release",
+        "--build-name=#{marketing_version}",
+        "--build-number=#{commit_count_build_number}",
+        *dart_defines
+      )
+    end
+  end
+
+  build_mac_app(
+    workspace: MAC_WORKSPACE,
+    scheme: MAC_SCHEME,
+    configuration: "Release",
+    export_method: "app-store",
+    output_directory: MAC_OUTPUT_DIR,
+    output_name: PKG_NAME,
+    include_symbols: true,
     export_options: {
       provisioningProfiles: { APP_IDENTIFIER => MATCH_PROFILE }
     }
