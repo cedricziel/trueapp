@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/cedricziel/trueapp/compare/v0.6.0...v0.6.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **ci:** make the macOS TestFlight lane sign and package correctly ([#163](https://github.com/cedricziel/trueapp/issues/163)) ([47ec764](https://github.com/cedricziel/trueapp/commit/47ec7642697c6d6121f53a99fc21e9b764f630c8))
+
 ## [0.6.0](https://github.com/cedricziel/trueapp/compare/v0.5.0...v0.6.0) (2026-09-05)
 
 
