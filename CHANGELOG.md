@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/cedricziel/trueapp/compare/v0.4.3...v0.4.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* load apps reliably over slow links and surface the real error instead of "Connection error" ([#155](https://github.com/cedricziel/trueapp/issues/155)) ([b7c97bb](https://github.com/cedricziel/trueapp/commit/b7c97bb20a84091484c8d7151c717afcb43ae3c2))
+
 ## [0.4.3](https://github.com/cedricziel/trueapp/compare/v0.4.2...v0.4.3) (2026-09-05)
 
 
