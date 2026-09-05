@@ -102,7 +102,7 @@ jobs:
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Build and upload to TestFlight
+      - name: Build and upload iOS to TestFlight
         env:
           ASC_KEY_ID:                            ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID:                         ${{ secrets.ASC_ISSUER_ID }}
@@ -131,5 +131,30 @@ jobs:
         with:
           name: TrueNASManager-${{ needs.release-please.outputs.tag_name }}
           path: build/*.ipa
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Build and upload macOS to TestFlight
+        env:
+          ASC_KEY_ID:                            ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:                         ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT:                       ${{ secrets.ASC_KEY_CONTENT }}
+          MATCH_GIT_URL:                         ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD:                        ${{ secrets.MATCH_PASSWORD }}
+          MATCH_KEYCHAIN_PASSWORD:               ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          FASTLANE_HIDE_CHANGELOG:               "true"
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:  "120"
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES:  "5"
+        run: |
+          bundle exec fastlane beta_mac \
+            allow_dirty:true \
+            changelog:"Release ${{ needs.release-please.outputs.tag_name }}"
+
+      - name: Upload macOS pkg artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrueNASManager-macOS-${{ needs.release-please.outputs.tag_name }}
+          path: build/macos/*.pkg
           if-no-files-found: ignore
           retention-days: 30
