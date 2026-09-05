@@ -148,8 +148,16 @@ def telemetry_dart_defines
   endpoint = env.call("OTLP_INGEST_URL")
   api_key  = env.call("OTLP_INGEST_KEY")
 
-  return [] if endpoint.nil? || api_key.nil?
+  if endpoint.nil? || api_key.nil?
+    UI.important(
+      "Telemetry disabled: OTLP_INGEST_URL and/or OTLP_INGEST_KEY not set " \
+      "(url: #{endpoint.nil? ? 'missing' : 'set'}, key: #{api_key.nil? ? 'missing' : 'set'})"
+    )
+    return []
+  end
 
+  # Log the endpoint, never the key.
+  UI.message("Telemetry enabled: exporting OTLP to #{endpoint}")
   headers = "authorization=Bearer #{api_key},x-tenant-id=homelab,x-dataset-id=apps"
 
   [

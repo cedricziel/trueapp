@@ -110,6 +110,13 @@ jobs:
           MATCH_GIT_URL:                         ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD:                        ${{ secrets.MATCH_PASSWORD }}
           MATCH_KEYCHAIN_PASSWORD:               ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          # Telemetry. fastlane's telemetry_dart_defines turns these into the
+          # flutter_otel --dart-define flags; either one missing or blank
+          # leaves telemetry disabled for the build (never fails it). Without
+          # this block the 0.4.2 TestFlight build shipped with telemetry off
+          # because the secrets never reached the step's environment.
+          OTLP_INGEST_URL:                       ${{ secrets.OTLP_INGEST_URL }}
+          OTLP_INGEST_KEY:                       ${{ secrets.OTLP_INGEST_KEY }}
           FASTLANE_HIDE_CHANGELOG:               "true"
           FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:  "120"
           FASTLANE_XCODEBUILD_SETTINGS_RETRIES:  "5"
