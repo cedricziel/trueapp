@@ -496,13 +496,17 @@ void main() {
       // freshly reconnected client rather than surfacing that as a
       // failure to the caller.
       final pending = Completer<Object?>();
-      server.onMethod('app.available', (_) => pending.future);
+      final requestStarted = Completer<void>();
+      server.onMethod('app.available', (_) {
+        requestStarted.complete();
+        return pending.future;
+      });
 
       final future = client.getAvailableApps();
 
-      // Give the request time to reach the server and register as
-      // pending before yanking the socket out from under it.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Wait for the server to actually receive the request (rather than a
+      // fixed delay) before yanking the socket out from under it.
+      await requestStarted.future;
 
       // The retry lands on a new connection, so arm it with a real
       // response before dropping the one the first attempt is stuck on.
