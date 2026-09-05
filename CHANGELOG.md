@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/cedricziel/trueapp/compare/v0.4.3...v0.5.0) (2026-09-05)
+
+
+### Features
+
+* evolve dashboard, pools, files, health, and home screens ([#156](https://github.com/cedricziel/trueapp/issues/156)) ([1d5a70c](https://github.com/cedricziel/trueapp/commit/1d5a70c1156a36558d371bc5992d7b61eeffb775))
+
+
+### Bug Fixes
+
+* load apps reliably over slow links and surface the real error instead of "Connection error" ([#155](https://github.com/cedricziel/trueapp/issues/155)) ([b7c97bb](https://github.com/cedricziel/trueapp/commit/b7c97bb20a84091484c8d7151c717afcb43ae3c2))
+
 ## [0.4.3](https://github.com/cedricziel/trueapp/compare/v0.4.2...v0.4.3) (2026-09-05)
 
 
