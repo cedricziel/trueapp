@@ -199,12 +199,13 @@ private_lane :build_mac do
   # Flutter's Runner target uses automatic signing, which needs an
   # interactive Apple ID session. Switch to manual signing with the profile
   # match just installed so xcodebuild can sign headlessly.
+  mac_profile = ENV["sigh_#{APP_IDENTIFIER}_appstore_macos_profile-name"] || MAC_MATCH_PROFILE
   update_code_signing_settings(
     use_automatic_signing: false,
     path: MAC_XCODEPROJ,
     team_id: TEAM_ID,
     code_sign_identity: "Apple Distribution",
-    profile_name: ENV["sigh_#{APP_IDENTIFIER}_appstore_macos_profile-name"] || MAC_MATCH_PROFILE,
+    profile_name: mac_profile,
     targets: [MAC_SCHEME]
   )
 
@@ -233,7 +234,7 @@ private_lane :build_mac do
     output_name: PKG_NAME,
     include_symbols: true,
     export_options: {
-      provisioningProfiles: { APP_IDENTIFIER => MAC_MATCH_PROFILE }
+      provisioningProfiles: { APP_IDENTIFIER => mac_profile }
     }
   )
 
