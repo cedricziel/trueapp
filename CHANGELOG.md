@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/cedricziel/trueapp/compare/v0.4.2...v0.4.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **release:** pass OTLP secrets to the TestFlight build so telemetry is enabled ([#152](https://github.com/cedricziel/trueapp/issues/152)) ([1d93513](https://github.com/cedricziel/trueapp/commit/1d93513a05308655addedad7dc67485da2770035))
+
 ## [0.4.2](https://github.com/cedricziel/trueapp/compare/v0.4.1...v0.4.2) (2026-08-31)
 
 
