@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/widgets/section_card.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final NasServer server;
@@ -201,65 +202,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (user.isAdministrator)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemOrange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.star_fill,
-                        size: 14,
-                        color: CupertinoColors.systemOrange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Administrator',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.systemOrange,
-                        ),
-                      ),
-                    ],
-                  ),
+              if (user.isAdministrator) ...[
+                const StatusPill(
+                  label: 'Administrator',
+                  color: CupertinoColors.systemOrange,
+                  icon: CupertinoIcons.star_fill,
                 ),
+                const SizedBox(width: 8),
+              ],
               if (user.hasTwoFactor)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.lock_shield_fill,
-                        size: 14,
-                        color: CupertinoColors.systemGreen,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '2FA Enabled',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: CupertinoColors.systemGreen,
-                        ),
-                      ),
-                    ],
-                  ),
+                const StatusPill(
+                  label: '2FA Enabled',
+                  color: CupertinoColors.systemGreen,
+                  icon: CupertinoIcons.lock_shield_fill,
                 ),
             ],
           ),
@@ -272,18 +227,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (provider.currentUser == null) return const SizedBox.shrink();
 
     final user = provider.currentUser!;
-    return _buildSection(
+    return SectionCard(
       title: 'Account Details',
       icon: CupertinoIcons.person_circle,
       children: [
-        _buildInfoRow('Username', user.username),
-        if (user.fullName.isNotEmpty) _buildInfoRow('Full Name', user.fullName),
-        _buildInfoRow('User ID', user.uid.toString()),
-        _buildInfoRow('Group ID', user.gid.toString()),
-        _buildInfoRow('Home Directory', user.homeDirectory),
-        _buildInfoRow('Shell', user.shell),
-        _buildInfoRow('Account Source', user.sourceDisplayName),
-        _buildInfoRow('Local Account', user.isLocal ? 'Yes' : 'No'),
+        InfoRow('Username', user.username),
+        if (user.fullName.isNotEmpty) InfoRow('Full Name', user.fullName),
+        InfoRow('User ID', user.uid.toString()),
+        InfoRow('Group ID', user.gid.toString()),
+        InfoRow('Home Directory', user.homeDirectory),
+        InfoRow('Shell', user.shell),
+        InfoRow('Account Source', user.sourceDisplayName),
+        InfoRow('Local Account', user.isLocal ? 'Yes' : 'No'),
       ],
     );
   }
@@ -292,18 +247,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (provider.currentUser == null) return const SizedBox.shrink();
 
     final user = provider.currentUser!;
-    return _buildSection(
+    return SectionCard(
       title: 'Security & Permissions',
       icon: CupertinoIcons.lock_shield,
       children: [
-        _buildInfoRow(
+        InfoRow(
           'Administrator',
           user.isAdministrator ? 'Yes' : 'No',
           valueColor: user.isAdministrator
               ? CupertinoColors.systemOrange
               : CupertinoColors.systemGrey,
         ),
-        _buildInfoRow(
+        InfoRow(
           'Two-Factor Authentication',
           user.hasTwoFactor ? 'Enabled' : 'Disabled',
           valueColor: user.hasTwoFactor
@@ -343,89 +298,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildSystemInfo(ServerProvider provider) {
-    return _buildSection(
+    return SectionCard(
       title: 'Server Information',
       icon: CupertinoIcons.cube_box,
       children: [
-        _buildInfoRow('Server Name', widget.server.name),
-        _buildInfoRow('Host', widget.server.host),
-        _buildInfoRow('Port', widget.server.port.toString()),
-        _buildInfoRow('Protocol', widget.server.useHttps ? 'HTTPS' : 'HTTP'),
+        InfoRow('Server Name', widget.server.name),
+        InfoRow('Host', widget.server.host),
+        InfoRow('Port', widget.server.port.toString()),
+        InfoRow('Protocol', widget.server.useHttps ? 'HTTPS' : 'HTTP'),
         if (widget.server.lastConnected != null)
-          _buildInfoRow(
+          InfoRow(
             'Last Connected',
             _formatLastConnected(widget.server.lastConnected!),
           ),
       ],
-    );
-  }
-
-  Widget _buildSection({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: CupertinoColors.activeBlue, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: CupertinoColors.systemGrey,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: valueColor,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -4,7 +4,7 @@ import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/widgets/memory_segmented_bar.dart';
 import 'package:truehub/widgets/responsive_row.dart';
-import 'package:truehub/widgets/usage_bar.dart';
+import 'package:truehub/widgets/trend_sparkline.dart';
 
 class SystemStatsWidget extends StatelessWidget {
   const SystemStatsWidget({super.key});
@@ -101,10 +101,12 @@ class SystemStatsWidget extends StatelessWidget {
           children: [
             _CpuStatsCard(
               cpuUsage: statsProvider.cpuUsage,
+              cpuHistory: statsProvider.cpuHistory,
               cores: statsProvider.cpuCores,
             ),
             _MemoryStatsCard(
               stats: statsProvider.currentStats!.memory,
+              memoryHistory: statsProvider.memoryHistory,
               formatBytes: statsProvider.formatBytes,
             ),
           ],
@@ -129,9 +131,14 @@ class SystemStatsWidget extends StatelessWidget {
 
 class _CpuStatsCard extends StatelessWidget {
   final double cpuUsage;
+  final List<double> cpuHistory;
   final List<MapEntry<String, CpuCore>> cores;
 
-  const _CpuStatsCard({required this.cpuUsage, required this.cores});
+  const _CpuStatsCard({
+    required this.cpuUsage,
+    required this.cpuHistory,
+    required this.cores,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +176,10 @@ class _CpuStatsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          UsageBar(usage: cpuUsage, color: _getCpuUsageColor(cpuUsage)),
+          TrendSparkline(
+            values: cpuHistory,
+            color: _getCpuUsageColor(cpuUsage),
+          ),
           if (cores.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildCoresList(),
@@ -228,9 +238,14 @@ class _CpuStatsCard extends StatelessWidget {
 
 class _MemoryStatsCard extends StatelessWidget {
   final MemoryStats stats;
+  final List<double> memoryHistory;
   final String Function(int) formatBytes;
 
-  const _MemoryStatsCard({required this.stats, required this.formatBytes});
+  const _MemoryStatsCard({
+    required this.stats,
+    required this.memoryHistory,
+    required this.formatBytes,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +283,11 @@ class _MemoryStatsCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          TrendSparkline(
+            values: memoryHistory,
+            color: _getMemoryUsageColor(memoryUsage),
           ),
           const SizedBox(height: 14),
           MemorySegmentedBar(stats: stats, formatBytes: formatBytes),

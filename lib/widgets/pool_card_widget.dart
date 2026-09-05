@@ -1,23 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/widgets/storage_metric_widget.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 
 class PoolCardWidget extends StatelessWidget {
-  final Map<String, dynamic> pool;
+  final Pool pool;
   final NasServer server;
 
   const PoolCardWidget({super.key, required this.pool, required this.server});
 
   @override
   Widget build(BuildContext context) {
-    final name = pool['name'] as String? ?? 'Unknown';
-    final status = pool['status'] as String? ?? 'Unknown';
-    final healthy = pool['healthy'] as bool? ?? false;
-
-    final topology = pool['topology'] as Map<String, dynamic>?;
-    final poolTypeDescription = _getPoolTypeDescription(topology);
-
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -42,14 +36,14 @@ class PoolCardWidget extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: healthy
+                    color: pool.healthy
                         ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
                         : CupertinoColors.systemRed.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     CupertinoIcons.square_stack_3d_down_right,
-                    color: healthy
+                    color: pool.healthy
                         ? CupertinoColors.systemGreen
                         : CupertinoColors.systemRed,
                     size: 22,
@@ -61,7 +55,7 @@ class PoolCardWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        name,
+                        pool.name,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -69,7 +63,7 @@ class PoolCardWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        poolTypeDescription,
+                        pool.topologyDescription,
                         style: const TextStyle(
                           fontSize: 13,
                           color: CupertinoColors.systemGrey,
@@ -87,17 +81,17 @@ class PoolCardWidget extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: healthy
+                        color: pool.healthy
                             ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
                             : CupertinoColors.systemRed.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        status,
+                        pool.status,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: healthy
+                          color: pool.healthy
                               ? CupertinoColors.systemGreen
                               : CupertinoColors.systemRed,
                         ),
@@ -113,21 +107,21 @@ class PoolCardWidget extends StatelessWidget {
                 Expanded(
                   child: StorageMetricWidget(
                     label: 'Used',
-                    value: _getPoolUsedSpace(pool),
+                    value: _formatBytes(pool.allocatedBytes),
                     color: CupertinoColors.systemBlue,
                   ),
                 ),
                 Expanded(
                   child: StorageMetricWidget(
                     label: 'Available',
-                    value: _getPoolAvailableSpace(pool),
+                    value: _formatBytes(pool.freeBytes),
                     color: CupertinoColors.systemGreen,
                   ),
                 ),
                 Expanded(
                   child: StorageMetricWidget(
                     label: 'Total',
-                    value: _getPoolTotalSpace(pool),
+                    value: _formatBytes(pool.totalBytes),
                     color: CupertinoColors.systemGrey,
                   ),
                 ),
@@ -137,63 +131,6 @@ class PoolCardWidget extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getPoolTypeDescription(Map<String, dynamic>? topology) {
-    if (topology == null) return 'Unknown configuration';
-
-    final data = topology['data'] as List<dynamic>?;
-    if (data == null || data.isEmpty) return 'Unknown configuration';
-
-    final firstVdev = data.first as Map<String, dynamic>?;
-    final type = firstVdev?['type'] as String?;
-    final children = firstVdev?['children'] as List<dynamic>?;
-
-    if (type == 'mirror' && children != null) {
-      return 'Mirror (${children.length} drives)';
-    } else if (type == 'raidz1') {
-      return 'RAID-Z1 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz2') {
-      return 'RAID-Z2 (${children?.length ?? 0} drives)';
-    } else if (type == 'raidz3') {
-      return 'RAID-Z3 (${children?.length ?? 0} drives)';
-    } else if (children != null && children.length == 1) {
-      return 'Single drive';
-    }
-
-    return 'Custom configuration';
-  }
-
-  String _getPoolUsedSpace(Map<String, dynamic> pool) {
-    final allocated = pool['allocated'] as int?;
-    if (allocated != null) {
-      return _formatBytes(allocated);
-    }
-    return 'Unknown';
-  }
-
-  String _getPoolAvailableSpace(Map<String, dynamic> pool) {
-    final free = pool['free'] as int?;
-    if (free != null) {
-      return _formatBytes(free);
-    }
-    return 'Unknown';
-  }
-
-  String _getPoolTotalSpace(Map<String, dynamic> pool) {
-    final allocated = pool['allocated'] as int?;
-    final free = pool['free'] as int?;
-
-    if (allocated != null && free != null) {
-      return _formatBytes(allocated + free);
-    }
-
-    final size = pool['size'] as int?;
-    if (size != null) {
-      return _formatBytes(size);
-    }
-
-    return 'Unknown';
   }
 
   String _formatBytes(int bytes) {

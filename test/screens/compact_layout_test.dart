@@ -50,8 +50,10 @@ void main() {
     useCompactSurface(tester);
 
     await tester.pumpWidget(
-      MultiProvider(
-        providers: [ChangeNotifierProvider.value(value: serverProvider)],
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
         child: const CupertinoApp(home: HomeScreen()),
       ),
     );

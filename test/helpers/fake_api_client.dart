@@ -225,6 +225,22 @@ class FakeApiClient implements ApiClientInterface {
   List<Map<String, dynamic>> networkInterfaces = [];
 
   @override
+  Future<List<Map<String, dynamic>>> getAlerts() async {
+    _recordAndMaybeThrow('getAlerts');
+    return alerts;
+  }
+
+  List<Map<String, dynamic>> alerts = [];
+
+  @override
+  Future<List<Map<String, dynamic>>> getServices() async {
+    _recordAndMaybeThrow('getServices');
+    return services;
+  }
+
+  List<Map<String, dynamic>> services = [];
+
+  @override
   Future<ServerHealth> getServerHealth() async {
     _recordAndMaybeThrow('getServerHealth');
     return serverHealth;

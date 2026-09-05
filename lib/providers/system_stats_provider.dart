@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/system_stats.dart';
@@ -8,6 +9,11 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 class SystemStatsProvider extends ChangeNotifier {
+  /// How many samples the CPU/memory trend history keeps - enough for a
+  /// short at-a-glance sparkline without growing unbounded over a long
+  /// subscription.
+  static const int _maxHistoryLength = 30;
+
   final UnifiedServerService _serverService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -16,6 +22,8 @@ class SystemStatsProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSubscribed = false;
   StreamSubscription<SystemStats>? _statsSubscription;
+  final Queue<double> _cpuHistory = Queue<double>();
+  final Queue<double> _memoryHistory = Queue<double>();
 
   SystemStatsProvider(this._serverService);
 
@@ -24,6 +32,14 @@ class SystemStatsProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSubscribed => _isSubscribed;
   bool get hasData => _currentStats != null;
+
+  /// The last [_maxHistoryLength] CPU usage samples (percent, oldest
+  /// first), for a trend sparkline.
+  List<double> get cpuHistory => List.unmodifiable(_cpuHistory);
+
+  /// The last [_maxHistoryLength] memory usage samples (percent, oldest
+  /// first), for a trend sparkline.
+  List<double> get memoryHistory => List.unmodifiable(_memoryHistory);
 
   Future<void> setApiClient(NasServer server) async {
     if (_apiClient != null) {
@@ -36,6 +52,16 @@ class SystemStatsProvider extends ChangeNotifier {
     }
 
     _currentServerId = server.id;
+
+    // unsubscribeFromStats() above only clears history when it actually runs
+    // its cleanup - it no-ops if the stream already finished on its own
+    // (_onStatsStreamDone flips _isSubscribed to false without clearing
+    // anything), which would otherwise leave the previous server's samples
+    // in the sparkline history for this new one.
+    _currentStats = null;
+    _cpuHistory.clear();
+    _memoryHistory.clear();
+    notifyListeners();
 
     try {
       // Load credentials for the server
@@ -122,6 +148,8 @@ class SystemStatsProvider extends ChangeNotifier {
 
       _isSubscribed = false;
       _currentStats = null;
+      _cpuHistory.clear();
+      _memoryHistory.clear();
       _clearError();
 
       if (kDebugMode) {
@@ -150,6 +178,8 @@ class SystemStatsProvider extends ChangeNotifier {
 
   void _onStatsReceived(SystemStats stats) {
     _currentStats = stats;
+    _recordHistory(_cpuHistory, stats.cpu.overall.usage);
+    _recordHistory(_memoryHistory, stats.memory.physicalMemoryUsagePercent);
     _clearError();
     _setLoading(false);
     notifyListeners();
@@ -176,6 +206,23 @@ class SystemStatsProvider extends ChangeNotifier {
     if (kDebugMode) {
       print('SystemStatsProvider: Stats stream done');
     }
+    notifyListeners();
+  }
+
+  void _recordHistory(Queue<double> history, double value) {
+    history.addLast(value);
+    while (history.length > _maxHistoryLength) {
+      history.removeFirst();
+    }
+  }
+
+  /// Feeds a sample into the CPU/memory history directly, bypassing the
+  /// live stats stream, so the trimming behavior can be unit-tested without
+  /// a live server connection.
+  @visibleForTesting
+  void debugRecordHistorySample({double? cpu, double? memory}) {
+    if (cpu != null) _recordHistory(_cpuHistory, cpu);
+    if (memory != null) _recordHistory(_memoryHistory, memory);
     notifyListeners();
   }
 

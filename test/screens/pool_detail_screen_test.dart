@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/screens/dataset_detail_screen.dart';
@@ -57,7 +58,7 @@ void main() {
     );
   });
 
-  Widget wrap(Map<String, dynamic> pool, {NasServer? server}) {
+  Widget wrap(Pool pool, {NasServer? server}) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<DatasetProvider>.value(value: datasetProvider),
@@ -73,24 +74,30 @@ void main() {
     testWidgets('shows the pool name in the nav bar title', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('tank'), findsOneWidget);
     });
 
-    testWidgets('falls back to Unknown Pool when the name is missing', (
+    testWidgets('falls back to Unknown when the name is missing', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(wrap(<String, dynamic>{}));
+      // An explicit status disambiguates: the name and status fallbacks are
+      // both the string "Unknown", so if status were left to its own
+      // fallback too, find.text('Unknown') would match both the nav title
+      // and the Status row.
+      await tester.pumpWidget(wrap(Pool.fromJson({'status': 'ONLINE'})));
       await pumpUntilFound(tester, find.text('Datasets'));
-      expect(find.text('Unknown Pool'), findsOneWidget);
+      expect(find.text('Unknown'), findsOneWidget);
     });
 
     testWidgets('shows Status and a green healthy icon', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
+        wrap(
+          Pool.fromJson({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
 
@@ -106,7 +113,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({'name': 'tank', 'status': 'DEGRADED', 'healthy': false}),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'status': 'DEGRADED',
+            'healthy': false,
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
 
@@ -121,37 +134,40 @@ void main() {
     testWidgets('falls back to Unknown for missing status', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('Unknown'), findsOneWidget);
     });
 
-    testWidgets('hides the Configuration row when topology is missing', (
+    testWidgets('shows Unknown configuration when topology is missing', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('Datasets'));
-      expect(find.text('Configuration'), findsNothing);
+      expect(find.text('Configuration'), findsOneWidget);
+      expect(find.text('Unknown configuration'), findsOneWidget);
     });
 
     testWidgets('describes a mirror topology with its drive count', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'mirror',
-                'children': [
-                  {'name': 'disk1'},
-                  {'name': 'disk2'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'mirror',
+                  'children': [
+                    {'name': 'disk1'},
+                    {'name': 'disk2'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('Configuration'), findsOneWidget);
@@ -162,22 +178,24 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'raidz2',
-                'children': [
-                  {'name': 'd0'},
-                  {'name': 'd1'},
-                  {'name': 'd2'},
-                  {'name': 'd3'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'raidz2',
+                  'children': [
+                    {'name': 'd0'},
+                    {'name': 'd1'},
+                    {'name': 'd2'},
+                    {'name': 'd3'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('RAID-Z2 (4 drives)'), findsOneWidget);
@@ -187,19 +205,21 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'disk',
-                'children': [
-                  {'name': 'disk1'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'disk',
+                  'children': [
+                    {'name': 'disk1'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('Single drive'), findsOneWidget);
@@ -209,20 +229,22 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'stripe',
-                'children': [
-                  {'name': 'disk1'},
-                  {'name': 'disk2'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'stripe',
+                  'children': [
+                    {'name': 'disk1'},
+                    {'name': 'disk2'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('Custom configuration'), findsOneWidget);
@@ -232,10 +254,12 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {'data': <dynamic>[]},
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {'data': <dynamic>[]},
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('Datasets'));
       expect(find.text('Unknown configuration'), findsOneWidget);
@@ -251,7 +275,7 @@ void main() {
         {'name': 'tank/data', 'pool': 'tank'},
       ];
 
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('Error loading datasets'));
 
       expect(find.text('Error loading datasets'), findsOneWidget);
@@ -270,7 +294,7 @@ void main() {
       WidgetTester tester,
     ) async {
       fakeClient.datasets = [];
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('No datasets found'));
 
       expect(find.text('No datasets found'), findsOneWidget);
@@ -283,7 +307,7 @@ void main() {
       fakeClient.datasets = [
         {'name': 'other/data', 'pool': 'other'},
       ];
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('No datasets found'));
       expect(find.text('No datasets found'), findsOneWidget);
     });
@@ -311,7 +335,7 @@ void main() {
           {'name': 'other/data', 'pool': 'other'},
         ];
 
-        await tester.pumpWidget(wrap({'name': 'tank'}));
+        await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
         await pumpUntilFound(tester, find.text('data'));
 
         // Only the two tank datasets render - the other pool's is excluded.
@@ -339,7 +363,7 @@ void main() {
       fakeClient.datasets = [
         {'name': 'tank/data', 'pool': 'tank'},
       ];
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('data'));
 
       expect(find.text('0B'), findsOneWidget);
@@ -354,7 +378,7 @@ void main() {
       fakeClient.datasets = [
         {'name': 'tank/data', 'pool': 'tank', 'mountpoint': '/mnt/tank/data'},
       ];
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       await pumpUntilFound(tester, find.text('data'));
 
       await tester.tap(find.text('data'));
@@ -392,24 +416,26 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        wrap({
-          'name': 'a-very-long-storage-pool-name-that-stresses-the-layout',
-          'status': 'ONLINE',
-          'healthy': true,
-          'topology': {
-            'data': [
-              {
-                'type': 'raidz2',
-                'children': [
-                  {'name': 'd0'},
-                  {'name': 'd1'},
-                  {'name': 'd2'},
-                  {'name': 'd3'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'a-very-long-storage-pool-name-that-stresses-the-layout',
+            'status': 'ONLINE',
+            'healthy': true,
+            'topology': {
+              'data': [
+                {
+                  'type': 'raidz2',
+                  'children': [
+                    {'name': 'd0'},
+                    {'name': 'd1'},
+                    {'name': 'd2'},
+                    {'name': 'd3'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       await pumpUntilFound(tester, find.text('nested-child'));
       expectNoLayoutOverflow(tester);

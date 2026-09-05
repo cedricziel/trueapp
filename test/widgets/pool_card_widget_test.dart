@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/services/database.dart';
@@ -21,7 +22,7 @@ void main() {
   );
 
   Widget wrap(
-    Map<String, dynamic> pool, {
+    Pool pool, {
     double width = 375,
     DatasetProvider? datasetProvider,
     JobsProvider? jobsProvider,
@@ -55,7 +56,9 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
+        wrap(
+          Pool.fromJson({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
+        ),
       );
 
       expect(find.text('tank'), findsOneWidget);
@@ -71,7 +74,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({'name': 'tank', 'status': 'DEGRADED', 'healthy': false}),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'status': 'DEGRADED',
+            'healthy': false,
+          }),
+        ),
       );
 
       expect(find.text('DEGRADED'), findsOneWidget);
@@ -83,12 +92,10 @@ void main() {
       expect(statusText.style?.color, CupertinoColors.systemRed);
     });
 
-    testWidgets('falls back to Unknown for missing name/status/healthy', (
+    testWidgets('falls back to Unknown for missing name/status', (
       WidgetTester tester,
     ) async {
-      // allocated/free are supplied so the storage-metric row doesn't add
-      // its own "Unknown" text and muddy this test's count.
-      await tester.pumpWidget(wrap({'allocated': 0, 'free': 1024}));
+      await tester.pumpWidget(wrap(Pool.fromJson(<String, dynamic>{})));
 
       expect(find.text('Unknown'), findsNWidgets(2)); // name + status
       final icon = tester.widget<Icon>(
@@ -102,7 +109,7 @@ void main() {
     testWidgets('shows Unknown configuration when topology is missing', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(wrap({'name': 'tank'}));
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
       expect(find.text('Unknown configuration'), findsOneWidget);
     });
 
@@ -110,10 +117,12 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {'data': <dynamic>[]},
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {'data': <dynamic>[]},
+          }),
+        ),
       );
       expect(find.text('Unknown configuration'), findsOneWidget);
     });
@@ -122,20 +131,22 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'mirror',
-                'children': [
-                  {'name': 'disk1'},
-                  {'name': 'disk2'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'mirror',
+                  'children': [
+                    {'name': 'disk1'},
+                    {'name': 'disk2'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       expect(find.text('Mirror (2 drives)'), findsOneWidget);
     });
@@ -152,17 +163,22 @@ void main() {
           RegExp(r'\((\d+)').firstMatch(entry.value)!.group(1)!,
         );
         await tester.pumpWidget(
-          wrap({
-            'name': 'tank',
-            'topology': {
-              'data': [
-                {
-                  'type': entry.key,
-                  'children': List.generate(driveCount, (i) => {'name': 'd$i'}),
-                },
-              ],
-            },
-          }),
+          wrap(
+            Pool.fromJson({
+              'name': 'tank',
+              'topology': {
+                'data': [
+                  {
+                    'type': entry.key,
+                    'children': List.generate(
+                      driveCount,
+                      (i) => {'name': 'd$i'},
+                    ),
+                  },
+                ],
+              },
+            }),
+          ),
         );
         expect(find.text(entry.value), findsOneWidget);
       }
@@ -172,19 +188,21 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'topology': {
-            'data': [
-              {
-                'type': 'disk',
-                'children': [
-                  {'name': 'disk1'},
-                ],
-              },
-            ],
-          },
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'topology': {
+              'data': [
+                {
+                  'type': 'disk',
+                  'children': [
+                    {'name': 'disk1'},
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
       );
       expect(find.text('Single drive'), findsOneWidget);
     });
@@ -193,20 +211,22 @@ void main() {
       'shows Custom configuration for an unmatched multi-child vdev',
       (WidgetTester tester) async {
         await tester.pumpWidget(
-          wrap({
-            'name': 'tank',
-            'topology': {
-              'data': [
-                {
-                  'type': 'stripe',
-                  'children': [
-                    {'name': 'disk1'},
-                    {'name': 'disk2'},
-                  ],
-                },
-              ],
-            },
-          }),
+          wrap(
+            Pool.fromJson({
+              'name': 'tank',
+              'topology': {
+                'data': [
+                  {
+                    'type': 'stripe',
+                    'children': [
+                      {'name': 'disk1'},
+                      {'name': 'disk2'},
+                    ],
+                  },
+                ],
+              },
+            }),
+          ),
         );
         expect(find.text('Custom configuration'), findsOneWidget);
       },
@@ -218,45 +238,34 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'allocated': 1024 * 1024 * 1024, // 1GB
-          'free': 1024 * 1024 * 1024, // 1GB
-        }),
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'allocated': 1024 * 1024 * 1024, // 1GB
+            'free': 1024 * 1024 * 1024, // 1GB
+          }),
+        ),
       );
 
       expect(find.text('1.0GB'), findsNWidgets(2)); // used + available
       expect(find.text('2.0GB'), findsOneWidget); // total = allocated + free
     });
 
-    testWidgets('falls back to size for total when allocated/free missing', (
+    testWidgets('formats zero used/available/total when neither is present', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({
-          'name': 'tank',
-          'status': 'ONLINE',
-          'size': 1024 * 1024 * 1024 * 1024, // 1TB
-        }),
+        wrap(Pool.fromJson({'name': 'tank', 'status': 'ONLINE'})),
       );
 
-      expect(find.text('Unknown'), findsNWidgets(2)); // used + available
-      expect(find.text('1.0TB'), findsOneWidget);
-    });
-
-    testWidgets('shows Unknown for all metrics when no size data is present', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(wrap({'name': 'tank', 'status': 'ONLINE'}));
-
-      expect(find.text('Unknown'), findsNWidgets(3));
+      expect(find.text('0B'), findsNWidgets(3)); // used + available + total
     });
 
     testWidgets('formats bytes and kilobytes below the megabyte threshold', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        wrap({'name': 'tank', 'allocated': 512, 'free': 2048}),
+        wrap(Pool.fromJson({'name': 'tank', 'allocated': 512, 'free': 2048})),
       );
 
       expect(find.text('512B'), findsOneWidget);
@@ -294,7 +303,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         wrap(
-          {'name': 'tank', 'status': 'ONLINE', 'healthy': true},
+          Pool.fromJson({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
           datasetProvider: datasetProvider,
           jobsProvider: jobsProvider,
         ),

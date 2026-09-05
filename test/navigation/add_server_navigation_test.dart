@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/file_provider.dart';
+import 'package:truehub/providers/fleet_status_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
@@ -68,6 +71,15 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => JobsProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FileProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HealthProvider(unifiedServerService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FleetStatusProvider(unifiedServerService),
         ),
         ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
       ],
