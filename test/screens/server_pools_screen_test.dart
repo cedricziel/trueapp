@@ -66,10 +66,7 @@ void main() {
       server: testServer,
       password: 'password',
     );
-    TestProviders.mockApiClientManager.addMockClient(
-      testServer.id,
-      fakeClient,
-    );
+    TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
     return PoolProvider(unifiedServerService);
   }
 
@@ -280,7 +277,10 @@ void main() {
           'vdev shape', (tester) async {
         await pumpWithTopology(tester, {
           'data': [
-            {'type': 'draid'},
+            {
+              'type': 'draid',
+              'children': [<String, dynamic>{}, <String, dynamic>{}],
+            },
           ],
         });
         expect(find.text('Custom configuration'), findsOneWidget);
@@ -293,7 +293,7 @@ void main() {
         expect(find.text('Unknown configuration'), findsOneWidget);
       });
 
-      testWidgets('is omitted entirely when topology is absent', (
+      testWidgets('shows "Unknown configuration" when topology is absent', (
         tester,
       ) async {
         final fakeClient = FakeApiClient()
@@ -309,7 +309,7 @@ void main() {
           () => find.text('tank').evaluate().isNotEmpty,
         );
 
-        expect(find.text('Unknown configuration'), findsNothing);
+        expect(find.text('Unknown configuration'), findsOneWidget);
         expect(find.text('Custom configuration'), findsNothing);
       });
     });

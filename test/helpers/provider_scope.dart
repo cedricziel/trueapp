@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/dataset_provider.dart';
 import 'package:truehub/providers/file_provider.dart';
 import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/providers/health_provider.dart';
@@ -21,11 +22,13 @@ import 'package:truehub/services/unified_server_service.dart';
 /// [JobsProvider] and [ConnectionStatusProvider] are only read by
 /// `ServerDetailScreen`, [FileProvider] only by `ServerFilesScreen`,
 /// [HealthProvider] only by `ServerHealthScreen`, [FleetStatusProvider] only
-/// by `HomeScreen`, and [TrayProvider] only by `SettingsScreen`; pass one in
-/// when a test pumps the screen that needs it, and leave it out otherwise - a
-/// `ChangeNotifierProvider(create: ...)` still backs every one of them by
-/// default so `Provider.of` never fails to resolve, but tests that need to
-/// inspect or seed one should build and pass it explicitly.
+/// by `HomeScreen`, [DatasetProvider] only by `PoolDetailScreen` (which
+/// `ServerPoolsScreen` and `ServerDetailScreen` can push), and [TrayProvider]
+/// only by `SettingsScreen`; pass one in when a test pumps the screen that
+/// needs it, and leave it out otherwise - a `ChangeNotifierProvider(create:
+/// ...)` still backs every one of them by default so `Provider.of` never
+/// fails to resolve, but tests that need to inspect or seed one should build
+/// and pass it explicitly.
 ///
 /// Every notifier is caller-owned: this widget never creates one behind a
 /// caller's back unless the caller omits it, and it never disposes what it
@@ -46,6 +49,7 @@ Widget provideAppProviders({
   FileProvider? fileProvider,
   HealthProvider? healthProvider,
   FleetStatusProvider? fleetStatusProvider,
+  DatasetProvider? datasetProvider,
 }) {
   return MultiProvider(
     providers: [
@@ -102,6 +106,13 @@ Widget provideAppProviders({
       trayProvider != null
           ? ChangeNotifierProvider<TrayProvider>.value(value: trayProvider)
           : ChangeNotifierProvider<TrayProvider>(create: (_) => TrayProvider()),
+      datasetProvider != null
+          ? ChangeNotifierProvider<DatasetProvider>.value(
+              value: datasetProvider,
+            )
+          : ChangeNotifierProvider<DatasetProvider>(
+              create: (_) => DatasetProvider(service),
+            ),
     ],
     child: child,
   );

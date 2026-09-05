@@ -95,8 +95,21 @@ void main() {
   testWidgets('shows the empty state once loading finishes with no servers', (
     WidgetTester tester,
   ) async {
-    final emptyServerProvider = ServerProvider(unifiedServerService);
+    // A separate, unseeded database and service: the outer setUp's already
+    // has two servers persisted for the fleet-aware tests below, so reusing
+    // it here would load those instead of hitting the empty state.
+    final emptyDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+    final emptyService = await TestProviders.createMockUnifiedServerService(
+      database: emptyDatabase,
+    );
+    final emptyServerProvider = ServerProvider(emptyService);
     addTearDown(emptyServerProvider.dispose);
+    addTearDown(() async {
+      await TestProviders.disposeTestStack(
+        service: emptyService,
+        database: emptyDatabase,
+      );
+    });
 
     await tester.pumpWidget(
       MultiProvider(
