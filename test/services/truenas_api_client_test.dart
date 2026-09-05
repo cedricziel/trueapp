@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
+import 'package:truehub/models/app.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
@@ -773,6 +776,84 @@ void main() {
         ),
       );
     });
+
+    test('keepalive does not probe or reconnect while a request is still '
+        'waiting for its reply', () async {
+      // The failure seen in the field: app.available is megabytes of
+      // catalog, and over a slow link it takes longer than the 10s ping
+      // timeout to arrive. The pong queues behind it, the keepalive
+      // declared the socket dead and reconnected, and the pending request
+      // died with "The client closed with pending request".
+      final release = Completer<void>();
+      var pingCount = 0;
+      server
+        ..onMethod('core.ping', (_) {
+          pingCount++;
+          return 'pong';
+        })
+        ..onMethod('app.categories', (_) => <String>[])
+        ..onMethod('app.available', (_) async {
+          await release.future;
+          return [
+            {'name': 'plex', 'title': 'Plex'},
+          ];
+        });
+      client.setKeepaliveInterval(const Duration(milliseconds: 20));
+
+      // Connect and authenticate first (keepalive starts on login), so the
+      // request below is the only thing that can hold the socket busy.
+      await client.getAppCategories();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final pingsBefore = pingCount;
+
+      final pending = client.getAvailableApps();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(
+        pingCount,
+        pingsBefore,
+        reason: 'the socket is demonstrably in use; no probe is needed',
+      );
+      expect(server.connectionCount, 1);
+
+      release.complete();
+      final apps = await pending;
+      expect(apps.single.name, 'plex');
+
+      // Once the socket is idle again, keepalive resumes.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(pingCount, greaterThan(pingsBefore));
+      expect(server.connectionCount, 1);
+    });
+
+    test(
+      'a request hung past the grace period no longer holds keepalive off',
+      () async {
+        final never = Completer<void>();
+        var pingCount = 0;
+        server
+          ..onMethod('core.ping', (_) {
+            pingCount++;
+            return 'pong';
+          })
+          ..onMethod('app.available', (_) async {
+            await never.future;
+            return <Object>[];
+          });
+        client
+          ..busyGracePeriod = const Duration(milliseconds: 50)
+          ..setKeepaliveInterval(const Duration(milliseconds: 20));
+
+        unawaited(client.getAvailableApps().catchError((_) => <App>[]));
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+
+        expect(
+          pingCount,
+          greaterThan(0),
+          reason: 'after the grace period the socket must be probed again',
+        );
+      },
+    );
 
     test('concurrent first calls share one connection and one login', () async {
       // AppProvider._loadAppsOnline issues these three calls in a single
