@@ -855,6 +855,47 @@ void main() {
       },
     );
 
+    test('a newer request keeps its own grace window even while an older one '
+        'has been hung for longer than the grace period', () async {
+      final never = Completer<void>();
+      final release = Completer<void>();
+      var pingCount = 0;
+      server
+        ..onMethod('core.ping', (_) {
+          pingCount++;
+          return 'pong';
+        })
+        ..onMethod('app.available', (_) async {
+          await never.future;
+          return <Object>[];
+        })
+        ..onMethod('app.categories', (_) async {
+          await release.future;
+          return <String>[];
+        });
+      client
+        ..busyGracePeriod = const Duration(milliseconds: 150)
+        ..setKeepaliveInterval(const Duration(milliseconds: 20));
+
+      // The old request outlives its grace period; keepalive resumes.
+      unawaited(client.getAvailableApps().catchError((_) => <App>[]));
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      expect(pingCount, greaterThan(0));
+
+      // A newer request must hold keepalive off again for its own grace.
+      final pingsBefore = pingCount;
+      final pending = client.getAppCategories();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(
+        pingCount,
+        pingsBefore,
+        reason: 'the newer request is younger than the grace period',
+      );
+
+      release.complete();
+      await pending;
+    });
+
     test('concurrent first calls share one connection and one login', () async {
       // AppProvider._loadAppsOnline issues these three calls in a single
       // Future.wait against a client that has never connected. Each call

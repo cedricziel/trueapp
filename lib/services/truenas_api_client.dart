@@ -81,10 +81,11 @@ class TrueNasApiClient implements ApiClientInterface {
   bool _keepaliveEnabled = true;
   Duration _keepaliveInterval = const Duration(seconds: 30);
 
-  /// Requests (other than the keepalive ping itself) still waiting for a
-  /// reply on the current socket, and when the socket became busy.
-  int _inFlightRequests = 0;
-  DateTime? _busySince;
+  /// Start times of the requests (other than the keepalive ping itself)
+  /// still waiting for a reply on the current socket. Each request gets its
+  /// own grace window, so a newer request is not left unprotected because an
+  /// older one has been hanging for longer than [busyGracePeriod].
+  final List<DateTime> _inFlightRequestStarts = [];
 
   /// How long an in-flight request vouches for the socket. While a request is
   /// pending and younger than this, the keepalive does not probe or recover
@@ -321,24 +322,22 @@ class TrueNasApiClient implements ApiClientInterface {
   /// the keepalive's sake (see [busyGracePeriod]). Every application request
   /// goes through here; the keepalive ping itself does not.
   Future<dynamic> _request(String method, [dynamic parameters]) async {
-    if (_inFlightRequests++ == 0) {
-      _busySince = DateTime.now();
-    }
+    final startedAt = DateTime.now();
+    _inFlightRequestStarts.add(startedAt);
     try {
       return await _client!.sendRequest(method, parameters);
     } finally {
-      if (--_inFlightRequests == 0) {
-        _busySince = null;
-      }
+      _inFlightRequestStarts.remove(startedAt);
     }
   }
 
-  /// True while a request younger than [busyGracePeriod] is still waiting
+  /// True while any request younger than [busyGracePeriod] is still waiting
   /// for its reply - evidence the socket is in use, not dead.
   bool get _isBusyWithinGrace {
-    final busySince = _busySince;
-    return busySince != null &&
-        DateTime.now().difference(busySince) < busyGracePeriod;
+    final now = DateTime.now();
+    return _inFlightRequestStarts.any(
+      (startedAt) => now.difference(startedAt) < busyGracePeriod,
+    );
   }
 
   Future<void> _sendKeepalivePing() async {
