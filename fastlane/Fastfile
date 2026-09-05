@@ -20,6 +20,8 @@ MAC_XCODEPROJ   = "macos/Runner.xcodeproj"
 MAC_SCHEME      = "Runner"
 MAC_OUTPUT_DIR  = "build/macos"
 PKG_NAME        = "TrueNASManager"
+# match suffixes non-iOS profile names with the platform.
+MAC_MATCH_PROFILE = "#{MATCH_PROFILE} macos"
 
 # Build number = number of commits reachable from HEAD. Reproducible from git
 # state alone — never committed back to pubspec.yaml.
@@ -71,6 +73,11 @@ lane :bootstrap_signing do
   match(type: "appstore", readonly: false, api_key: api_key)
 end
 
+desc "Build a signed Mac App Store pkg without uploading (sanity check)"
+lane :build_pkg do
+  build_mac
+end
+
 desc "Build and push a new beta build to TestFlight (macOS)"
 lane :beta_mac do |options|
   ensure_git_status_clean unless options[:allow_dirty]
@@ -91,10 +98,17 @@ lane :bootstrap_signing_mac do
   api_key = load_app_store_connect_api_key
   # Two certs are needed for a Mac App Store submission: one to sign the .app
   # (appstore, same cert type as iOS) and a separate one to sign the .pkg
-  # installer that wraps it (mac_installer_distribution). Only the former
-  # needs/gets a provisioning profile.
-  match(type: "appstore", platform: "macos", readonly: false, api_key: api_key)
-  match(type: "mac_installer_distribution", platform: "macos", readonly: false, api_key: api_key)
+  # installer that wraps it. The installer cert has no provisioning profile,
+  # so it must ride along via additional_cert_types: passing it as `type`
+  # makes match create a plain distribution cert and then fail looking for
+  # a profile that cannot exist.
+  match(
+    type: "appstore",
+    platform: "macos",
+    additional_cert_types: ["mac_installer_distribution"],
+    readonly: false,
+    api_key: api_key
+  )
 end
 
 # ---------------------------------------------------------------------------
@@ -165,11 +179,16 @@ end
 desc "match + Flutter build + xcodebuild archive for macOS. Returns the ASC API key."
 private_lane :build_mac do
   api_key = load_app_store_connect_api_key
-  sync_code_signing(type: "appstore", platform: "macos", readonly: is_ci, api_key: api_key)
-  # Signs the .pkg installer that wraps the .app; setup_ci's temp keychain
-  # holds exactly this one installer identity, so gym finds it without
-  # needing an explicit installer_cert_name.
-  sync_code_signing(type: "mac_installer_distribution", platform: "macos", readonly: is_ci, api_key: api_key)
+  # additional_cert_types also installs the installer cert that signs the
+  # .pkg; setup_ci's temp keychain then holds exactly one installer
+  # identity, so gym finds it without an explicit installer_cert_name.
+  sync_code_signing(
+    type: "appstore",
+    platform: "macos",
+    additional_cert_types: ["mac_installer_distribution"],
+    readonly: is_ci,
+    api_key: api_key
+  )
 
   # update_code_signing_settings below rewrites project.pbxproj on disk.
   # Restore it afterwards so a local build/beta leaves the tracked signing
@@ -180,12 +199,13 @@ private_lane :build_mac do
   # Flutter's Runner target uses automatic signing, which needs an
   # interactive Apple ID session. Switch to manual signing with the profile
   # match just installed so xcodebuild can sign headlessly.
+  mac_profile = ENV["sigh_#{APP_IDENTIFIER}_appstore_macos_profile-name"] || MAC_MATCH_PROFILE
   update_code_signing_settings(
     use_automatic_signing: false,
     path: MAC_XCODEPROJ,
     team_id: TEAM_ID,
     code_sign_identity: "Apple Distribution",
-    profile_name: ENV["sigh_#{APP_IDENTIFIER}_appstore_profile-name"] || MATCH_PROFILE,
+    profile_name: mac_profile,
     targets: [MAC_SCHEME]
   )
 
@@ -214,7 +234,7 @@ private_lane :build_mac do
     output_name: PKG_NAME,
     include_symbols: true,
     export_options: {
-      provisioningProfiles: { APP_IDENTIFIER => MATCH_PROFILE }
+      provisioningProfiles: { APP_IDENTIFIER => mac_profile }
     }
   )
 
