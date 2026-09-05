@@ -91,10 +91,17 @@ lane :bootstrap_signing_mac do
   api_key = load_app_store_connect_api_key
   # Two certs are needed for a Mac App Store submission: one to sign the .app
   # (appstore, same cert type as iOS) and a separate one to sign the .pkg
-  # installer that wraps it (mac_installer_distribution). Only the former
-  # needs/gets a provisioning profile.
-  match(type: "appstore", platform: "macos", readonly: false, api_key: api_key)
-  match(type: "mac_installer_distribution", platform: "macos", readonly: false, api_key: api_key)
+  # installer that wraps it. The installer cert has no provisioning profile,
+  # so it must ride along via additional_cert_types: passing it as `type`
+  # makes match create a plain distribution cert and then fail looking for
+  # a profile that cannot exist.
+  match(
+    type: "appstore",
+    platform: "macos",
+    additional_cert_types: ["mac_installer_distribution"],
+    readonly: false,
+    api_key: api_key
+  )
 end
 
 # ---------------------------------------------------------------------------
@@ -165,11 +172,16 @@ end
 desc "match + Flutter build + xcodebuild archive for macOS. Returns the ASC API key."
 private_lane :build_mac do
   api_key = load_app_store_connect_api_key
-  sync_code_signing(type: "appstore", platform: "macos", readonly: is_ci, api_key: api_key)
-  # Signs the .pkg installer that wraps the .app; setup_ci's temp keychain
-  # holds exactly this one installer identity, so gym finds it without
-  # needing an explicit installer_cert_name.
-  sync_code_signing(type: "mac_installer_distribution", platform: "macos", readonly: is_ci, api_key: api_key)
+  # additional_cert_types also installs the installer cert that signs the
+  # .pkg; setup_ci's temp keychain then holds exactly one installer
+  # identity, so gym finds it without an explicit installer_cert_name.
+  sync_code_signing(
+    type: "appstore",
+    platform: "macos",
+    additional_cert_types: ["mac_installer_distribution"],
+    readonly: is_ci,
+    api_key: api_key
+  )
 
   # update_code_signing_settings below rewrites project.pbxproj on disk.
   # Restore it afterwards so a local build/beta leaves the tracked signing
