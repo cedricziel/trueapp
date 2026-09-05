@@ -60,6 +60,15 @@ set_secret MATCH_PASSWORD "$MATCH_PASSWORD"
 set_secret MATCH_KEYCHAIN_PASSWORD "$(openssl rand -base64 32)"
 set_secret MATCH_DEPLOY_KEY "$(cat "$tmp/key")"
 
+# Optional: SignalDB OTLP ingest for flutter_otel (see fastlane/.env.default).
+# Both must be present for the release build to enable telemetry.
+if [[ -n "${OTLP_INGEST_URL:-}" && -n "${OTLP_INGEST_KEY:-}" ]]; then
+  set_secret OTLP_INGEST_URL "$OTLP_INGEST_URL"
+  set_secret OTLP_INGEST_KEY "$OTLP_INGEST_KEY"
+else
+  echo "  skipped OTLP_INGEST_URL/OTLP_INGEST_KEY (export both to set them)"
+fi
+
 # Same override precedence as fastlane/Appfile.
 # ${VAR-...} (no colon) mirrors the Appfile's Ruby `ENV[..] ||` semantics,
 # which keeps a set-but-empty value.
@@ -67,7 +76,7 @@ EFFECTIVE_APP_ID="${APP_IDENTIFIER-$(grep -o 'com\.cedricziel\.[A-Za-z0-9.]*' fa
 
 cat <<MSG
 
-Done. Two manual steps remain:
+Done. Manual steps remaining:
 
 1. RELEASE_PLEASE_TOKEN: a fine-grained PAT with Contents + Pull requests
    (read/write) on $REPO, so the release PR triggers CI:
@@ -77,4 +86,9 @@ Done. Two manual steps remain:
    App ID $EFFECTIVE_APP_ID to exist with its capabilities enabled):
      cp fastlane/.env.default fastlane/.env   # fill in ASC_* and MATCH_PASSWORD
      bundle exec fastlane bootstrap_signing
+
+3. Telemetry (optional, skipped above unless both were exported): the
+   release build only exports OTLP when both secrets exist:
+     gh secret set OTLP_INGEST_URL --repo $REPO
+     gh secret set OTLP_INGEST_KEY --repo $REPO
 MSG
