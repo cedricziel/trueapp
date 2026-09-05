@@ -883,8 +883,12 @@ void main() {
       expect(pingCount, greaterThan(0));
 
       // A newer request must hold keepalive off again for its own grace.
-      final pingsBefore = pingCount;
+      // Sample the baseline only after the request is in flight and any
+      // ping already on the wire has landed; otherwise a ping sent just
+      // before the request would be counted after the baseline was taken.
       final pending = client.getAppCategories();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      final pingsBefore = pingCount;
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(
         pingCount,
