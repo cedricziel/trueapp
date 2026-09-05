@@ -19,11 +19,24 @@ import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
 
-/// A [FakeApiClient] whose [getAvailableApps] blocks on [gate] until the
+/// A [FakeApiClient] whose [getInstalledApps] blocks on [gate] until the
 /// test completes it - used to deterministically observe
 /// [ServerAppsScreen]'s loading spinner instead of racing a fake client that
 /// resolves within a single microtask.
 class _GatedFakeApiClient extends FakeApiClient {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<List<App>> getInstalledApps() async {
+    await gate.future;
+    return super.getInstalledApps();
+  }
+}
+
+/// A [FakeApiClient] whose catalog call ([getAvailableApps]) blocks on
+/// [gate] while installed apps resolve immediately - the slow-catalog case
+/// the screen must stay usable through.
+class _GatedCatalogFakeApiClient extends FakeApiClient {
   final Completer<void> gate = Completer<void>();
 
   @override
@@ -517,6 +530,47 @@ void main() {
       expect(find.byType(AppCardWidget), findsOneWidget);
       expect(find.text('plex'), findsOneWidget);
     });
+
+    testWidgets(
+      'installed apps are shown while the catalog is still loading, and the '
+      'Available tab shows its own spinner until the catalog arrives',
+      (WidgetTester tester) async {
+        final gatedClient = _GatedCatalogFakeApiClient();
+        gatedClient.installedApps = [
+          _app(name: 'plex', title: 'Plex', installed: true),
+        ];
+        gatedClient.availableApps = [
+          _app(name: 'radarr', title: 'Radarr', installed: false),
+        ];
+        gatedClient.appCategories = [];
+        TestProviders.mockApiClientManager.addMockClient(
+          testServer.id,
+          gatedClient,
+        );
+        addTearDown(gatedClient.dispose);
+
+        await tester.pumpWidget(createTestApp());
+        await settleInitialLoad(tester);
+        await tester.pump();
+
+        // Installed apps are already usable while the catalog is pending.
+        expect(appProvider.isCatalogLoading, isTrue);
+        expect(find.byType(AppCardWidget), findsOneWidget);
+        expect(find.text('plex'), findsOneWidget);
+
+        await tester.tap(find.text('Available'));
+        await tester.pump();
+        expect(find.text('Loading app catalog...'), findsOneWidget);
+        expect(find.byType(AppCardWidget), findsNothing);
+
+        gatedClient.gate.complete();
+        await pumpUntilAsync(tester, () => !appProvider.isCatalogLoading);
+        await tester.pump();
+
+        expect(find.text('Loading app catalog...'), findsNothing);
+        expect(find.text('Radarr'), findsOneWidget);
+      },
+    );
   });
 
   group('ServerAppsScreen - error state', () {
@@ -636,8 +690,7 @@ void main() {
         await tester.pump();
 
         fakeClient.failingMethods.add('getAvailableApps');
-        await appProvider.refreshApps();
-        await tester.pump();
+        await runRealAsync(tester, appProvider.refreshApps);
 
         await tester.tap(find.text('Available'));
         await tester.pump();
@@ -649,6 +702,35 @@ void main() {
         );
         expect(find.text('Failed to load app catalog'), findsNothing);
         expectNoLayoutOverflow(tester);
+      },
+    );
+
+    testWidgets(
+      'a search that matches nothing in a stale catalog is an empty search '
+      'result, not a catalog error',
+      (WidgetTester tester) async {
+        fakeClient.installedApps = [
+          _app(name: 'plex', title: 'Plex', installed: true),
+        ];
+        fakeClient.availableApps = [
+          _app(name: 'radarr', title: 'Radarr', installed: false),
+        ];
+        fakeClient.appCategories = [];
+
+        await tester.pumpWidget(createTestApp());
+        await settleInitialLoad(tester);
+        await tester.pump();
+
+        fakeClient.failingMethods.add('getAvailableApps');
+        await runRealAsync(tester, appProvider.refreshApps);
+
+        await tester.tap(find.text('Available'));
+        await tester.pump();
+        await tester.enterText(find.byType(CupertinoSearchTextField), 'zzz');
+        await tester.pump();
+
+        expect(find.text('No apps match your search'), findsOneWidget);
+        expect(find.text('Failed to load app catalog'), findsNothing);
       },
     );
   });

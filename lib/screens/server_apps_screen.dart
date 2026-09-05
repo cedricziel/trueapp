@@ -179,7 +179,14 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                       : null;
 
                   if (apps.isEmpty) {
-                    if (catalogError != null) {
+                    if (_selectedSegment == 1 && appProvider.isCatalogLoading) {
+                      return const LoadingStateWidget(
+                        message: 'Loading app catalog...',
+                      );
+                    }
+                    // A search that matches nothing is still a search result,
+                    // even when the catalog it searched is stale.
+                    if (catalogError != null && _searchQuery.isEmpty) {
                       return _buildErrorView(
                         title: 'Failed to load app catalog',
                         error: catalogError.shortMessage,

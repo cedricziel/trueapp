@@ -20,6 +20,13 @@ class _Outcome<T> {
   const _Outcome.failure(this.error) : value = null;
 }
 
+/// The catalog side of a load, started alongside the installed-apps request
+/// and merged in a second phase once installed apps are already visible.
+typedef _CatalogRequests = ({
+  Future<_Outcome<List<App>>> available,
+  Future<_Outcome<List<String>>> categories,
+});
+
 class AppProvider extends ChangeNotifier {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
@@ -29,8 +36,13 @@ class AppProvider extends ChangeNotifier {
   List<AppConfig> _appConfigs = [];
   List<String> _categories = [];
   bool _isLoading = false;
+  bool _isCatalogLoading = false;
   ConnectionError? _connectionError;
   ConnectionError? _catalogError;
+
+  /// Bumped by every load, server switch and dispose, so a catalog phase
+  /// that finishes late can tell it no longer belongs to the current state.
+  int _loadGeneration = 0;
   StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
   final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
@@ -57,6 +69,11 @@ class AppProvider extends ChangeNotifier {
   List<AppConfig> get appConfigs => _appConfigs;
   List<String> get categories => _categories;
   bool get isLoading => _isLoading;
+
+  /// True while the catalog (`app.available` / `app.categories`) is still
+  /// being fetched or merged after the installed apps are already loaded.
+  bool get isCatalogLoading => _isCatalogLoading;
+
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
@@ -90,6 +107,7 @@ class AppProvider extends ChangeNotifier {
       await ApiClientManager.releaseClient(_currentServerId!);
     }
 
+    _loadGeneration++;
     _currentServerId = server?.id;
     _currentServer = server;
     _apiClient = null;
@@ -97,6 +115,7 @@ class AppProvider extends ChangeNotifier {
     _categories = [];
     _connectionError = null;
     _catalogError = null;
+    _isCatalogLoading = false;
 
     if (server != null) {
       try {
@@ -132,12 +151,14 @@ class AppProvider extends ChangeNotifier {
       await ApiClientManager.releaseClient(_currentServerId!);
     }
 
+    _loadGeneration++;
     _currentServerId = server.id;
     _currentServer = server;
     _appConfigs = [];
     _categories = [];
     _connectionError = null;
     _catalogError = null;
+    _isCatalogLoading = false;
 
     try {
       // Load credentials for the server
@@ -169,24 +190,36 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> loadApps() async {
     if (_currentServerId == null) return;
+    final generation = ++_loadGeneration;
 
     _isLoading = true;
+    _isCatalogLoading = false;
     _connectionError = null;
     _catalogError = null;
     notifyListeners();
 
+    // The catalog requests are fired alongside the installed-apps request
+    // but merged in a second phase (see [_loadCatalog]), so installed apps
+    // are shown the moment they arrive. `app.available` is by far the
+    // biggest and slowest response (the whole catalog, readmes included -
+    // megabytes over a cellular link) and must not hold the user's own apps
+    // hostage. Its failures are allowed too: installed apps (`app.query`)
+    // are the essential part, the catalog is not.
+    _CatalogRequests? catalog;
     try {
-      if (_apiClient != null) {
-        // Online mode: Load fresh data from API and sync to database
-        await _loadAppsOnline();
+      final apiClient = _apiClient;
+      if (apiClient != null) {
+        catalog = (
+          available: _settle(apiClient.getAvailableApps()),
+          categories: _settle(apiClient.getAppCategories()),
+        );
+        await _loadInstalledAppsOnline(apiClient);
+
+        // Subscribe to app stats for real-time resource usage
+        _subscribeToAppStats();
       } else {
         // Offline mode: Load from database only
         await _loadPersistedAppConfigs();
-      }
-
-      // Subscribe to app stats for real-time resource usage (if online)
-      if (_apiClient != null) {
-        _subscribeToAppStats();
       }
 
       // Clear any previous errors on successful load
@@ -206,68 +239,87 @@ class AppProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+
+    // The catalog is only worth merging on top of a successful installed
+    // load. Its futures are settled, so leaving them behind leaks no error.
+    if (catalog != null && _connectionError == null) {
+      await _loadCatalog(generation, catalog);
+    }
   }
 
-  Future<void> _loadAppsOnline() async {
-    if (_apiClient == null || _currentServerId == null) return;
+  Future<void> _loadInstalledAppsOnline(ApiClientInterface apiClient) async {
+    final installedApps = await apiClient.getInstalledApps();
 
-    // Load installed apps, available apps, and categories in parallel.
-    //
-    // Installed apps (`app.query`) are the essential part - if that fails
-    // the load fails. The catalog calls are allowed to fail on their own:
-    // `app.available` is by far the biggest and slowest response (the full
-    // catalog, readmes included) and depends on the NAS having synced its
-    // catalog, so a problem there must not hide the user's installed apps.
-    final installedFuture = _apiClient!.getInstalledApps();
-    final availableFuture = _settle(_apiClient!.getAvailableApps());
-    final categoriesFuture = _settle(_apiClient!.getAppCategories());
-
-    // Await the settled catalog futures too, so their outcomes are consumed
-    // (never left as unhandled async errors) even when the installed call
-    // throws first.
-    final installedApps = await installedFuture;
-    final available = await availableFuture;
-    final categories = await categoriesFuture;
-
-    final availableApps = available.value ?? const <App>[];
-    if (categories.value != null) {
-      _categories = categories.value!;
-    }
-
-    final catalogFailure = available.error ?? categories.error;
-    if (catalogFailure != null) {
-      _catalogError = _toConnectionError(catalogFailure);
-      if (kDebugMode) {
-        print(
-          'AppProvider: catalog load failed, continuing with installed apps: '
-          '${_catalogError!.technicalDetails ?? _catalogError!.message}',
-        );
-      }
-    }
-
-    // Merge installed and available apps, prioritizing installed app data
-    final allApps = <String, App>{};
-
-    // Add available apps first
-    for (final app in availableApps) {
-      allApps[app.name] = app;
-    }
-
-    // Override with installed app data (which includes resource usage and upgrade info)
-    for (final app in installedApps) {
-      allApps[app.name] = app;
-    }
-
-    // Sync all app data to database as unified AppConfig records
-    await _syncAppsToDatabase(allApps.values.toList());
-
-    // Load the updated app configs from database (which now includes merged data)
+    await _syncAppsToDatabase(installedApps);
     await _loadPersistedAppConfigs();
 
     if (kDebugMode) {
       print(
-        'AppProvider: Synced ${allApps.length} apps to database (${installedApps.length} installed, ${availableApps.length} available)',
+        'AppProvider: Synced ${installedApps.length} installed apps to '
+        'database',
       );
+    }
+  }
+
+  /// Second phase of [loadApps]: waits for the catalog requests started
+  /// there and merges them on top of the already-synced installed apps.
+  /// [generation] identifies the load this belongs to - a server switch or
+  /// a newer load in the meantime makes this catalog stale, and it is then
+  /// dropped rather than merged into the wrong server's state.
+  Future<void> _loadCatalog(int generation, _CatalogRequests catalog) async {
+    _isCatalogLoading = true;
+    notifyListeners();
+
+    try {
+      final available = await catalog.available;
+      final categories = await catalog.categories;
+      if (generation != _loadGeneration) return;
+
+      if (categories.value != null) {
+        _categories = categories.value!;
+      }
+
+      final catalogFailure = available.error ?? categories.error;
+      if (catalogFailure != null) {
+        _catalogError = _toConnectionError(catalogFailure);
+        if (kDebugMode) {
+          print(
+            'AppProvider: catalog load failed, keeping installed apps: '
+            '${_catalogError!.technicalDetails ?? _catalogError!.message}',
+          );
+        }
+      }
+
+      // Installed apps were synced first and carry the richer data
+      // (resource usage, upgrade info, portals); the catalog only adds the
+      // apps that are not installed.
+      final installedNames = _appConfigs
+          .where((config) => config.installed == true)
+          .map((config) => config.appName)
+          .toSet();
+      final availableApps = (available.value ?? const <App>[])
+          .where((app) => !installedNames.contains(app.name))
+          .toList();
+
+      await _syncAppsToDatabase(availableApps);
+      if (generation != _loadGeneration) return;
+      await _loadPersistedAppConfigs();
+
+      if (kDebugMode) {
+        print(
+          'AppProvider: Synced ${availableApps.length} available apps to '
+          'database',
+        );
+      }
+    } catch (e) {
+      if (generation == _loadGeneration) {
+        _catalogError = _toConnectionError(e);
+      }
+    } finally {
+      if (generation == _loadGeneration) {
+        _isCatalogLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -696,6 +748,9 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    // A catalog phase still in flight must not notify a disposed notifier.
+    _loadGeneration++;
+
     // Unsubscribe from app stats
     _unsubscribeFromAppStats();
 

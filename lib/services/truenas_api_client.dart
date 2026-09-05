@@ -1090,6 +1090,8 @@ class TrueNasApiClient implements ApiClientInterface {
 
     final apps = <App>[];
     Object? firstFailure;
+    StackTrace? firstStackTrace;
+    String? firstFailedName;
     var skipped = 0;
     for (final entry in result) {
       try {
@@ -1101,23 +1103,37 @@ class TrueNasApiClient implements ApiClientInterface {
         apps.add(parse(Map<String, dynamic>.from(entry)));
       } catch (e, stackTrace) {
         skipped++;
-        firstFailure ??= e;
-        final name = entry is Map ? entry['name'] : null;
-        if (kDebugMode) {
-          print('TrueNAS API: $method: skipping app "$name": $e');
+        if (firstFailure == null) {
+          firstFailure = e;
+          firstStackTrace = stackTrace;
+          firstFailedName = entry is Map ? entry['name']?.toString() : null;
         }
-        _telemetry?.getLogger().error(
-          'TrueNAS API: $method returned an app entry that could not be '
-          'parsed; skipping it',
-          error: e,
-          stackTrace: stackTrace,
-          attributes: {
-            'server.id': _server.id,
-            'truenas.method': method,
-            'truenas.app.name': name?.toString() ?? '',
-          },
+      }
+    }
+
+    // One record per response, not per entry: a field that changed shape in
+    // a newer TrueNAS fails every entry the same way, and the catalog is
+    // re-fetched on every refresh.
+    if (skipped > 0) {
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: $method: skipped $skipped of ${result.length} app '
+          'entries, first failure ("$firstFailedName"): $firstFailure',
         );
       }
+      _telemetry?.getLogger().error(
+        'TrueNAS API: $method returned app entries that could not be '
+        'parsed; skipped them',
+        error: firstFailure,
+        stackTrace: firstStackTrace,
+        attributes: {
+          'server.id': _server.id,
+          'truenas.method': method,
+          'truenas.apps.skipped': skipped,
+          'truenas.apps.total': result.length,
+          'truenas.app.name': firstFailedName ?? '',
+        },
+      );
     }
 
     if (apps.isEmpty && skipped > 0) {

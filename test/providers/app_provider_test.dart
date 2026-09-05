@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
@@ -50,6 +52,24 @@ class _ClassifiedFailureClient extends FakeApiClient {
   Future<List<App>> getInstalledApps() async {
     calls.add('getInstalledApps');
     throw ConnectionException(failure);
+  }
+}
+
+/// A [FakeApiClient] whose catalog call blocks on [gate] while installed
+/// apps resolve immediately.
+class _GatedCatalogClient extends FakeApiClient {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<List<App>> getAvailableApps() async {
+    await gate.future;
+    return super.getAvailableApps();
+  }
+}
+
+Future<void> _waitUntil(bool Function() condition) async {
+  while (!condition()) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
   }
 }
 
@@ -325,6 +345,60 @@ void main() {
         expect(appProvider.catalogError, isNotNull);
         expect(appProvider.availableApps, hasLength(1));
         expect(appProvider.installedApps, hasLength(1));
+      },
+    );
+
+    test('installed apps are exposed as soon as they arrive, before the '
+        'catalog has finished loading', () async {
+      final client = _GatedCatalogClient()
+        ..installedApps = [_sampleApp(name: 'plex', installed: true)]
+        ..availableApps = [
+          _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+        ]
+        ..appCategories = ['media'];
+      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+      await appProvider.setServer(testServer);
+
+      final load = appProvider.loadApps();
+      await _waitUntil(() => !appProvider.isLoading);
+
+      expect(appProvider.installedApps, hasLength(1));
+      expect(appProvider.availableApps, isEmpty);
+      expect(appProvider.isCatalogLoading, isTrue);
+      expect(appProvider.connectionError, isNull);
+
+      client.gate.complete();
+      await load;
+
+      expect(appProvider.isCatalogLoading, isFalse);
+      expect(appProvider.availableApps, hasLength(1));
+      expect(appProvider.installedApps, hasLength(1));
+      expect(appProvider.categories, ['media']);
+      expect(appProvider.catalogError, isNull);
+    });
+
+    test(
+      'a catalog that arrives after the server was switched is dropped',
+      () async {
+        final client = _GatedCatalogClient()
+          ..installedApps = [_sampleApp(name: 'plex', installed: true)]
+          ..availableApps = [
+            _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+          ];
+        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+        await appProvider.setServer(testServer);
+
+        final load = appProvider.loadApps();
+        await _waitUntil(() => !appProvider.isLoading);
+        expect(appProvider.isCatalogLoading, isTrue);
+
+        await appProvider.setServer(null);
+        client.gate.complete();
+        await load;
+
+        expect(appProvider.appConfigs, isEmpty);
+        expect(appProvider.isCatalogLoading, isFalse);
+        expect(appProvider.catalogError, isNull);
       },
     );
 
