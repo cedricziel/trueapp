@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/server_health.dart';
 import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -135,6 +136,91 @@ void main() {
         expect(provider.connectionError, isNull);
       },
     );
+
+    test('a call superseded while releasing the previous client does not '
+        'overwrite the newer selection', () async {
+      // Regression coverage: once a provider already has a current
+      // server, switching to two different servers back-to-back races
+      // both calls through the same releaseClient() await for that
+      // shared previous server - the older one must recognize it has
+      // been superseded there and never touch _currentServerId again.
+      await provider.setApiClient(testServer);
+
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      final thirdServer = NasServer.create(
+        name: 'Third Server',
+        host: '192.168.1.102',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: thirdServer,
+        password: 'password',
+      );
+      final olderClient = FakeApiClient()
+        ..serverHealth = ServerHealth(
+          serverId: secondServer.id,
+          timestamp: DateTime(2026),
+          cpuUsage: 11,
+          memoryUsage: 0,
+          diskUsage: 0,
+          temperature: 0,
+          isOnline: true,
+          disks: const [],
+          network: const NetworkInfo(
+            downloadSpeed: 0,
+            uploadSpeed: 0,
+            totalDownload: 0,
+            totalUpload: 0,
+          ),
+        );
+      final newerClient = FakeApiClient()
+        ..serverHealth = ServerHealth(
+          serverId: thirdServer.id,
+          timestamp: DateTime(2026),
+          cpuUsage: 99,
+          memoryUsage: 0,
+          diskUsage: 0,
+          temperature: 0,
+          isOnline: true,
+          disks: const [],
+          network: const NetworkInfo(
+            downloadSpeed: 0,
+            uploadSpeed: 0,
+            totalDownload: 0,
+            totalUpload: 0,
+          ),
+        );
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        olderClient,
+      );
+      TestProviders.mockApiClientManager.addMockClient(
+        thirdServer.id,
+        newerClient,
+      );
+
+      final older = provider.setApiClient(secondServer);
+      final newer = provider.setApiClient(thirdServer);
+      await Future.wait([older, newer]);
+
+      await provider.loadHealth();
+
+      expect(provider.connectionError, isNull);
+      expect(provider.serverHealth?.cpuUsage, 99);
+
+      await olderClient.dispose();
+      await newerClient.dispose();
+    });
   });
 
   group('HealthProvider - loadHealth', () {

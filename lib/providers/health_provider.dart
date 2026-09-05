@@ -48,6 +48,13 @@ class HealthProvider extends ChangeNotifier {
       await ApiClientManager.releaseClient(_currentServerId!);
     }
 
+    if (generation != _generation) {
+      // A later setApiClient() call already superseded this one while we
+      // awaited the release above - the newer call owns _currentServerId
+      // and the provider's state now, so this one must not touch either.
+      return;
+    }
+
     _currentServerId = server.id;
     _apiClient = null;
     _alerts = [];

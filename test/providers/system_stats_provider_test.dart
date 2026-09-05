@@ -195,6 +195,44 @@ void main() {
         isTrue,
       );
     });
+
+    test('clears history left behind by a stream that already ended on its '
+        'own', () async {
+      // Regression coverage: if the stream completes on its own (server
+      // disconnect) before the caller switches servers, _isSubscribed is
+      // already false, so unsubscribeFromStats()'s own early-return guard
+      // would otherwise skip clearing history entirely.
+      await provider.setApiClient(testServer);
+      await provider.subscribeToStats();
+      fakeClient.emitSystemStats(_sampleStats(cpuUsage: 80));
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.cpuHistory, isNotEmpty);
+
+      await fakeClient.dispose();
+      await Future<void>.delayed(Duration.zero);
+      expect(provider.isSubscribed, isFalse);
+
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        FakeApiClient(),
+      );
+
+      await provider.setApiClient(secondServer);
+
+      expect(provider.cpuHistory, isEmpty);
+      expect(provider.memoryHistory, isEmpty);
+      expect(provider.currentStats, isNull);
+    });
   });
 
   group('SystemStatsProvider - subscribeToStats', () {

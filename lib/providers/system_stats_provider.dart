@@ -53,6 +53,15 @@ class SystemStatsProvider extends ChangeNotifier {
 
     _currentServerId = server.id;
 
+    // unsubscribeFromStats() above only clears history when it actually runs
+    // its cleanup - it no-ops if the stream already finished on its own
+    // (_onStatsStreamDone flips _isSubscribed to false without clearing
+    // anything), which would otherwise leave the previous server's samples
+    // in the sparkline history for this new one.
+    _currentStats = null;
+    _cpuHistory.clear();
+    _memoryHistory.clear();
+
     try {
       // Load credentials for the server
       final serverWithCredentials = await ServerProvider.loadServerCredentials(
