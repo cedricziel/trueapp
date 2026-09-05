@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/cedricziel/trueapp/compare/v0.5.0...v0.6.0) (2026-09-05)
+
+
+### Features
+
+* add macOS TestFlight submission ([#158](https://github.com/cedricziel/trueapp/issues/158)) ([6949e3b](https://github.com/cedricziel/trueapp/commit/6949e3baf852caf39d258022e7b0bc1d93bb1e68))
+
 ## [0.5.0](https://github.com/cedricziel/trueapp/compare/v0.4.3...v0.5.0) (2026-09-05)
 
 
