@@ -98,6 +98,8 @@ class ConnectionErrorWidget extends StatelessWidget {
         return CupertinoIcons.exclamationmark_shield;
       case ConnectionErrorType.serverError:
         return CupertinoIcons.exclamationmark_triangle;
+      case ConnectionErrorType.invalidResponse:
+        return CupertinoIcons.exclamationmark_bubble;
       case ConnectionErrorType.unknown:
         return CupertinoIcons.question_circle;
     }

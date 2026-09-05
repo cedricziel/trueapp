@@ -342,7 +342,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
               else if (appProvider.error != null)
                 ErrorStateWidget(
                   title: 'App Error',
-                  message: 'Failed to load apps: ${appProvider.error}',
+                  message: appProvider.errorDetails == null
+                      ? 'Failed to load apps: ${appProvider.error}'
+                      : 'Failed to load apps: ${appProvider.error}\n'
+                            '${appProvider.errorDetails}',
                 )
               else if (appProvider.apps.isEmpty)
                 const EmptyStateWidget(

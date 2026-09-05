@@ -80,6 +80,22 @@ class TrueNasApiClient implements ApiClientInterface {
   Timer? _keepaliveTimer;
   bool _keepaliveEnabled = true;
   Duration _keepaliveInterval = const Duration(seconds: 30);
+
+  /// Start times of the requests (other than the keepalive ping itself)
+  /// still waiting for a reply on the current socket. Each request gets its
+  /// own grace window, so a newer request is not left unprotected because an
+  /// older one has been hanging for longer than [busyGracePeriod].
+  final List<DateTime> _inFlightRequestStarts = [];
+
+  /// How long an in-flight request vouches for the socket. While a request is
+  /// pending and younger than this, the keepalive does not probe or recover
+  /// the connection: a large reply (`app.available` is the whole catalog,
+  /// readmes included - megabytes over a cellular link) keeps the socket
+  /// legitimately busy for longer than the ping timeout, and a pong queues
+  /// behind it. Reconnecting in that state is what used to kill the pending
+  /// request with "The client closed with pending request". After the grace
+  /// period a hung request is no longer taken as a sign of life.
+  Duration busyGracePeriod = const Duration(minutes: 3);
   bool _awaitingPong = false;
 
   TrueNasApiClient(
@@ -302,12 +318,44 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
+  /// Sends [method] over the current socket, tracking it as in flight for
+  /// the keepalive's sake (see [busyGracePeriod]). Every application request
+  /// goes through here; the keepalive ping itself does not.
+  Future<dynamic> _request(String method, [dynamic parameters]) async {
+    final startedAt = DateTime.now();
+    _inFlightRequestStarts.add(startedAt);
+    try {
+      return await _client!.sendRequest(method, parameters);
+    } finally {
+      _inFlightRequestStarts.remove(startedAt);
+    }
+  }
+
+  /// True while any request younger than [busyGracePeriod] is still waiting
+  /// for its reply - evidence the socket is in use, not dead.
+  bool get _isBusyWithinGrace {
+    final now = DateTime.now();
+    return _inFlightRequestStarts.any(
+      (startedAt) => now.difference(startedAt) < busyGracePeriod,
+    );
+  }
+
   Future<void> _sendKeepalivePing() async {
     // A closed socket is precisely the case that needs recovering. Returning
     // here (as this used to) left the client dead until something else
     // happened to issue a request.
     if (!_hasLiveConnection || !_isAuthenticated) {
       await _handleKeepaliveTimeout();
+      return;
+    }
+
+    // Don't probe a socket that is busy serving a request: the pong would
+    // only queue behind the pending reply, and a timeout here would tear
+    // down the very connection that request is waiting on.
+    if (_isBusyWithinGrace) {
+      if (kDebugMode) {
+        print('TrueNAS API: Skipping keepalive ping, a request is in flight');
+      }
       return;
     }
 
@@ -363,6 +411,12 @@ class TrueNasApiClient implements ApiClientInterface {
     } catch (e) {
       if (kDebugMode) {
         print('TrueNAS API: Keepalive ping failed: $e');
+      }
+      // A request that started after this ping went out can hold the pong
+      // up just the same; it vouches for the socket, so don't reconnect.
+      if (_isBusyWithinGrace) {
+        _awaitingPong = false;
+        return;
       }
       await _handleKeepaliveTimeout();
     }
@@ -751,7 +805,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<UserInfo> getCurrentUser() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('auth.me');
+      final result = await _request('auth.me');
       return UserInfo.fromJson(result as Map<String, dynamic>);
     } catch (e) {
       throw _handleError(e);
@@ -763,7 +817,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getSystemInfo() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.info');
+      final result = await _request('system.info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -774,7 +828,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getSystemCpuInfo() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.cpu_info');
+      final result = await _request('system.cpu_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -785,7 +839,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getSystemMemoryInfo() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.memory_info');
+      final result = await _request('system.memory_info');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -796,7 +850,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<double> getSystemTemperature() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.temperature');
+      final result = await _request('system.temperature');
       return (result as num).toDouble();
     } catch (e) {
       throw _handleError(e);
@@ -808,7 +862,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> queryPools() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.query');
+      final result = await _request('pool.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -819,7 +873,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getPoolById(String id) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.query', {'id': id});
+      final result = await _request('pool.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -831,7 +885,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> queryDatasets() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.dataset.query');
+      final result = await _request('pool.dataset.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -842,9 +896,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getDatasetById(String id) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('pool.dataset.query', {
-        'id': id,
-      });
+      final result = await _request('pool.dataset.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -856,9 +908,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> listDirectory(String path) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('filesystem.listdir', {
-        'path': path,
-      });
+      final result = await _request('filesystem.listdir', {'path': path});
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -869,9 +919,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getFileInfo(String path) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('filesystem.stat', {
-        'path': path,
-      });
+      final result = await _request('filesystem.stat', {'path': path});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -883,7 +931,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> queryDisks() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('disk.query');
+      final result = await _request('disk.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -894,7 +942,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getDiskById(String id) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('disk.query', {'id': id});
+      final result = await _request('disk.query', {'id': id});
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -906,7 +954,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getNetworkInfo() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('network.general.summary');
+      final result = await _request('network.general.summary');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -917,7 +965,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('interface.query');
+      final result = await _request('interface.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
@@ -995,10 +1043,8 @@ class TrueNasApiClient implements ApiClientInterface {
     try {
       return await _traced('truenas.apps.available', () async {
         await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.available');
-        return (result as List<dynamic>)
-            .map((app) => App.fromJson(app as Map<String, dynamic>))
-            .toList();
+        final result = await _request('app.available');
+        return _parseAppList(result, App.fromJson, method: 'app.available');
       });
     } catch (e) {
       throw _handleError(e);
@@ -1010,14 +1056,92 @@ class TrueNasApiClient implements ApiClientInterface {
     try {
       return await _traced('truenas.apps.installed', () async {
         await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.query');
-        return (result as List<dynamic>)
-            .map((app) => _convertTrueNasAppToApp(app as Map<String, dynamic>))
-            .toList();
+        final result = await _request('app.query');
+        return _parseAppList(
+          result,
+          _convertTrueNasAppToApp,
+          method: 'app.query',
+        );
       });
     } catch (e) {
       throw _handleError(e);
     }
+  }
+
+  /// Parses a list-of-apps response entry by entry, so one app the server
+  /// describes in an unexpected shape doesn't take the whole list down with
+  /// it. TrueNAS has changed individual fields across releases more than
+  /// once (`last_update`, `last_updated`, ...) and every such change used to
+  /// surface as a bare "Connection error" for *all* apps. A skipped entry is
+  /// logged with its name and cause; only when nothing at all could be
+  /// parsed does this throw, since that means the whole response shape is
+  /// off rather than one entry.
+  List<App> _parseAppList(
+    Object? result,
+    App Function(Map<String, dynamic>) parse, {
+    required String method,
+  }) {
+    if (result is! List) {
+      throw FormatException(
+        '$method: expected a list of apps, got ${result.runtimeType}',
+      );
+    }
+
+    final apps = <App>[];
+    Object? firstFailure;
+    StackTrace? firstStackTrace;
+    String? firstFailedName;
+    var skipped = 0;
+    for (final entry in result) {
+      try {
+        if (entry is! Map) {
+          throw FormatException(
+            'expected an app object, got ${entry.runtimeType}',
+          );
+        }
+        apps.add(parse(Map<String, dynamic>.from(entry)));
+      } catch (e, stackTrace) {
+        skipped++;
+        if (firstFailure == null) {
+          firstFailure = e;
+          firstStackTrace = stackTrace;
+          firstFailedName = entry is Map ? entry['name']?.toString() : null;
+        }
+      }
+    }
+
+    // One record per response, not per entry: a field that changed shape in
+    // a newer TrueNAS fails every entry the same way, and the catalog is
+    // re-fetched on every refresh.
+    if (skipped > 0) {
+      if (kDebugMode) {
+        print(
+          'TrueNAS API: $method: skipped $skipped of ${result.length} app '
+          'entries, first failure ("$firstFailedName"): $firstFailure',
+        );
+      }
+      _telemetry?.getLogger().error(
+        'TrueNAS API: $method returned app entries that could not be '
+        'parsed; skipped them',
+        error: firstFailure,
+        stackTrace: firstStackTrace,
+        attributes: {
+          'server.id': _server.id,
+          'truenas.method': method,
+          'truenas.apps.skipped': skipped,
+          'truenas.apps.total': result.length,
+          'truenas.app.name': firstFailedName ?? '',
+        },
+      );
+    }
+
+    if (apps.isEmpty && skipped > 0) {
+      throw FormatException(
+        '$method: none of the $skipped app entries could be parsed: '
+        '$firstFailure',
+      );
+    }
+    return apps;
   }
 
   /// Convert TrueNAS app query response to our App model
@@ -1134,7 +1258,7 @@ class TrueNasApiClient implements ApiClientInterface {
     try {
       return await _traced('truenas.apps.categories', () async {
         await _ensureAuthenticated();
-        final result = await _client!.sendRequest('app.categories');
+        final result = await _request('app.categories');
         return (result as List<dynamic>).cast<String>();
       });
     } catch (e) {
@@ -1146,7 +1270,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getDockerStatus() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('docker.status');
+      final result = await _request('docker.status');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1185,7 +1309,7 @@ class TrueNasApiClient implements ApiClientInterface {
     try {
       await _ensureAuthenticated();
       // The TrueNAS API takes just the app name as a string parameter
-      final result = await _client!.sendRequest('app.upgrade', [appName]);
+      final result = await _request('app.upgrade', [appName]);
       // The upgrade method returns the app object on success, so we check if it's not null
       return result != null;
     } catch (e) {
@@ -1200,7 +1324,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<bool> startApp(String appName) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.start', [appName]);
+      final result = await _request('app.start', [appName]);
       return result != null;
     } catch (e) {
       if (kDebugMode) {
@@ -1214,7 +1338,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<bool> stopApp(String appName) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.stop', [appName]);
+      final result = await _request('app.stop', [appName]);
       return result != null;
     } catch (e) {
       if (kDebugMode) {
@@ -1228,7 +1352,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<bool> restartApp(String appName) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('app.restart', [appName]);
+      final result = await _request('app.restart', [appName]);
       return result != null;
     } catch (e) {
       if (kDebugMode) {
@@ -1269,8 +1393,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
       // Subscribe to realtime reporting data
       _realtimeSubscriptionId =
-          await _client!.sendRequest('core.subscribe', ['reporting.realtime'])
-              as String;
+          await _request('core.subscribe', ['reporting.realtime']) as String;
 
       if (kDebugMode) {
         print(
@@ -1299,9 +1422,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
     try {
       if (_hasLiveConnection) {
-        await _client!.sendRequest('core.unsubscribe', [
-          _realtimeSubscriptionId!,
-        ]);
+        await _request('core.unsubscribe', [_realtimeSubscriptionId!]);
 
         if (kDebugMode) {
           print(
@@ -1353,7 +1474,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
       // Subscribe to app stats data
       _appStatsSubscriptionId =
-          await _client!.sendRequest('core.subscribe', ['app.stats']) as String;
+          await _request('core.subscribe', ['app.stats']) as String;
 
       if (kDebugMode) {
         print(
@@ -1382,9 +1503,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
     try {
       if (_hasLiveConnection) {
-        await _client!.sendRequest('core.unsubscribe', [
-          _appStatsSubscriptionId!,
-        ]);
+        await _request('core.unsubscribe', [_appStatsSubscriptionId!]);
 
         if (kDebugMode) {
           print(
@@ -1414,7 +1533,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getSystemGeneralConfig() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.general.config');
+      final result = await _request('system.general.config');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1425,7 +1544,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.advanced.config');
+      final result = await _request('system.advanced.config');
       return result as Map<String, dynamic>;
     } catch (e) {
       throw _handleError(e);
@@ -1436,7 +1555,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<String> getSystemProductType() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('system.product_type');
+      final result = await _request('system.product_type');
       return result as String;
     } catch (e) {
       throw _handleError(e);
@@ -1447,7 +1566,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<bool> isIxHardware() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('truenas.is_ix_hardware');
+      final result = await _request('truenas.is_ix_hardware');
       return result as bool;
     } catch (e) {
       throw _handleError(e);
@@ -1459,7 +1578,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<List<Job>> getJobs() async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest('core.get_jobs');
+      final result = await _request('core.get_jobs');
       final jobs = (result as List<dynamic>).cast<Map<String, dynamic>>().map(
         Job.fromJson,
       );
@@ -1498,8 +1617,7 @@ class TrueNasApiClient implements ApiClientInterface {
       _jobsController ??= StreamController<List<Job>>.broadcast();
 
       _jobsSubscriptionId =
-          await _client!.sendRequest('core.subscribe', ['core.get_jobs'])
-              as String;
+          await _request('core.subscribe', ['core.get_jobs']) as String;
 
       _isSubscribedToJobs = true;
 
@@ -1522,7 +1640,7 @@ class TrueNasApiClient implements ApiClientInterface {
 
     try {
       if (_hasLiveConnection) {
-        await _client!.sendRequest('core.unsubscribe', [_jobsSubscriptionId!]);
+        await _request('core.unsubscribe', [_jobsSubscriptionId!]);
 
         if (kDebugMode) {
           print(
@@ -1552,7 +1670,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<void> abortJob(int jobId) async {
     try {
       await _ensureAuthenticated();
-      await _client!.sendRequest('core.job_abort', [jobId]);
+      await _request('core.job_abort', [jobId]);
     } catch (e) {
       throw _handleError(e);
     }
@@ -1562,7 +1680,7 @@ class TrueNasApiClient implements ApiClientInterface {
   Future<int> rerunJob(Job job) async {
     try {
       await _ensureAuthenticated();
-      final result = await _client!.sendRequest(job.method, job.arguments);
+      final result = await _request(job.method, job.arguments);
       return result as int;
     } catch (e) {
       throw _handleError(e);
@@ -1641,28 +1759,57 @@ class TrueNasApiClient implements ApiClientInterface {
       );
     }
 
-    // Authentication issues
+    // A JSON-RPC error from the middleware itself. TrueNAS attaches a
+    // `data` map ({error: errno, errname, reason, trace, extra}) to method
+    // call failures, and its message alone ("Method call error") says
+    // nothing - the reason is what the user needs to see.
     if (error is RpcException) {
+      final data = error.data;
+      final reason = data is Map ? data['reason']?.toString() : null;
+      final errname = data is Map ? data['errname']?.toString() : null;
+      final reasonLower = (reason ?? '').toLowerCase();
+      final details = reason == null || reason.isEmpty
+          ? 'JSON-RPC error ${error.code}: ${error.message}'
+          : reason;
+
+      if (errname == 'ENOTAUTHENTICATED' ||
+          reasonLower.contains('not authenticated') ||
+          reasonLower.contains('session is expired')) {
+        return ConnectionException(
+          ConnectionError.authenticationFailed(details: details),
+        );
+      }
+
       if (error.code == 401 ||
           errorString.contains('unauthorized') ||
           errorString.contains('authentication failed') ||
           errorString.contains('invalid credentials')) {
         return ConnectionException(
-          ConnectionError.invalidCredentials(details: error.message),
+          ConnectionError.invalidCredentials(details: details),
         );
       }
 
-      if (error.code == 403 || errorString.contains('forbidden')) {
+      if (error.code == 403 ||
+          errname == 'EACCES' ||
+          errname == 'EPERM' ||
+          errorString.contains('forbidden') ||
+          reasonLower.contains('not authorized')) {
         return ConnectionException(
-          ConnectionError.permissionDenied(details: error.message),
+          ConnectionError.permissionDenied(details: details),
         );
       }
 
-      if (error.code >= 500) {
-        return ConnectionException(
-          ConnectionError.serverError(details: error.message),
-        );
-      }
+      // Anything else the middleware rejected (a method that failed, a
+      // method that doesn't exist on this TrueNAS version, invalid params)
+      // happened on the server, and is not a connectivity problem.
+      return ConnectionException(ConnectionError.serverError(details: details));
+    }
+
+    // The server answered, but not in a shape this client understands.
+    if (error is FormatException || error is TypeError) {
+      return ConnectionException(
+        ConnectionError.invalidResponse(details: error.toString()),
+      );
     }
 
     // WebSocket specific errors
@@ -1682,13 +1829,15 @@ class TrueNasApiClient implements ApiClientInterface {
     );
   }
 
-  Exception _handleError(dynamic error) {
-    // For backward compatibility, convert ConnectionException to regular Exception
+  /// Normalises any failure into a [ConnectionException]. This used to
+  /// re-wrap the classified error as a plain `Exception(message)`, which
+  /// dropped both the [ConnectionErrorType] and the technical details on
+  /// the floor - so every failure reached the UI as a generic "Connection
+  /// error" with nothing to act on.
+  ConnectionException _handleError(dynamic error) {
     if (error is ConnectionException) {
-      return Exception(error.error.message);
+      return error;
     }
-
-    final connectionError = _handleConnectionError(error);
-    return Exception(connectionError.error.message);
+    return _handleConnectionError(error);
   }
 }

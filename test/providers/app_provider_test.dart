@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/services/database.dart';
@@ -35,6 +38,39 @@ App _sampleApp({
     usedPorts: const [],
     portals: portals,
   );
+}
+
+/// A [FakeApiClient] whose installed-apps call fails the way the real
+/// client fails: with a classified [ConnectionException], not a bare
+/// [Exception].
+class _ClassifiedFailureClient extends FakeApiClient {
+  ConnectionError failure = ConnectionError.permissionDenied(
+    details: 'Not authorized',
+  );
+
+  @override
+  Future<List<App>> getInstalledApps() async {
+    calls.add('getInstalledApps');
+    throw ConnectionException(failure);
+  }
+}
+
+/// A [FakeApiClient] whose catalog call blocks on [gate] while installed
+/// apps resolve immediately.
+class _GatedCatalogClient extends FakeApiClient {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<List<App>> getAvailableApps() async {
+    await gate.future;
+    return super.getAvailableApps();
+  }
+}
+
+Future<void> _waitUntil(bool Function() condition) async {
+  while (!condition()) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
 }
 
 void main() {
@@ -216,20 +252,182 @@ void main() {
       expect(fakeClient.calls, contains('subscribeToAppStats'));
     });
 
+    test('an installed-apps failure falls back to persisted (empty) data with '
+        'an error that keeps the cause', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.failingMethods.add('getInstalledApps');
+
+      await appProvider.loadApps();
+
+      expect(appProvider.connectionError, isNotNull);
+      expect(appProvider.error, appProvider.connectionError!.shortMessage);
+      expect(
+        appProvider.errorDetails,
+        contains('getInstalledApps configured to fail'),
+      );
+      expect(appProvider.catalogError, isNull);
+      expect(appProvider.appConfigs, isEmpty);
+      expect(appProvider.isLoading, isFalse);
+    });
+
     test(
-      'a failure falls back to persisted (empty) data with an error',
+      'a classified failure from the client is surfaced as-is, type and '
+      'details included, instead of being flattened to "Connection error"',
       () async {
+        final client = _ClassifiedFailureClient();
+        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
         await appProvider.setServer(testServer);
-        fakeClient.failingMethods.add('getAvailableApps');
 
         await appProvider.loadApps();
 
-        expect(appProvider.connectionError, isNotNull);
-        expect(appProvider.error, appProvider.connectionError!.shortMessage);
-        expect(appProvider.appConfigs, isEmpty);
-        expect(appProvider.isLoading, isFalse);
+        expect(
+          appProvider.connectionError?.type,
+          ConnectionErrorType.permissionDenied,
+        );
+        expect(appProvider.error, 'Permission denied');
+        expect(appProvider.errorDetails, 'Not authorized');
       },
     );
+
+    test('a catalog failure degrades to installed apps instead of failing the '
+        'whole load', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.failingMethods.add('getAvailableApps');
+      fakeClient.installedApps = [_sampleApp(name: 'plex', installed: true)];
+      fakeClient.appCategories = ['media'];
+
+      await appProvider.loadApps();
+
+      expect(appProvider.connectionError, isNull);
+      expect(appProvider.error, isNull);
+      expect(appProvider.installedApps, hasLength(1));
+      expect(appProvider.categories, ['media']);
+      expect(appProvider.catalogError, isNotNull);
+      expect(
+        appProvider.catalogError!.technicalDetails,
+        contains('getAvailableApps configured to fail'),
+      );
+      expect(appProvider.isLoading, isFalse);
+    });
+
+    test('a categories failure is a catalog failure too', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.failingMethods.add('getAppCategories');
+      fakeClient.installedApps = [_sampleApp(name: 'plex', installed: true)];
+      fakeClient.availableApps = [
+        _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+      ];
+
+      await appProvider.loadApps();
+
+      expect(appProvider.connectionError, isNull);
+      expect(appProvider.catalogError, isNotNull);
+      expect(appProvider.installedApps, hasLength(1));
+      // The available list itself still came through.
+      expect(appProvider.availableApps, hasLength(1));
+      expect(appProvider.categories, isEmpty);
+    });
+
+    test(
+      'a catalog failure keeps the previously synced catalog entries',
+      () async {
+        await appProvider.setServer(testServer);
+        fakeClient.installedApps = [_sampleApp(name: 'plex', installed: true)];
+        fakeClient.availableApps = [
+          _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+        ];
+        await appProvider.loadApps();
+        expect(appProvider.availableApps, hasLength(1));
+
+        fakeClient.failingMethods.add('getAvailableApps');
+        await appProvider.loadApps();
+
+        expect(appProvider.catalogError, isNotNull);
+        expect(appProvider.availableApps, hasLength(1));
+        expect(appProvider.installedApps, hasLength(1));
+      },
+    );
+
+    test('installed apps are exposed as soon as they arrive, before the '
+        'catalog has finished loading', () async {
+      final client = _GatedCatalogClient()
+        ..installedApps = [_sampleApp(name: 'plex', installed: true)]
+        ..availableApps = [
+          _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+        ]
+        ..appCategories = ['media'];
+      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+      await appProvider.setServer(testServer);
+
+      final load = appProvider.loadApps();
+      await _waitUntil(() => !appProvider.isLoading);
+
+      expect(appProvider.installedApps, hasLength(1));
+      expect(appProvider.availableApps, isEmpty);
+      expect(appProvider.isCatalogLoading, isTrue);
+      expect(appProvider.connectionError, isNull);
+
+      client.gate.complete();
+      await load;
+
+      expect(appProvider.isCatalogLoading, isFalse);
+      expect(appProvider.availableApps, hasLength(1));
+      expect(appProvider.installedApps, hasLength(1));
+      expect(appProvider.categories, ['media']);
+      expect(appProvider.catalogError, isNull);
+    });
+
+    test(
+      'a catalog that arrives after the server was switched is dropped',
+      () async {
+        final client = _GatedCatalogClient()
+          ..installedApps = [_sampleApp(name: 'plex', installed: true)]
+          ..availableApps = [
+            _sampleApp(name: 'sonarr', installed: false, portals: const {}),
+          ];
+        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+        await appProvider.setServer(testServer);
+
+        final load = appProvider.loadApps();
+        await _waitUntil(() => !appProvider.isLoading);
+        expect(appProvider.isCatalogLoading, isTrue);
+
+        await appProvider.setServer(null);
+        client.gate.complete();
+        await load;
+
+        expect(appProvider.appConfigs, isEmpty);
+        expect(appProvider.isCatalogLoading, isFalse);
+        expect(appProvider.catalogError, isNull);
+      },
+    );
+
+    test('a successful reload clears a previous catalog error', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.failingMethods.add('getAvailableApps');
+      await appProvider.loadApps();
+      expect(appProvider.catalogError, isNotNull);
+
+      fakeClient.failingMethods.remove('getAvailableApps');
+      await appProvider.loadApps();
+
+      expect(appProvider.catalogError, isNull);
+    });
+
+    test('an installed-apps failure wins over a simultaneous catalog failure '
+        'and leaves no unhandled error behind', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.failingMethods
+        ..add('getInstalledApps')
+        ..add('getAvailableApps')
+        ..add('getAppCategories');
+
+      await appProvider.loadApps();
+
+      expect(appProvider.connectionError, isNotNull);
+      expect(appProvider.catalogError, isNull);
+      expect(appProvider.isLoading, isFalse);
+    });
 
     test('is a no-op without a current server', () async {
       await appProvider.loadApps();
