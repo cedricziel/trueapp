@@ -785,6 +785,7 @@ void main() {
       // declared the socket dead and reconnected, and the pending request
       // died with "The client closed with pending request".
       final release = Completer<void>();
+      final availableReceived = Completer<void>();
       var pingCount = 0;
       server
         ..onMethod('core.ping', (_) {
@@ -793,6 +794,7 @@ void main() {
         })
         ..onMethod('app.categories', (_) => <String>[])
         ..onMethod('app.available', (_) async {
+          availableReceived.complete();
           await release.future;
           return [
             {'name': 'plex', 'title': 'Plex'},
@@ -804,9 +806,12 @@ void main() {
       // request below is the only thing that can hold the socket busy.
       await client.getAppCategories();
       await Future<void>.delayed(const Duration(milliseconds: 50));
-      final pingsBefore = pingCount;
 
+      // Frames on one socket arrive in order, so once the server has seen
+      // this request, any ping sent before it has already been counted.
       final pending = client.getAvailableApps();
+      await availableReceived.future.timeout(const Duration(seconds: 5));
+      final pingsBefore = pingCount;
       await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(
@@ -859,6 +864,7 @@ void main() {
         'has been hung for longer than the grace period', () async {
       final never = Completer<void>();
       final release = Completer<void>();
+      final categoriesReceived = Completer<void>();
       var pingCount = 0;
       server
         ..onMethod('core.ping', (_) {
@@ -870,6 +876,7 @@ void main() {
           return <Object>[];
         })
         ..onMethod('app.categories', (_) async {
+          categoriesReceived.complete();
           await release.future;
           return <String>[];
         });
@@ -883,8 +890,12 @@ void main() {
       expect(pingCount, greaterThan(0));
 
       // A newer request must hold keepalive off again for its own grace.
-      final pingsBefore = pingCount;
+      // Frames on one socket arrive in order, so once the server has seen
+      // this request, any ping sent before it has already been counted.
+      // Sampling the baseline earlier would miss such an in-flight ping.
       final pending = client.getAppCategories();
+      await categoriesReceived.future.timeout(const Duration(seconds: 5));
+      final pingsBefore = pingCount;
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(
         pingCount,
