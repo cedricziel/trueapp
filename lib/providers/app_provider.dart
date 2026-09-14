@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -340,9 +341,16 @@ class AppProvider extends ChangeNotifier {
     // app_configs.server_id has an enforced foreign key to nas_servers, but
     // on Apple platforms the current server may only exist in CloudKit (see
     // AppDatabase.upsertServerAnchor) - mirror it in first so these inserts
-    // don't fail with a foreign key violation.
+    // don't fail with a foreign key violation. Re-check the server still
+    // exists right before writing the anchor: if ServerProvider.deleteServer
+    // already ran concurrently (it cleans up this same anchor row), writing
+    // here would resurrect it - and the app_configs rows below - for a
+    // server the user just deleted, with nothing left to clean them up
+    // afterward.
     final currentServer = _currentServer;
     if (currentServer != null) {
+      final stillExists = await _serverService.getServer(currentServer.id);
+      if (stillExists == null) return;
       await _database.upsertServerAnchor(currentServer);
     }
 
