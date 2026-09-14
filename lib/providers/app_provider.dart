@@ -337,6 +337,15 @@ class AppProvider extends ChangeNotifier {
   Future<void> _syncAppsToDatabase(List<App> apps) async {
     if (_currentServerId == null) return;
 
+    // app_configs.server_id has an enforced foreign key to nas_servers, but
+    // on Apple platforms the current server may only exist in CloudKit (see
+    // AppDatabase.upsertServerAnchor) - mirror it in first so these inserts
+    // don't fail with a foreign key violation.
+    final currentServer = _currentServer;
+    if (currentServer != null) {
+      await _database.upsertServerAnchor(currentServer);
+    }
+
     for (final app in apps) {
       // Get existing config if any
       final existingConfig = await _database.getFullAppConfig(

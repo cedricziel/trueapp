@@ -436,6 +436,37 @@ void main() {
     });
   });
 
+  group('AppProvider - loadApps (server known only outside SQLite)', () {
+    // On Apple platforms, server metadata lives in CloudKit and is never
+    // mirrored into the local `nas_servers` table - so a server AppProvider
+    // knows about (credentials + API client) can be absent from that table
+    // while app_configs.server_id still enforces a foreign key against it.
+    // This used to make the very first sync throw SqliteException(787); see
+    // AppDatabase.upsertServerAnchor.
+    test(
+      'syncing apps still succeeds and anchors the server locally',
+      () async {
+        // saveServerConfig writes both the keychain password and a
+        // `nas_servers` row; deleting only the row afterwards leaves the
+        // credentials in place while reproducing a server that is unknown to
+        // this database, mirroring the CloudKit-only situation.
+        await database.deleteServer(testServer.id);
+        expect(await database.getServer(testServer.id), isNull);
+
+        fakeClient.installedApps = [_sampleApp(name: 'ix-app')];
+        fakeClient.availableApps = [];
+        fakeClient.appCategories = [];
+
+        await appProvider.setApiClient(testServer);
+        await appProvider.loadApps();
+
+        expect(appProvider.connectionError, isNull);
+        expect(appProvider.appConfigs, hasLength(1));
+        expect(await database.getServer(testServer.id), isNotNull);
+      },
+    );
+  });
+
   group('AppProvider - loadApps (offline)', () {
     test('loads from the database when there is no API client', () async {
       final orphanServer = NasServer.create(

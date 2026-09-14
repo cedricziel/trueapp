@@ -6,6 +6,7 @@ import 'package:truehub/models/user_info.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 enum AuthenticationState {
@@ -31,6 +32,7 @@ class AuthenticationStatus {
 
 class ServerProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final AppDatabase Function()? _databaseRef;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
   ApiClientInterface? _apiClient;
@@ -52,7 +54,16 @@ class ServerProvider extends ChangeNotifier {
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
   bool _disposed = false;
 
-  ServerProvider(this._serverService) {
+  /// [databaseRef] is used to clean up the local `nas_servers` foreign-key
+  /// anchor row (see [AppDatabase.upsertServerAnchor]) on server deletion.
+  /// It has no default - callers that want that cleanup pass one explicitly
+  /// (see `main.dart`, which wires up [AppDatabase.instance]); left null,
+  /// deletion skips it. A widget-test default of [AppDatabase.instance]
+  /// would construct that singleton - backed by `drift_flutter`, which talks
+  /// to `path_provider` - outside a real Flutter app, which throws
+  /// `MissingPluginException` (see test/flutter_test_config.dart).
+  ServerProvider(this._serverService, {AppDatabase Function()? databaseRef})
+    : _databaseRef = databaseRef {
     _initializeProvider();
   }
 
@@ -226,6 +237,21 @@ class ServerProvider extends ChangeNotifier {
     // The server no longer exists, so its cached client (and any live
     // websocket/keepalive timer it holds) must not survive the deletion.
     await ApiClientManager.closeClient(id);
+
+    // Drop the local foreign-key anchor row too (see
+    // AppDatabase.upsertServerAnchor) so it doesn't linger forever on
+    // platforms where the real server metadata lives in CloudKit; this
+    // cascade-deletes any app_configs left over for the server as well.
+    final databaseRef = _databaseRef;
+    if (databaseRef != null) {
+      try {
+        await databaseRef().deleteServer(id);
+      } catch (e) {
+        if (kDebugMode) {
+          print('ServerProvider: Failed to clean up local anchor for $id: $e');
+        }
+      }
+    }
 
     if (_selectedServer?.id == id) {
       _selectedServer = null;

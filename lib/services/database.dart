@@ -327,6 +327,35 @@ class AppDatabase extends _$AppDatabase {
     // Note: Credentials are now handled by ServerSyncService, not stored here
   }
 
+  /// Inserts or updates [server] in the local `nas_servers` table without
+  /// requiring it to be absent first.
+  ///
+  /// On Apple platforms server metadata is owned by CloudKit
+  /// (`CloudKitServerRepository`), which never writes to this SQLite
+  /// database - but `app_configs.server_id` still enforces a foreign key
+  /// against `nas_servers` here (see the `PRAGMA foreign_keys = ON` above).
+  /// Callers that are about to write `app_configs` rows for a server use
+  /// this to mirror it in first as a foreign-key anchor, regardless of
+  /// which repository is actually authoritative for its metadata.
+  Future<void> upsertServerAnchor(models.NasServer server) async {
+    await into(nasServers).insertOnConflictUpdate(
+      NasServersCompanion(
+        id: Value(server.id),
+        name: Value(server.name),
+        host: Value(server.host),
+        username: Value(server.username),
+        localUrl: Value(server.localUrl),
+        trustedWifiSsids: Value(jsonEncode(server.trustedWifiSsids)),
+        port: Value(server.port),
+        useHttps: Value(server.useHttps),
+        allowUntrustedCertificates: Value(server.allowUntrustedCertificates),
+        lastConnected: Value(server.lastConnected),
+        isActive: Value(server.isActive),
+        isDefault: Value(server.isDefault),
+      ),
+    );
+  }
+
   Future<void> deleteServer(String id) async {
     // Delete server from database
     await (delete(nasServers)..where((tbl) => tbl.id.equals(id))).go();

@@ -45,7 +45,7 @@ class TestProviders {
     required AppDatabase database,
   }) async {
     final service = await createMockUnifiedServerService(database: database);
-    return ServerProvider(service);
+    return ServerProvider(service, databaseRef: () => database);
   }
 
   /// Sets up the test environment with mock implementations

@@ -258,6 +258,65 @@ void main() {
     });
   });
 
+  group('upsertServerAnchor', () {
+    test('inserts a row for a server that does not exist yet', () async {
+      final database = createTestDatabase();
+      final server = models.NasServer.create(
+        name: 'CloudKit Only',
+        host: 'cloudkit.example.com',
+        port: null,
+        username: 'admin',
+        password: 'irrelevant-for-the-database-layer',
+      );
+
+      await database.upsertServerAnchor(server);
+
+      final fetched = await database.getServer(server.id);
+      expect(fetched, isNotNull);
+      expect(fetched!.name, 'CloudKit Only');
+    });
+
+    test('updates an already-anchored server instead of throwing', () async {
+      final database = createTestDatabase();
+      final server = models.NasServer.create(
+        name: 'Original Name',
+        host: 'anchor.example.com',
+        port: null,
+        username: 'admin',
+        password: 'pw',
+      );
+      await database.upsertServerAnchor(server);
+
+      final renamed = server.copyWith(name: 'Renamed');
+      await database.upsertServerAnchor(renamed);
+
+      final fetched = await database.getServer(server.id);
+      expect(fetched?.name, 'Renamed');
+      expect(await database.getAllServers(), hasLength(1));
+    });
+
+    test('lets an app config for the anchored server be inserted afterwards, '
+        'satisfying the foreign key that a CloudKit-only server would '
+        'otherwise violate', () async {
+      final database = createTestDatabase();
+      final server = models.NasServer.create(
+        name: 'CloudKit Only',
+        host: 'cloudkit.example.com',
+        port: null,
+        username: 'admin',
+        password: 'pw',
+      );
+
+      await database.upsertServerAnchor(server);
+
+      final id = await database.insertAppConfig(
+        AppConfigsCompanion.insert(serverId: server.id, appName: 'ix-app'),
+      );
+
+      expect(id, isPositive);
+    });
+  });
+
   group('AppConfigs CRUD', () {
     test('getAppConfigs returns an empty list for an unknown server', () async {
       final database = createTestDatabase();
