@@ -26,7 +26,10 @@ void main() {
     mockServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(mockServerService);
+    serverProvider = ServerProvider(
+      mockServerService,
+      databaseRef: () => database,
+    );
 
     testServer = NasServer.create(
       name: 'Test Server',
@@ -230,6 +233,21 @@ void main() {
       },
     );
 
+    test(
+      'deleting a server removes its local nas_servers anchor row so it '
+      "doesn't linger once the repository's own copy (e.g. CloudKit) is gone",
+      () async {
+        expect(await database.getServer(testServer.id), isNotNull);
+
+        await serverProvider.deleteServer(testServer.id);
+
+        expect(await database.getServer(testServer.id), isNull);
+
+        // Restore the test server for other tests relying on setUp state.
+        await serverProvider.addServer(testServer, 'password');
+      },
+    );
+
     test('should update server and maintain consistency', () async {
       // Add another server
       final server2 = NasServer.create(
@@ -391,7 +409,10 @@ void main() {
     test(
       'isLoadingServers flips to false once the initial load completes',
       () async {
-        final freshProvider = ServerProvider(mockServerService);
+        final freshProvider = ServerProvider(
+          mockServerService,
+          databaseRef: () => database,
+        );
         addTearDown(freshProvider.dispose);
 
         expect(freshProvider.isLoadingServers, isTrue);

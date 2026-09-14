@@ -46,7 +46,10 @@ void main() async {
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
         ChangeNotifierProvider(
-          create: (context) => ServerProvider(unifiedServerService),
+          create: (context) => ServerProvider(
+            unifiedServerService,
+            databaseRef: () => AppDatabase.instance,
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => PoolProvider(unifiedServerService),

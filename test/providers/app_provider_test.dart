@@ -6,10 +6,14 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/services/cloudkit_server_repository.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show MockKeychainService;
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/mock_cloudkit_service_adapter.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -434,6 +438,95 @@ void main() {
       expect(appProvider.appConfigs, isEmpty);
       expect(appProvider.isLoading, isFalse);
     });
+  });
+
+  group('AppProvider - loadApps (server known only outside SQLite)', () {
+    // On Apple platforms, server metadata lives in CloudKit and is never
+    // mirrored into the local `nas_servers` table - so a server AppProvider
+    // knows about (credentials + API client) can be absent from that table
+    // while app_configs.server_id still enforces a foreign key against it.
+    // This used to make the very first sync throw SqliteException(787); see
+    // AppDatabase.upsertServerAnchor.
+    test(
+      'syncing apps still succeeds and anchors the server locally',
+      () async {
+        // A CloudKit-backed repository is genuinely decoupled from the local
+        // `nas_servers` table (unlike SqliteServerRepository, which IS that
+        // table) - so this is the faithful way to simulate a server that
+        // exists on the Apple-platform repository but not yet locally,
+        // rather than just deleting the row underneath a repository that
+        // would otherwise still see it as missing too.
+        final cloudKitRepository = CloudKitServerRepository(
+          cloudKitService: MockCloudKitServiceAdapter(),
+        );
+        final cloudKitKeychain = MockKeychainService();
+        final cloudKitService = UnifiedServerService(
+          repository: cloudKitRepository,
+          keychain: cloudKitKeychain,
+        );
+        await cloudKitService.initialize();
+        addTearDown(cloudKitService.dispose);
+        await cloudKitService.saveServerConfig(
+          server: testServer,
+          password: 'password',
+        );
+
+        // `testServer` is already anchored locally from the outer setUp's
+        // (SQLite-repository-backed) `serverService`; remove that row so
+        // this test starts from the real CloudKit-only situation, where
+        // `cloudKitService` (checked by the new race guard) knows about the
+        // server but the local anchor table does not.
+        await database.deleteServer(testServer.id);
+        expect(await database.getServer(testServer.id), isNull);
+
+        final cloudKitAppProvider = AppProvider(
+          database: database,
+          serverService: cloudKitService,
+        );
+        addTearDown(cloudKitAppProvider.dispose);
+        TestProviders.mockApiClientManager.addMockClient(
+          testServer.id,
+          fakeClient,
+        );
+
+        fakeClient.installedApps = [_sampleApp(name: 'ix-app')];
+        fakeClient.availableApps = [];
+        fakeClient.appCategories = [];
+
+        await cloudKitAppProvider.setApiClient(testServer);
+        await cloudKitAppProvider.loadApps();
+
+        expect(cloudKitAppProvider.connectionError, isNull);
+        expect(cloudKitAppProvider.appConfigs, hasLength(1));
+        expect(await database.getServer(testServer.id), isNotNull);
+      },
+    );
+
+    test(
+      'a server deleted mid-sync is not resurrected by the anchor write',
+      () async {
+        // Simulates ServerProvider.deleteServer() running concurrently with
+        // an in-flight loadApps(): it removes the server from the
+        // repository and cleans up the local anchor row, both before this
+        // sync reaches _syncAppsToDatabase. The already-acquired API client
+        // is untouched by that deletion, so the sync still runs to
+        // completion - it must not write the anchor (or any app_configs)
+        // back for a server that no longer exists anywhere.
+        await appProvider.setApiClient(testServer);
+        fakeClient.installedApps = [_sampleApp(name: 'ix-app')];
+        fakeClient.availableApps = [];
+        fakeClient.appCategories = [];
+
+        await serverService.deleteServerConfig(testServer.id);
+        await database.deleteServer(testServer.id);
+
+        await appProvider.loadApps();
+
+        expect(appProvider.connectionError, isNull);
+        expect(appProvider.appConfigs, isEmpty);
+        expect(await database.getServer(testServer.id), isNull);
+      },
+    );
   });
 
   group('AppProvider - loadApps (offline)', () {
