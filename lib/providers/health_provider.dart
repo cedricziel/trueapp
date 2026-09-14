@@ -7,10 +7,12 @@ import 'package:truehub/models/service_status.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 class HealthProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   List<Alert> _alerts = [];
@@ -25,7 +27,10 @@ class HealthProvider extends ChangeNotifier {
   /// overwriting the newer selection's client, alerts, or services.
   int _generation = 0;
 
-  HealthProvider(this._serverService);
+  HealthProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   List<Alert> get alerts => _alerts;
 
@@ -87,10 +92,15 @@ class HealthProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('HealthProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'HealthProvider.setApiClient',
+      );
     }
     notifyListeners();
   }
@@ -115,12 +125,22 @@ class HealthProvider extends ChangeNotifier {
       _services = rawServices.map(ServiceStatus.fromJson).toList();
       _serverHealth = serverHealth;
       _connectionError = null;
-    } on ConnectionException catch (e) {
+    } on ConnectionException catch (e, stackTrace) {
       if (generation == _generation) _connectionError = e.error;
-    } catch (e) {
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'HealthProvider.loadHealth',
+      );
+    } catch (e, stackTrace) {
       if (generation == _generation) {
         _connectionError = ConnectionError.unknown(details: e.toString());
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'HealthProvider.loadHealth',
+      );
     } finally {
       if (generation == _generation) _isLoading = false;
       notifyListeners();

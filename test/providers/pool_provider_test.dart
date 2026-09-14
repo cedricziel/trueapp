@@ -6,14 +6,32 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
+
+/// A [FakeApiClient] whose [getPools] throws a classified
+/// [ConnectionException] instead of a generic exception, so tests can
+/// exercise the `on ConnectionException catch` branch of
+/// `PoolProvider.loadPools` separately from its generic `catch`.
+class _ClassifiedFailureClient extends FakeApiClient {
+  ConnectionError failure = ConnectionError.permissionDenied(
+    details: 'Not authorized',
+  );
+
+  @override
+  Future<List<Map<String, dynamic>>> getPools() async {
+    calls.add('getPools');
+    throw ConnectionException(failure);
+  }
+}
 
 void main() {
   late AppDatabase database;
   late UnifiedServerService serverService;
   late PoolProvider poolProvider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -24,7 +42,11 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    poolProvider = PoolProvider(serverService);
+    telemetryService = FakeTelemetryService();
+    poolProvider = PoolProvider(
+      serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -116,6 +138,11 @@ void main() {
       expect(poolProvider.pools, isEmpty);
       await poolProvider.loadPools();
       expect(poolProvider.pools, isEmpty);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'PoolProvider.setServer',
+      );
     });
 
     test('a null getClient result leaves the client unset', () async {
@@ -181,6 +208,18 @@ void main() {
 
       expect(poolProvider.pools, isEmpty);
     });
+
+    test('a getClient failure is reported to telemetry', () async {
+      TestProviders.mockApiClientManager.shouldFailConnection = true;
+
+      await poolProvider.setApiClient(testServer);
+
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'PoolProvider.setApiClient',
+      );
+    });
   });
 
   group('PoolProvider - loadPools', () {
@@ -217,6 +256,31 @@ void main() {
       expect(poolProvider.connectionError, isNotNull);
       expect(poolProvider.connectionError!.type, ConnectionErrorType.unknown);
       expect(poolProvider.error, poolProvider.connectionError!.shortMessage);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'PoolProvider.loadPools',
+      );
+    });
+
+    test('a classified ConnectionException failure is surfaced as-is and '
+        'reported to telemetry', () async {
+      final client = _ClassifiedFailureClient();
+      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+      await poolProvider.setServer(testServer);
+
+      await poolProvider.loadPools();
+
+      expect(
+        poolProvider.connectionError?.type,
+        ConnectionErrorType.permissionDenied,
+      );
+      expect(poolProvider.error, 'Permission denied');
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'PoolProvider.loadPools',
+      );
     });
 
     test('is a no-op without a client', () async {

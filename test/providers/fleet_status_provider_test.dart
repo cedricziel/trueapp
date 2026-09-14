@@ -8,6 +8,7 @@ import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -15,6 +16,7 @@ void main() {
   late AppDatabase database;
   late UnifiedServerService service;
   late FleetStatusProvider provider;
+  late FakeTelemetryService telemetryService;
 
   setUp(() async {
     await TestProviders.cleanupTestEnvironment();
@@ -23,7 +25,8 @@ void main() {
     service = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    provider = FleetStatusProvider(service);
+    telemetryService = FakeTelemetryService();
+    provider = FleetStatusProvider(service, telemetryService: telemetryService);
   });
 
   tearDown(() async {
@@ -177,6 +180,11 @@ void main() {
         provider.statusFor(testServer.id).connectivity,
         FleetServerConnectivity.offline,
       );
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'FleetStatusProvider._refreshOne',
+      );
     });
 
     test('still counts as online when getAlerts fails', () async {
@@ -187,6 +195,11 @@ void main() {
       final status = provider.statusFor(testServer.id);
       expect(status.connectivity, FleetServerConnectivity.online);
       expect(status.activeAlertCount, 0);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'FleetStatusProvider._refreshOne (alerts)',
+      );
     });
 
     test('a superseded refresh does not overwrite the newer result', () async {

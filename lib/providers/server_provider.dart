@@ -7,6 +7,7 @@ import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 enum AuthenticationState {
@@ -33,6 +34,7 @@ class AuthenticationStatus {
 class ServerProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
   final AppDatabase Function()? _databaseRef;
+  final TelemetryServiceInterface? _telemetryService;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
   ApiClientInterface? _apiClient;
@@ -62,8 +64,12 @@ class ServerProvider extends ChangeNotifier {
   /// would construct that singleton - backed by `drift_flutter`, which talks
   /// to `path_provider` - outside a real Flutter app, which throws
   /// `MissingPluginException` (see test/flutter_test_config.dart).
-  ServerProvider(this._serverService, {AppDatabase Function()? databaseRef})
-    : _databaseRef = databaseRef {
+  ServerProvider(
+    this._serverService, {
+    AppDatabase Function()? databaseRef,
+    TelemetryServiceInterface? telemetryService,
+  }) : _databaseRef = databaseRef,
+       _telemetryService = telemetryService {
     _initializeProvider();
   }
 
@@ -118,10 +124,15 @@ class ServerProvider extends ChangeNotifier {
       if (_disposed) return;
       _isLoadingServers = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('ServerProvider: Failed to load servers: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider._loadServers',
+      );
       _isLoadingServers = false;
       if (!_disposed) notifyListeners();
     }
@@ -246,10 +257,15 @@ class ServerProvider extends ChangeNotifier {
     if (databaseRef != null) {
       try {
         await databaseRef().deleteServer(id);
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (kDebugMode) {
           print('ServerProvider: Failed to clean up local anchor for $id: $e');
         }
+        _telemetryService?.recordError(
+          e,
+          stackTrace,
+          context: 'ServerProvider.deleteServer',
+        );
       }
     }
 
@@ -331,7 +347,7 @@ class ServerProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       _authState = AuthenticationState.failed;
       _authError = 'Authentication failed: ${e.toString()}';
       if (kDebugMode) {
@@ -339,6 +355,11 @@ class ServerProvider extends ChangeNotifier {
           'ServerProvider: Authentication failed for server ${server.id}: $e',
         );
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider._authenticateAndConnect',
+      );
     }
     _emitAuthStatus();
   }
@@ -457,8 +478,13 @@ class ServerProvider extends ChangeNotifier {
 
     try {
       _serverHealth = await _apiClient!.getServerHealth();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _healthError = e.toString();
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider.loadServerHealth',
+      );
     } finally {
       _isLoadingHealth = false;
       notifyListeners();
@@ -474,8 +500,13 @@ class ServerProvider extends ChangeNotifier {
 
     try {
       _currentUser = await _apiClient!.getCurrentUser();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _userError = e.toString();
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider.loadCurrentUser',
+      );
     } finally {
       _isLoadingUser = false;
       notifyListeners();
@@ -498,10 +529,15 @@ class ServerProvider extends ChangeNotifier {
       final result = await apiClient.testConnection();
       await apiClient.close();
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('ServerProvider: Connection test failed: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider.testServerConnection',
+      );
       return false;
     }
   }
@@ -524,10 +560,15 @@ class ServerProvider extends ChangeNotifier {
           .timeout(const Duration(seconds: 15));
       await apiClient.close();
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('ServerProvider: Credential validation failed: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'ServerProvider.validateServerCredentials',
+      );
       return false;
     }
   }

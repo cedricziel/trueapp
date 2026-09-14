@@ -6,6 +6,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -63,6 +64,7 @@ void main() {
   late UnifiedServerService serverService;
   late SystemStatsProvider provider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -73,7 +75,11 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    provider = SystemStatsProvider(serverService);
+    telemetryService = FakeTelemetryService();
+    provider = SystemStatsProvider(
+      serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -163,6 +169,11 @@ void main() {
 
       expect(provider.isSubscribed, isFalse);
       expect(provider.error, 'No API client configured');
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'SystemStatsProvider.setApiClient',
+      );
     });
 
     test('unsubscribes from a previous client before switching', () async {
@@ -298,6 +309,11 @@ void main() {
       expect(provider.isSubscribed, isFalse);
       expect(provider.isLoading, isFalse);
       expect(provider.error, contains('Failed to subscribe'));
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'SystemStatsProvider.subscribeToStats',
+      );
     });
 
     test('a stream error surfaces through error state', () async {
@@ -344,6 +360,11 @@ void main() {
       await provider.unsubscribeFromStats();
 
       expect(provider.isSubscribed, isTrue);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'SystemStatsProvider.unsubscribeFromStats',
+      );
     });
   });
 

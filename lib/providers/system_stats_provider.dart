@@ -5,6 +5,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
@@ -15,6 +16,7 @@ class SystemStatsProvider extends ChangeNotifier {
   static const int _maxHistoryLength = 30;
 
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   SystemStats? _currentStats;
@@ -25,7 +27,10 @@ class SystemStatsProvider extends ChangeNotifier {
   final Queue<double> _cpuHistory = Queue<double>();
   final Queue<double> _memoryHistory = Queue<double>();
 
-  SystemStatsProvider(this._serverService);
+  SystemStatsProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   SystemStats? get currentStats => _currentStats;
   String? get error => _error;
@@ -79,10 +84,15 @@ class SystemStatsProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('SystemStatsProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'SystemStatsProvider.setApiClient',
+      );
     }
   }
 
@@ -117,11 +127,16 @@ class SystemStatsProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('SystemStatsProvider: Successfully subscribed to stats stream');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       _setError('Failed to subscribe to system stats: ${e.toString()}');
       if (kDebugMode) {
         print('SystemStatsProvider: Subscription error: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'SystemStatsProvider.subscribeToStats',
+      );
     } finally {
       _setLoading(false);
     }
@@ -155,10 +170,15 @@ class SystemStatsProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('SystemStatsProvider: Successfully unsubscribed from stats');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('SystemStatsProvider: Error during unsubscription: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'SystemStatsProvider.unsubscribeFromStats',
+      );
     }
 
     notifyListeners();

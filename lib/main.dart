@@ -49,34 +49,57 @@ void main() async {
           create: (context) => ServerProvider(
             unifiedServerService,
             databaseRef: () => AppDatabase.instance,
+            telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
-          create: (context) => PoolProvider(unifiedServerService),
+          create: (context) => PoolProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (context) => DatasetProvider(unifiedServerService),
+          create: (context) => DatasetProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (context) => FileProvider(unifiedServerService),
+          create: (context) => FileProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (context) => HealthProvider(unifiedServerService),
+          create: (context) => HealthProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (context) => FleetStatusProvider(unifiedServerService),
+          create: (context) => FleetStatusProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => AppProvider(
             databaseRef: () => AppDatabase.instance,
             serverService: unifiedServerService,
+            telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
-          create: (context) => SystemStatsProvider(unifiedServerService),
+          create: (context) => SystemStatsProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (context) => JobsProvider(unifiedServerService),
+          create: (context) => JobsProvider(
+            unifiedServerService,
+            telemetryService: telemetryService,
+          ),
         ),
         ChangeNotifierProvider(create: (context) => TrayProvider()),
       ],

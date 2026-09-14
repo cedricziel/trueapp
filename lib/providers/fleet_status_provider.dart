@@ -7,6 +7,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 /// Fetches a bounded, one-shot health snapshot for every saved server so
@@ -21,6 +22,7 @@ class FleetStatusProvider extends ChangeNotifier {
   static const Duration defaultTimeout = Duration(seconds: 6);
 
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   final Map<String, FleetServerStatus> _statuses = {};
 
   /// Bumped each time a server's refresh starts, so a `_refreshOne` call
@@ -30,7 +32,10 @@ class FleetStatusProvider extends ChangeNotifier {
   /// finish last and overwrite the newer, correct status.
   final Map<String, int> _refreshGenerations = {};
 
-  FleetStatusProvider(this._serverService);
+  FleetStatusProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   FleetServerStatus statusFor(String serverId) =>
       _statuses[serverId] ?? FleetServerStatus(serverId: serverId);
@@ -113,7 +118,7 @@ class FleetStatusProvider extends ChangeNotifier {
             .map(Alert.fromJson)
             .where((alert) => !alert.dismissed)
             .length;
-      } catch (e) {
+      } catch (e, stackTrace) {
         // Alerts are a bonus signal for this snapshot - a server that
         // answers system health but not alert.list (permissions, an older
         // middleware version) still counts as online.
@@ -123,6 +128,11 @@ class FleetStatusProvider extends ChangeNotifier {
             '${server.id}: $e',
           );
         }
+        _telemetryService?.recordError(
+          e,
+          stackTrace,
+          context: 'FleetStatusProvider._refreshOne (alerts)',
+        );
       }
 
       if (isCurrent()) {
@@ -134,7 +144,7 @@ class FleetStatusProvider extends ChangeNotifier {
           activeAlertCount: activeAlertCount,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (isCurrent()) {
         _statuses[server.id] = FleetServerStatus(
           serverId: server.id,
@@ -144,6 +154,11 @@ class FleetStatusProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('FleetStatusProvider: Failed to refresh ${server.id}: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'FleetStatusProvider._refreshOne',
+      );
     } finally {
       if (checkedOutServerId != null) {
         await ApiClientManager.releaseClient(checkedOutServerId);

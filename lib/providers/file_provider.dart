@@ -4,11 +4,13 @@ import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 class FileProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   List<FileItem> _files = [];
@@ -17,7 +19,10 @@ class FileProvider extends ChangeNotifier {
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
-  FileProvider(this._serverService);
+  FileProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   List<FileItem> get files => _files;
 
@@ -72,10 +77,15 @@ class FileProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('FileProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'FileProvider.setApiClient',
+      );
     }
     notifyListeners();
   }
@@ -91,10 +101,20 @@ class FileProvider extends ChangeNotifier {
       _files = await _apiClient!.getDirectoryListing(path);
       _currentPath = path;
       _connectionError = null;
-    } on ConnectionException catch (e) {
+    } on ConnectionException catch (e, stackTrace) {
       _connectionError = e.error;
-    } catch (e) {
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'FileProvider.loadFiles',
+      );
+    } catch (e, stackTrace) {
       _connectionError = ConnectionError.unknown(details: e.toString());
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'FileProvider.loadFiles',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
