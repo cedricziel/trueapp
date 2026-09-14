@@ -5,6 +5,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 /// How long a failed job keeps the nav bar's job indicator in its
@@ -13,6 +14,7 @@ const kJobFailureAttentionWindow = Duration(hours: 24);
 
 class JobsProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   List<Job> _jobs = [];
@@ -21,7 +23,10 @@ class JobsProvider extends ChangeNotifier {
   bool _isSubscribed = false;
   StreamSubscription<List<Job>>? _jobsSubscription;
 
-  JobsProvider(this._serverService);
+  JobsProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   List<Job> get jobs => _jobs;
   String? get error => _error;
@@ -86,10 +91,15 @@ class JobsProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('JobsProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.setApiClient',
+      );
     }
   }
 
@@ -126,11 +136,16 @@ class JobsProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('JobsProvider: Successfully subscribed to jobs stream');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       _setError('Failed to subscribe to jobs: ${e.toString()}');
       if (kDebugMode) {
         print('JobsProvider: Subscription error: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.subscribeToJobs',
+      );
     } finally {
       _setLoading(false);
     }
@@ -156,10 +171,15 @@ class JobsProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('JobsProvider: Successfully unsubscribed from jobs');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('JobsProvider: Error during unsubscription: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.unsubscribeFromJobs',
+      );
     }
 
     notifyListeners();
@@ -183,8 +203,13 @@ class JobsProvider extends ChangeNotifier {
       _clearError();
       _jobs = await _apiClient!.getJobs();
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _setError('Failed to refresh jobs: ${e.toString()}');
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.refreshJobs',
+      );
     }
   }
 
@@ -197,8 +222,13 @@ class JobsProvider extends ChangeNotifier {
     try {
       await _apiClient!.abortJob(jobId);
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _setError('Failed to cancel job: ${e.toString()}');
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.abortJob',
+      );
       return false;
     }
   }
@@ -212,8 +242,13 @@ class JobsProvider extends ChangeNotifier {
     try {
       await _apiClient!.rerunJob(job);
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _setError('Failed to retry job: ${e.toString()}');
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'JobsProvider.rerunJob',
+      );
       return false;
     }
   }

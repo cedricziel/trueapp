@@ -13,6 +13,7 @@ import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/mock_cloudkit_service_adapter.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
@@ -82,6 +83,7 @@ void main() {
   late UnifiedServerService serverService;
   late AppProvider appProvider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -92,7 +94,12 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    appProvider = AppProvider(database: database, serverService: serverService);
+    telemetryService = FakeTelemetryService();
+    appProvider = AppProvider(
+      database: database,
+      serverService: serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -272,6 +279,15 @@ void main() {
       expect(appProvider.catalogError, isNull);
       expect(appProvider.appConfigs, isEmpty);
       expect(appProvider.isLoading, isFalse);
+
+      // Errors like this are caught and turned into UI state, so they never
+      // reach the global FlutterError.onError/PlatformDispatcher.onError
+      // telemetry hooks - loadApps() must report them itself instead.
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'AppProvider.loadApps',
+      );
     });
 
     test(
@@ -290,6 +306,11 @@ void main() {
         );
         expect(appProvider.error, 'Permission denied');
         expect(appProvider.errorDetails, 'Not authorized');
+        expect(telemetryService.recordedErrors, hasLength(1));
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'AppProvider.loadApps',
+        );
       },
     );
 
@@ -312,6 +333,14 @@ void main() {
         contains('getAvailableApps configured to fail'),
       );
       expect(appProvider.isLoading, isFalse);
+
+      // A settled (not thrown) catalog failure must still reach telemetry -
+      // it never passes through a catch block on its own.
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'AppProvider._loadCatalog (catalog fetch)',
+      );
     });
 
     test('a categories failure is a catalog failure too', () async {
@@ -639,10 +668,16 @@ void main() {
     test('upgradeApp returns false and does not throw on failure', () async {
       await loadOneApp();
       fakeClient.failingMethods.add('upgradeApp');
+      telemetryService.recordedErrors.clear(); // drop loadOneApp's own calls
 
       final result = await appProvider.upgradeApp('plex');
 
       expect(result, isFalse);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'AppProvider.upgradeApp',
+      );
     });
 
     test('upgradeApp does not reload when the API reports failure', () async {
@@ -847,6 +882,23 @@ void main() {
 
       final withPortals = appProvider.getAppsWithPortals();
       expect(withPortals.map((c) => c.appName), ['with-port']);
+    });
+  });
+
+  group('AppProvider - telemetry', () {
+    test('recordError is optional: a failure without a telemetryService '
+        'still resolves instead of throwing', () async {
+      final scopedProvider = AppProvider(
+        database: database,
+        serverService: serverService,
+      );
+      await scopedProvider.setServer(testServer);
+      fakeClient.failingMethods.add('getInstalledApps');
+
+      await scopedProvider.loadApps();
+
+      expect(scopedProvider.connectionError, isNotNull);
+      scopedProvider.dispose();
     });
   });
 

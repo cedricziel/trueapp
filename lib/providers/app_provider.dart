@@ -9,16 +9,20 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 /// The result of a settled future: exactly one of [value] or [error] is set.
+/// [stackTrace] is only set alongside [error], so a settled failure can
+/// still be reported to telemetry with its original trace.
 class _Outcome<T> {
   final T? value;
   final Object? error;
+  final StackTrace? stackTrace;
 
-  const _Outcome.success(this.value) : error = null;
-  const _Outcome.failure(this.error) : value = null;
+  const _Outcome.success(this.value) : error = null, stackTrace = null;
+  const _Outcome.failure(this.error, this.stackTrace) : value = null;
 }
 
 /// The catalog side of a load, started alongside the installed-apps request
@@ -31,6 +35,7 @@ typedef _CatalogRequests = ({
 class AppProvider extends ChangeNotifier {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   NasServer? _currentServer;
@@ -58,12 +63,14 @@ class AppProvider extends ChangeNotifier {
     AppDatabase Function()? databaseRef,
     AppDatabase? database,
     required UnifiedServerService serverService,
+    TelemetryServiceInterface? telemetryService,
   }) : assert(
          databaseRef != null || database != null,
          'AppProvider requires either databaseRef or database',
        ),
        _databaseRef = databaseRef ?? (() => database!),
-       _serverService = serverService;
+       _serverService = serverService,
+       _telemetryService = telemetryService;
 
   AppDatabase get _database => _databaseRef();
 
@@ -135,10 +142,15 @@ class AppProvider extends ChangeNotifier {
         }
         // Load persisted app configs for offline access
         await _loadPersistedAppConfigs();
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (kDebugMode) {
           print('AppProvider: Failed to get API client: $e');
         }
+        _telemetryService?.recordError(
+          e,
+          stackTrace,
+          context: 'AppProvider.setServer',
+        );
         // Even if API client fails, load persisted configs for offline access
         await _loadPersistedAppConfigs();
       }
@@ -179,10 +191,15 @@ class AppProvider extends ChangeNotifier {
       }
       // Load persisted app configs for offline access
       await _loadPersistedAppConfigs();
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.setApiClient',
+      );
       // Even if API client fails, load persisted configs for offline access
       await _loadPersistedAppConfigs();
     }
@@ -225,15 +242,25 @@ class AppProvider extends ChangeNotifier {
 
       // Clear any previous errors on successful load
       _connectionError = null;
-    } on ConnectionException catch (e) {
+    } on ConnectionException catch (e, stackTrace) {
       _connectionError = e.error;
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.loadApps',
+      );
       // Fall back to offline data if available. This fallback has its own
       // try/catch so a failure here (e.g. a database that is unavailable)
       // records a ConnectionError instead of escaping loadApps().
       await _tryLoadPersistedAppConfigs();
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Handle unexpected errors
       _connectionError = ConnectionError.unknown(details: e.toString());
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.loadApps',
+      );
       // Fall back to offline data if available. See note above.
       await _tryLoadPersistedAppConfigs();
     } finally {
@@ -289,6 +316,16 @@ class AppProvider extends ChangeNotifier {
             '${_catalogError!.technicalDetails ?? _catalogError!.message}',
           );
         }
+        final catalogFailureStackTrace =
+            (available.error != null
+                ? available.stackTrace
+                : categories.stackTrace) ??
+            StackTrace.current;
+        _telemetryService?.recordError(
+          catalogFailure,
+          catalogFailureStackTrace,
+          context: 'AppProvider._loadCatalog (catalog fetch)',
+        );
       }
 
       // Installed apps were synced first and carry the richer data
@@ -312,10 +349,15 @@ class AppProvider extends ChangeNotifier {
           'database',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (generation == _loadGeneration) {
         _catalogError = _toConnectionError(e);
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider._loadCatalog',
+      );
     } finally {
       if (generation == _loadGeneration) {
         _isCatalogLoading = false;
@@ -328,7 +370,9 @@ class AppProvider extends ChangeNotifier {
   /// [_Outcome] instead.
   Future<_Outcome<T>> _settle<T>(Future<T> future) => future
       .then<_Outcome<T>>(_Outcome.success)
-      .catchError((Object e) => _Outcome<T>.failure(e));
+      .catchError(
+        (Object e, StackTrace stackTrace) => _Outcome<T>.failure(e, stackTrace),
+      );
 
   ConnectionError _toConnectionError(Object error) {
     if (error is ConnectionException) return error.error;
@@ -408,11 +452,16 @@ class AppProvider extends ChangeNotifier {
   Future<void> _tryLoadPersistedAppConfigs() async {
     try {
       await _loadPersistedAppConfigs();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _connectionError = ConnectionError.unknown(details: e.toString());
       if (kDebugMode) {
         print('AppProvider: Failed to load persisted app configs: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider._tryLoadPersistedAppConfigs',
+      );
     }
   }
 
@@ -436,10 +485,15 @@ class AppProvider extends ChangeNotifier {
         await loadApps();
       }
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to upgrade app $appName: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.upgradeApp',
+      );
       return false;
     }
   }
@@ -454,10 +508,15 @@ class AppProvider extends ChangeNotifier {
         await loadApps();
       }
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to start app $appName: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.startApp',
+      );
       return false;
     }
   }
@@ -472,10 +531,15 @@ class AppProvider extends ChangeNotifier {
         await loadApps();
       }
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to stop app $appName: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.stopApp',
+      );
       return false;
     }
   }
@@ -490,10 +554,15 @@ class AppProvider extends ChangeNotifier {
         await loadApps();
       }
       return result;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to restart app $appName: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider.restartApp',
+      );
       return false;
     }
   }
@@ -520,16 +589,26 @@ class AppProvider extends ChangeNotifier {
           // Update resource usage for each app
           _updateAppResourceUsage(appStatsMap);
         },
-        onError: (error) {
+        onError: (Object error, StackTrace stackTrace) {
           if (kDebugMode) {
             print('AppProvider: Error in app stats stream: $error');
           }
+          _telemetryService?.recordError(
+            error,
+            stackTrace,
+            context: 'AppProvider._subscribeToAppStats (stream)',
+          );
         },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('AppProvider: Failed to subscribe to app stats: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'AppProvider._subscribeToAppStats',
+      );
     }
   }
 
@@ -580,10 +659,15 @@ class AppProvider extends ChangeNotifier {
     if (_apiClient != null) {
       try {
         await _apiClient!.unsubscribeFromAppStats();
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (kDebugMode) {
           print('AppProvider: Failed to unsubscribe from app stats: $e');
         }
+        _telemetryService?.recordError(
+          e,
+          stackTrace,
+          context: 'AppProvider._unsubscribeFromAppStats',
+        );
       }
     }
   }

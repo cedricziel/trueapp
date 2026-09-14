@@ -6,6 +6,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -36,6 +37,7 @@ void main() {
   late UnifiedServerService serverService;
   late JobsProvider provider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -46,7 +48,8 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    provider = JobsProvider(serverService);
+    telemetryService = FakeTelemetryService();
+    provider = JobsProvider(serverService, telemetryService: telemetryService);
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -137,6 +140,18 @@ void main() {
       expect(provider.error, 'No API client configured');
       expect(fakeClient.lastAbortedJobId, isNull);
     });
+
+    test('a getClient failure is reported to telemetry', () async {
+      TestProviders.mockApiClientManager.shouldFailConnection = true;
+
+      await provider.setApiClient(testServer);
+
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'JobsProvider.setApiClient',
+      );
+    });
   });
 
   group('JobsProvider - subscribeToJobs', () {
@@ -200,6 +215,11 @@ void main() {
       expect(provider.isSubscribed, isFalse);
       expect(provider.isLoading, isFalse);
       expect(provider.error, contains('Failed to subscribe'));
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'JobsProvider.subscribeToJobs',
+      );
     });
   });
 
@@ -291,6 +311,11 @@ void main() {
 
       expect(result, isFalse);
       expect(provider.error, contains('Failed to cancel job'));
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'JobsProvider.abortJob',
+      );
     });
 
     test('abortJob without a client sets an error', () async {
@@ -317,6 +342,11 @@ void main() {
 
       expect(result, isFalse);
       expect(provider.error, contains('Failed to retry job'));
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'JobsProvider.rerunJob',
+      );
     });
   });
 
@@ -348,6 +378,24 @@ void main() {
       await provider.refreshJobs();
       expect(provider.error, 'No API client configured');
     });
+
+    test(
+      'a getJobs failure while subscribed is reported to telemetry',
+      () async {
+        await provider.setApiClient(testServer);
+        await provider.subscribeToJobs();
+        fakeClient.failingMethods.add('getJobs');
+
+        await provider.refreshJobs();
+
+        expect(provider.error, contains('Failed to refresh jobs'));
+        expect(telemetryService.recordedErrors, hasLength(1));
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'JobsProvider.refreshJobs',
+        );
+      },
+    );
   });
 
   group('JobsProvider - unsubscribeFromJobs', () {
@@ -368,6 +416,20 @@ void main() {
       await provider.unsubscribeFromJobs();
       expect(provider.isSubscribed, isFalse);
       expect(fakeClient.calls.contains('unsubscribeFromJobs'), isFalse);
+    });
+
+    test('an unsubscribeFromJobs failure is reported to telemetry', () async {
+      await provider.setApiClient(testServer);
+      await provider.subscribeToJobs();
+      fakeClient.failingMethods.add('unsubscribeFromJobs');
+
+      await provider.unsubscribeFromJobs();
+
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'JobsProvider.unsubscribeFromJobs',
+      );
     });
   });
 

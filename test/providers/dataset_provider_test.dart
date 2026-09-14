@@ -5,6 +5,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -13,6 +14,7 @@ void main() {
   late UnifiedServerService serverService;
   late DatasetProvider datasetProvider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -23,7 +25,11 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    datasetProvider = DatasetProvider(serverService);
+    telemetryService = FakeTelemetryService();
+    datasetProvider = DatasetProvider(
+      serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -109,6 +115,12 @@ void main() {
       expect(datasetProvider.datasets, isEmpty);
       await datasetProvider.loadDatasets();
       expect(datasetProvider.datasets, isEmpty);
+
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'DatasetProvider.setServer',
+      );
     });
 
     test('a null getClient result leaves the client unset', () async {
@@ -174,6 +186,19 @@ void main() {
 
       expect(datasetProvider.datasets, isEmpty);
     });
+
+    test('swallows a getClient failure and reports it to telemetry', () async {
+      TestProviders.mockApiClientManager.shouldFailConnection = true;
+
+      await datasetProvider.setApiClient(testServer);
+
+      expect(datasetProvider.datasets, isEmpty);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'DatasetProvider.setApiClient',
+      );
+    });
   });
 
   group('DatasetProvider - loadDatasets', () {
@@ -208,6 +233,12 @@ void main() {
       expect(datasetProvider.isLoading, isFalse);
       expect(datasetProvider.error, isNotNull);
       expect(datasetProvider.error, contains('getDatasets'));
+
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'DatasetProvider.loadDatasets',
+      );
     });
 
     test('is a no-op without a client', () async {

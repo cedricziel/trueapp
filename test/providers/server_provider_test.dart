@@ -6,12 +6,14 @@ import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
   late UnifiedServerService mockServerService;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -26,9 +28,11 @@ void main() {
     mockServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
+    telemetryService = FakeTelemetryService();
     serverProvider = ServerProvider(
       mockServerService,
       databaseRef: () => database,
+      telemetryService: telemetryService,
     );
 
     testServer = NasServer.create(
@@ -412,6 +416,7 @@ void main() {
         final freshProvider = ServerProvider(
           mockServerService,
           databaseRef: () => database,
+          telemetryService: telemetryService,
         );
         addTearDown(freshProvider.dispose);
 
@@ -584,5 +589,155 @@ void main() {
       // Restore the test server for other tests
       await serverProvider.addServer(testServer, 'password');
     });
+  });
+
+  group('Telemetry', () {
+    test(
+      'a local anchor cleanup failure during deleteServer is still reported',
+      () async {
+        // A database that is already closed makes deleteServer() throw once
+        // the local anchor row cleanup reaches it, without disturbing the
+        // shared `database`/`mockServerService` other tests rely on. It must
+        // actually be opened (via a real query) before closing - closing an
+        // untouched lazy connection is a no-op that would let the next query
+        // silently open a fresh one instead of throwing.
+        final brokenDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+        await brokenDatabase.getServer('warm-up');
+        await brokenDatabase.close();
+        final provider = ServerProvider(
+          mockServerService,
+          databaseRef: () => brokenDatabase,
+          telemetryService: telemetryService,
+        );
+        addTearDown(provider.dispose);
+        telemetryService.recordedErrors.clear();
+
+        await provider.deleteServer(testServer.id);
+
+        expect(telemetryService.recordedErrors, hasLength(1));
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'ServerProvider.deleteServer',
+        );
+
+        // Restore the test server for other tests relying on setUp state.
+        await serverProvider.addServer(testServer, 'password');
+      },
+    );
+
+    test(
+      'a connection failure while authenticating is reported to telemetry',
+      () async {
+        TestProviders.mockApiClientManager.shouldFailConnection = true;
+        telemetryService.recordedErrors.clear();
+
+        await serverProvider.selectServer(testServer);
+
+        expect(serverProvider.authState, AuthenticationState.failed);
+        expect(telemetryService.recordedErrors, hasLength(1));
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'ServerProvider._authenticateAndConnect',
+        );
+      },
+    );
+
+    test('a failure loading server health is reported to telemetry', () async {
+      // A dedicated provider whose first (and only) selectServer() call
+      // picks up the mock client: `selectServer` unconditionally releases
+      // whatever client the *previous* selection held (see the comment on
+      // "should close the cached API client when a server is deleted"
+      // above), so reusing the already-selected `serverProvider` here would
+      // have this release wipe the mock client out before loadServerHealth()
+      // ever saw it.
+      final client = FakeApiClient();
+      client.failingMethods.add('getServerHealth');
+      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+
+      final provider = ServerProvider(
+        mockServerService,
+        databaseRef: () => database,
+        telemetryService: telemetryService,
+      );
+      addTearDown(provider.dispose);
+      telemetryService.recordedErrors.clear();
+
+      await provider.selectServer(testServer);
+      await provider.loadServerHealth();
+
+      expect(provider.healthError, isNotNull);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'ServerProvider.loadServerHealth',
+      );
+    });
+
+    test(
+      'a failure loading the current user is reported to telemetry',
+      () async {
+        // See the comment in the loadServerHealth test above for why this
+        // uses a dedicated, freshly-selected provider.
+        final client = FakeApiClient();
+        client.failingMethods.add('getCurrentUser');
+        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+
+        final provider = ServerProvider(
+          mockServerService,
+          databaseRef: () => database,
+          telemetryService: telemetryService,
+        );
+        addTearDown(provider.dispose);
+        telemetryService.recordedErrors.clear();
+
+        await provider.selectServer(testServer);
+        await provider.loadCurrentUser();
+
+        expect(provider.userError, isNotNull);
+        expect(telemetryService.recordedErrors, hasLength(1));
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'ServerProvider.loadCurrentUser',
+        );
+      },
+    );
+
+    test(
+      'a failure loading the server list is reported to telemetry',
+      () async {
+        final freshDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+        final freshService = await TestProviders.createMockUnifiedServerService(
+          database: freshDatabase,
+        );
+        // Force a real connection open (see the deleteServer test's warm-up
+        // comment above) so closing it below actually breaks subsequent
+        // queries instead of letting them silently reopen.
+        await freshDatabase.getServer('warm-up');
+        await freshDatabase.close();
+
+        final freshTelemetry = FakeTelemetryService();
+
+        // Deliberately not using loadServersAndAutoSelect(): it chains into
+        // _autoSelectServer(), which would hit the same closed database via
+        // getDefaultServer() and throw past this test rather than being
+        // caught by the catch block under test. The constructor's own
+        // fire-and-forget _loadServers() call is what's exercised here.
+        final freshProvider = ServerProvider(
+          freshService,
+          telemetryService: freshTelemetry,
+        );
+        addTearDown(freshProvider.dispose);
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(freshTelemetry.recordedErrors, hasLength(1));
+        expect(
+          freshTelemetry.recordedErrors.single.context,
+          'ServerProvider._loadServers',
+        );
+
+        freshService.dispose();
+      },
+    );
   });
 }

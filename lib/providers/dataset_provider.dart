@@ -2,18 +2,23 @@ import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 class DatasetProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
   List<Map<String, dynamic>> _datasets = [];
   bool _isLoading = false;
   String? _error;
 
-  DatasetProvider(this._serverService);
+  DatasetProvider(
+    this._serverService, {
+    TelemetryServiceInterface? telemetryService,
+  }) : _telemetryService = telemetryService;
 
   List<Map<String, dynamic>> get datasets => _datasets;
   bool get isLoading => _isLoading;
@@ -45,10 +50,15 @@ class DatasetProvider extends ChangeNotifier {
             );
           }
         }
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (kDebugMode) {
           print('DatasetProvider: Failed to get API client: $e');
         }
+        _telemetryService?.recordError(
+          e,
+          stackTrace,
+          context: 'DatasetProvider.setServer',
+        );
       }
     }
     notifyListeners();
@@ -80,10 +90,15 @@ class DatasetProvider extends ChangeNotifier {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('DatasetProvider: Failed to get API client: $e');
       }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'DatasetProvider.setApiClient',
+      );
     }
     notifyListeners();
   }
@@ -97,8 +112,13 @@ class DatasetProvider extends ChangeNotifier {
 
     try {
       _datasets = await _apiClient!.getDatasets();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = e.toString();
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'DatasetProvider.loadDatasets',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();

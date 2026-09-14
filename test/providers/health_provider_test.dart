@@ -6,6 +6,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 import '../helpers/fake_api_client.dart';
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -14,6 +15,7 @@ void main() {
   late UnifiedServerService serverService;
   late HealthProvider provider;
   late FakeApiClient fakeClient;
+  late FakeTelemetryService telemetryService;
   late NasServer testServer;
 
   setUp(() async {
@@ -24,7 +26,11 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    provider = HealthProvider(serverService);
+    telemetryService = FakeTelemetryService();
+    provider = HealthProvider(
+      serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -91,6 +97,11 @@ void main() {
       await provider.loadHealth();
 
       expect(provider.alerts, isEmpty);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'HealthProvider.setApiClient',
+      );
     });
 
     test('releases the previous client before switching', () async {
@@ -257,6 +268,11 @@ void main() {
 
       expect(provider.isLoading, isFalse);
       expect(provider.connectionError, isNotNull);
+      expect(telemetryService.recordedErrors, hasLength(1));
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'HealthProvider.loadHealth',
+      );
     });
 
     test('refreshHealth re-runs loadHealth', () async {
