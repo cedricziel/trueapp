@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/cedricziel/trueapp/compare/v0.7.0...v0.8.0) (2026-09-20)
+
+
+### Features
+
+* report caught provider errors to telemetry ([#167](https://github.com/cedricziel/trueapp/issues/167)) ([148c40f](https://github.com/cedricziel/trueapp/commit/148c40f1bde56928ed49fbe6cbb17286996a3b53))
+
+
+### Bug Fixes
+
+* anchor server rows locally so app syncs don't violate the app_configs FK ([#166](https://github.com/cedricziel/trueapp/issues/166)) ([db03e1e](https://github.com/cedricziel/trueapp/commit/db03e1e467322e0d7e9bc7154f543eed89b9d056))
+* correct the memory bar split and dark-mode card colors in System Stats ([#168](https://github.com/cedricziel/trueapp/issues/168)) ([46f6afe](https://github.com/cedricziel/trueapp/commit/46f6afef1bdf8600dccf25256137b7d55ca5a446))
+* retry read-only RPCs when the socket is recycled mid-request ([#154](https://github.com/cedricziel/trueapp/issues/154)) ([16b0ce6](https://github.com/cedricziel/trueapp/commit/16b0ce6f5d718fcf2ae6114eeff0540b4e19b021))
+
 ## [0.7.0](https://github.com/cedricziel/trueapp/compare/v0.6.1...v0.7.0) (2026-09-06)
 
 
