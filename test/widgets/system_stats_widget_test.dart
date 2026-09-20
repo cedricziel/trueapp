@@ -164,8 +164,12 @@ Future<_Harness> _buildHarness() async {
 /// (call that before `pumpWidget`) rather than by wrapping this in a
 /// fixed-width `SizedBox`, or the widget lays out for one width while being
 /// constrained to another and overflows.
-Widget _wrap(SystemStatsProvider provider) {
+Widget _wrap(
+  SystemStatsProvider provider, {
+  Brightness brightness = Brightness.light,
+}) {
   return CupertinoApp(
+    theme: CupertinoThemeData(brightness: brightness),
     home: ChangeNotifierProvider<SystemStatsProvider>.value(
       value: provider,
       child: SingleChildScrollView(child: const SystemStatsWidget()),
@@ -278,6 +282,31 @@ void main() {
       return harness;
     }
 
+    testWidgets('cards resolve to the dark card colour in dark mode', (
+      tester,
+    ) async {
+      final harness = await subscribedHarness();
+      addTearDown(harness.dispose);
+
+      harness.fakeClient.emitSystemStats(_stats(cpuUsage: 30.0));
+      await tester.pump();
+      useCompactSurface(tester);
+      await tester.pumpWidget(
+        _wrap(harness.provider, brightness: Brightness.dark),
+      );
+
+      final card = tester.widget<Container>(
+        find
+            .ancestor(of: find.text('CPU'), matching: find.byType(Container))
+            .first,
+      );
+      final color = (card.decoration! as BoxDecoration).color!;
+      expect(
+        color.toARGB32(),
+        CupertinoColors.systemGrey6.darkColor.toARGB32(),
+      );
+    });
+
     testWidgets(
       'renders CPU, memory and disk sections with low usage (green)',
       (tester) async {
@@ -313,14 +342,14 @@ void main() {
         expect(find.text('7.5 ops/s'), findsOneWidget);
         expect(find.text('2.0KB/s'), findsOneWidget);
         expect(find.text('4.0KB/s'), findsOneWidget);
-        // Memory segmented bar legend: free = available(4000) - arc(1000)
-        // = 3000, apps = total(8000) - available(4000) = 4000, arc = 1000.
+        // Memory segmented bar legend: free = available(4000), arc = 1000,
+        // apps = total(8000) - available(4000) - arc(1000) = 3000.
         expect(find.text('Free'), findsOneWidget);
         expect(find.text('ZFS ARC'), findsOneWidget);
         expect(find.text('Apps & Services'), findsOneWidget);
-        expect(find.text('2.9KB'), findsOneWidget);
-        expect(find.text('1000B'), findsOneWidget);
         expect(find.text('3.9KB'), findsOneWidget);
+        expect(find.text('1000B'), findsOneWidget);
+        expect(find.text('2.9KB'), findsOneWidget);
         // No cores, no network -> neither section renders.
         expect(find.text('Cores'), findsNothing);
         expect(find.text('Network'), findsNothing);

@@ -6,6 +6,19 @@ import 'package:truehub/widgets/memory_segmented_bar.dart';
 import 'package:truehub/widgets/responsive_row.dart';
 import 'package:truehub/widgets/trend_sparkline.dart';
 
+BoxDecoration _cardDecoration(BuildContext context, {bool bordered = true}) {
+  return BoxDecoration(
+    color: CupertinoColors.systemGrey6.resolveFrom(context),
+    borderRadius: BorderRadius.circular(12),
+    border: bordered
+        ? Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          )
+        : null,
+  );
+}
+
 class SystemStatsWidget extends StatelessWidget {
   const SystemStatsWidget({super.key});
 
@@ -27,7 +40,7 @@ class SystemStatsWidget extends StatelessWidget {
         }
 
         if (!statsProvider.hasData) {
-          return _buildEmptyView();
+          return _buildEmptyView(context);
         }
 
         return _buildStatsContent(statsProvider);
@@ -67,13 +80,10 @@ class SystemStatsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyView() {
+  Widget _buildEmptyView(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: _cardDecoration(context, bordered: false),
       child: const Center(
         child: Column(
           children: [
@@ -144,11 +154,7 @@ class _CpuStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
-      ),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -253,11 +259,7 @@ class _MemoryStatsCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
-      ),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -313,11 +315,7 @@ class _DiskStatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
-      ),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -433,11 +431,7 @@ class _NetworkStatsCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
-      ),
+      decoration: _cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
