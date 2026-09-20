@@ -39,9 +39,9 @@ class ConnectionErrorWidget extends StatelessWidget {
           // User-friendly error message
           Text(
             error.userFriendlyMessage,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -71,11 +71,11 @@ class ConnectionErrorWidget extends StatelessWidget {
             const SizedBox(height: 24),
             CupertinoButton(
               onPressed: () => _showTechnicalDetails(context),
-              child: const Text(
+              child: Text(
                 'Show Technical Details',
                 style: TextStyle(
                   fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
                 ),
               ),
             ),

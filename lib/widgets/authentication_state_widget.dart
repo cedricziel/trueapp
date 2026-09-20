@@ -69,7 +69,7 @@ class AuthenticationStateWidget extends StatelessWidget {
             Icon(
               CupertinoIcons.lock_shield,
               size: 64,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
             const SizedBox(height: 24),
             Text(
@@ -86,7 +86,7 @@ class AuthenticationStateWidget extends StatelessWidget {
               Text(
                 authStatus.error!,
                 style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                  color: CupertinoColors.systemGrey,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -121,7 +121,7 @@ class AuthenticationStateWidget extends StatelessWidget {
               Text(
                 'Server: ${authStatus.server!.name}',
                 style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                  color: CupertinoColors.systemGrey2,
+                  color: CupertinoColors.systemGrey2.resolveFrom(context),
                 ),
               ),
             ],

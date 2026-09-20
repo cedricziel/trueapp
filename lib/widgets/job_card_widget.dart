@@ -8,7 +8,7 @@ class _JobVisual {
   const _JobVisual(this.icon, this.color);
 }
 
-_JobVisual _visualFor(Job job) {
+_JobVisual _visualFor(BuildContext context, Job job) {
   if (job.isFinished) {
     switch (job.state) {
       case JobState.success:
@@ -22,9 +22,9 @@ _JobVisual _visualFor(Job job) {
           CupertinoColors.systemRed,
         );
       default:
-        return const _JobVisual(
+        return _JobVisual(
           CupertinoIcons.minus_circle_fill,
-          CupertinoColors.systemGrey,
+          CupertinoColors.systemGrey.resolveFrom(context),
         );
     }
   }
@@ -52,7 +52,10 @@ _JobVisual _visualFor(Job job) {
     );
   }
   if (method.startsWith('zfs.snapshot')) {
-    return const _JobVisual(CupertinoIcons.camera, CupertinoColors.systemGrey);
+    return _JobVisual(
+      CupertinoIcons.camera,
+      CupertinoColors.systemGrey.resolveFrom(context),
+    );
   }
   return const _JobVisual(CupertinoIcons.gear, CupertinoColors.systemBlue);
 }
@@ -132,7 +135,7 @@ class _JobCardWidgetState extends State<JobCardWidget> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    final visual = _visualFor(job);
+    final visual = _visualFor(context, job);
 
     return GestureDetector(
       onTap: () => setState(() => _expanded = !_expanded),
@@ -140,9 +143,12 @@ class _JobCardWidgetState extends State<JobCardWidget> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,9 +180,11 @@ class _JobCardWidgetState extends State<JobCardWidget> {
                       const SizedBox(height: 2),
                       Text(
                         job.isWaiting ? 'Queued · ${job.method}' : job.method,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: CupertinoColors.systemGrey,
+                          color: CupertinoColors.systemGrey.resolveFrom(
+                            context,
+                          ),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -205,7 +213,7 @@ class _JobCardWidgetState extends State<JobCardWidget> {
                           ? CupertinoIcons.chevron_up
                           : CupertinoIcons.chevron_down,
                       size: 14,
-                      color: CupertinoColors.tertiaryLabel,
+                      color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                     ),
                   ],
                 ),
@@ -221,9 +229,9 @@ class _JobCardWidgetState extends State<JobCardWidget> {
                 const SizedBox(height: 6),
                 Text(
                   job.progress.description!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.secondaryLabel,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   ),
                 ),
               ],
@@ -231,9 +239,9 @@ class _JobCardWidgetState extends State<JobCardWidget> {
                 const SizedBox(height: 4),
                 Text(
                   'Elapsed ${_durationLabel(job.elapsed!)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.tertiaryLabel,
+                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                   ),
                 ),
               ],
@@ -242,10 +250,10 @@ class _JobCardWidgetState extends State<JobCardWidget> {
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.only(top: 12),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: CupertinoColors.separator,
+                      color: CupertinoColors.separator.resolveFrom(context),
                       width: 0.5,
                     ),
                   ),
@@ -289,9 +297,11 @@ class _JobCardWidgetState extends State<JobCardWidget> {
                             Expanded(
                               child: Text(
                                 job.error!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: CupertinoColors.label,
+                                  color: CupertinoColors.label.resolveFrom(
+                                    context,
+                                  ),
                                 ),
                               ),
                             ),
@@ -394,9 +404,9 @@ class _MetaRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
         const Spacer(),

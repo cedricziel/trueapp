@@ -20,6 +20,7 @@ class ConnectionStatusWidget extends StatelessWidget {
 
         if (status == null) {
           return _buildIndicator(
+            context,
             TrueNASConnectionState.disconnected,
             'Not Connected',
             null,
@@ -51,6 +52,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         }
 
         return _buildIndicator(
+          context,
           status.state,
           statusText,
           status.latency,
@@ -61,6 +63,7 @@ class ConnectionStatusWidget extends StatelessWidget {
   }
 
   Widget _buildIndicator(
+    BuildContext context,
     TrueNASConnectionState state,
     String text,
     Duration? latency,
@@ -84,7 +87,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         icon = CupertinoIcons.exclamationmark_circle_fill;
         break;
       case TrueNASConnectionState.disconnected:
-        color = CupertinoColors.systemGrey;
+        color = CupertinoColors.systemGrey.resolveFrom(context);
         icon = CupertinoIcons.circle;
         break;
     }
@@ -116,8 +119,8 @@ class ConnectionStatusWidget extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             '${latency.inMilliseconds}ms',
-            style: const TextStyle(
-              color: CupertinoColors.systemGrey,
+            style: TextStyle(
+              color: CupertinoColors.systemGrey.resolveFrom(context),
               fontSize: 11,
             ),
           ),
@@ -180,7 +183,7 @@ class ConnectionStatusTitleWidget extends StatelessWidget {
             }
             break;
           case TrueNASConnectionState.disconnected:
-            color = CupertinoColors.systemGrey;
+            color = CupertinoColors.systemGrey.resolveFrom(context);
             icon = CupertinoIcons.wifi_slash;
             tooltip = 'Disconnected';
             break;
