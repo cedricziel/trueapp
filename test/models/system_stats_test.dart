@@ -177,10 +177,10 @@ void main() {
       expect(mem.arcUsagePercent, equals(0.0));
     });
 
-    test('freeMemory/appsMemory split available/used around the ARC', () {
-      // total 1000, available 600 (of which 200 is ARC), so:
-      // apps = total - available = 400
-      // free = available - arc = 400
+    test('freeMemory/appsMemory split used memory around the ARC', () {
+      // total 1000, available 600 (Linux keeps the ARC out of available), so:
+      // free = available = 600
+      // apps = total - available - arc = 200
       const mem = MemoryStats(
         arcSize: 200,
         arcFreeMemory: 0,
@@ -188,8 +188,26 @@ void main() {
         physicalMemoryTotal: 1000,
         physicalMemoryAvailable: 600,
       );
-      expect(mem.appsMemory, equals(400));
-      expect(mem.freeMemory, equals(400));
+      expect(mem.appsMemory, equals(200));
+      expect(mem.freeMemory, equals(600));
+    });
+
+    test('ARC larger than available memory still sums to 100%', () {
+      // Regression: 99.7GiB total, 25GiB available, 39.4GiB ARC used to
+      // render Free 0% + ARC 40% + Apps 75%.
+      const mem = MemoryStats(
+        arcSize: 394,
+        arcFreeMemory: 0,
+        arcAvailableMemory: 0,
+        physicalMemoryTotal: 997,
+        physicalMemoryAvailable: 250,
+      );
+      expect(mem.freeMemory, equals(250));
+      expect(mem.appsMemory, equals(353));
+      expect(
+        mem.freeMemoryPercent + mem.arcUsagePercent + mem.appsMemoryPercent,
+        closeTo(100.0, 0.0001),
+      );
     });
 
     test(

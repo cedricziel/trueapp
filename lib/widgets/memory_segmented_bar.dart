@@ -3,8 +3,8 @@ import 'package:truehub/models/system_stats.dart';
 
 /// Maps 100% of physical memory into a single horizontal bar split into
 /// Free / ZFS ARC / Apps & Services segments, with a legend of exact values
-/// underneath. Free deliberately excludes the reclaimable ZFS ARC cache, so
-/// the three segments always sum to 100% of [MemoryStats.physicalMemoryTotal].
+/// underneath. Free excludes the ZFS ARC cache, so
+/// the three segments sum to 100% of [MemoryStats.physicalMemoryTotal].
 class MemorySegmentedBar extends StatelessWidget {
   final MemoryStats stats;
   final String Function(int bytes) formatBytes;
@@ -85,8 +85,8 @@ class MemorySegmentedBar extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         const Text(
-          'Free excludes reclaimable ZFS ARC cache, so Free + ZFS ARC + '
-          'Apps always adds up to 100% of physical memory.',
+          'Free excludes the ZFS ARC cache, so Free + ZFS ARC + Apps '
+          'adds up to 100% of physical memory.',
           style: TextStyle(fontSize: 11, color: CupertinoColors.tertiaryLabel),
         ),
       ],
