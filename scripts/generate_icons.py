@@ -85,6 +85,14 @@ def macos_svg() -> str:
     return svg(tile + scaled)
 
 
+def logo_svg() -> str:
+    """Edge-to-edge rounded tile for in-app use, README and the launch screen."""
+    return svg(
+        '<rect width="1024" height="1024" rx="224" fill="url(#bg)"/>'
+        '<rect width="1024" height="1024" rx="224" fill="url(#glow)"/>' + glyph()
+    )
+
+
 def tray_svg() -> str:
     bars = "".join(
         f'<rect x="1" y="{1 + i * 5}" width="14" height="4" rx="1.4" fill="#fff"/>'
@@ -150,15 +158,24 @@ MACOS = [entry("mac", f"{s}x{s}", sc) for s in (16, 32, 128, 256, 512) for sc in
 
 def main():
     DESIGN.mkdir(exist_ok=True)
-    ios, mac, tray = ios_svg(), macos_svg(), tray_svg()
+    ios, mac, tray, logo = ios_svg(), macos_svg(), tray_svg(), logo_svg()
     (DESIGN / "app_icon_ios.svg").write_text(ios)
     (DESIGN / "app_icon_macos.svg").write_text(mac)
     (DESIGN / "tray_glyph.svg").write_text(tray)
+    (DESIGN / "logo.svg").write_text(logo)
 
     write_catalog(ROOT / "ios/Runner/Assets.xcassets/AppIcon.appiconset", ios, IOS, opaque=True)
     write_catalog(ROOT / "macos/Runner/Assets.xcassets/AppIcon.appiconset", mac, MACOS, opaque=False)
 
     render(mac, 1024).save(ROOT / "assets/icons/image.png", optimize=True)
+
+    branding = ROOT / "assets/branding"
+    branding.mkdir(parents=True, exist_ok=True)
+    render(logo, 512).save(branding / "logo.png", optimize=True)
+
+    launch = ROOT / "ios/Runner/Assets.xcassets/LaunchImage.imageset"
+    for name, px in (("LaunchImage.png", 120), ("LaunchImage@2x.png", 240), ("LaunchImage@3x.png", 360)):
+        render(logo, px).save(launch / name, optimize=True)
 
     # 32px @ 144 dpi = 16pt on retina; light-mode glyph is black, dark-mode white.
     glyph_img = render(tray, 32)
