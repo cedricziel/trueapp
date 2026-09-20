@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/logo.png" alt="TrueNAS Manager logo" width="128" height="128">
+</p>
+
 # TrueNAS Manager
 
 A Flutter application for managing TrueNAS servers from iOS and macOS devices.
