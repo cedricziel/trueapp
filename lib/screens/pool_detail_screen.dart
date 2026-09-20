@@ -167,9 +167,12 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
         child: Container(
           padding: EdgeInsets.fromLTRB(16 + indentWidth, 12, 16, 12),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemBackground,
+            color: CupertinoColors.systemBackground.resolveFrom(context),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: CupertinoColors.separator, width: 0.5),
+            border: Border.all(
+              color: CupertinoColors.separator.resolveFrom(context),
+              width: 0.5,
+            ),
           ),
           child: Row(
             children: [
@@ -196,8 +199,10 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
                       const SizedBox(height: 2),
                       Text(
                         mountpoint,
-                        style: const TextStyle(
-                          color: CupertinoColors.systemGrey,
+                        style: TextStyle(
+                          color: CupertinoColors.systemGrey.resolveFrom(
+                            context,
+                          ),
                           fontSize: 12,
                         ),
                       ),
@@ -217,17 +222,17 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
                   ),
                   Text(
                     'of $availableValue',
-                    style: const TextStyle(
-                      color: CupertinoColors.systemGrey,
+                    style: TextStyle(
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
                       fontSize: 10,
                     ),
                   ),
                 ],
               ),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 CupertinoIcons.chevron_right,
-                color: CupertinoColors.systemGrey3,
+                color: CupertinoColors.systemGrey3.resolveFrom(context),
                 size: 14,
               ),
             ],

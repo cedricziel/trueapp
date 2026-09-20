@@ -86,9 +86,9 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                 widget.app.latestHumanVersion.isNotEmpty
                     ? 'v${widget.app.latestHumanVersion}'
                     : 'v${widget.app.latestAppVersion}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: CupertinoColors.systemGrey,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -135,7 +135,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           height: 200,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: CupertinoColors.systemGrey6,
+            color: CupertinoColors.systemGrey6.resolveFrom(context),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -145,19 +145,23 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               height: 200,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         CupertinoIcons.photo,
                         size: 48,
-                        color: CupertinoColors.systemGrey,
+                        color: CupertinoColors.systemGrey.resolveFrom(context),
                       ),
                       SizedBox(height: 8),
                       Text(
                         'Screenshot unavailable',
-                        style: TextStyle(color: CupertinoColors.systemGrey),
+                        style: TextStyle(
+                          color: CupertinoColors.systemGrey.resolveFrom(
+                            context,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -195,7 +199,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                       border: Border.all(
                         color: isSelected
                             ? CupertinoColors.activeBlue
-                            : CupertinoColors.separator,
+                            : CupertinoColors.separator.resolveFrom(context),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -208,11 +212,15 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: CupertinoColors.systemGrey6,
-                            child: const Icon(
+                            color: CupertinoColors.systemGrey6.resolveFrom(
+                              context,
+                            ),
+                            child: Icon(
                               CupertinoIcons.photo,
                               size: 24,
-                              color: CupertinoColors.systemGrey,
+                              color: CupertinoColors.systemGrey.resolveFrom(
+                                context,
+                              ),
                             ),
                           );
                         },
@@ -269,7 +277,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(content, style: const TextStyle(fontSize: 14, height: 1.4)),
@@ -288,7 +296,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey6,
+            color: CupertinoColors.systemGrey6.resolveFrom(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -361,15 +369,15 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey6,
+              color: CupertinoColors.systemGrey6.resolveFrom(context),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   CupertinoIcons.person_circle,
                   size: 24,
-                  color: CupertinoColors.systemGrey,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -386,9 +394,11 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
                       if (maintainer.email.isNotEmpty)
                         Text(
                           maintainer.email,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: CupertinoColors.systemGrey,
+                            color: CupertinoColors.systemGrey.resolveFrom(
+                              context,
+                            ),
                           ),
                         ),
                     ],
@@ -503,9 +513,9 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           width: 100,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
               fontWeight: FontWeight.w500,
             ),
           ),

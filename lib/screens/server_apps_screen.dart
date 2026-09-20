@@ -124,7 +124,7 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                     ),
                     color: _sortByName
                         ? CupertinoColors.systemBlue
-                        : CupertinoColors.systemGrey4,
+                        : CupertinoColors.systemGrey4.resolveFrom(context),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -133,7 +133,7 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                           size: 16,
                           color: _sortByName
                               ? CupertinoColors.white
-                              : CupertinoColors.systemGrey,
+                              : CupertinoColors.systemGrey.resolveFrom(context),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -142,7 +142,9 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                             fontSize: 14,
                             color: _sortByName
                                 ? CupertinoColors.white
-                                : CupertinoColors.systemGrey,
+                                : CupertinoColors.systemGrey.resolveFrom(
+                                    context,
+                                  ),
                           ),
                         ),
                       ],

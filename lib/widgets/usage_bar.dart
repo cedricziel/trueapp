@@ -20,7 +20,7 @@ class UsageBar extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey5,
+        color: CupertinoColors.systemGrey5.resolveFrom(context),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: FractionallySizedBox(

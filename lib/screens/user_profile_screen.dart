@@ -69,7 +69,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Center(child: CupertinoActivityIndicator()),
@@ -125,23 +125,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            const Icon(
+            Icon(
               CupertinoIcons.person_circle,
               size: 48,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'No user information available',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: CupertinoColors.systemGrey,
+                color: CupertinoColors.systemGrey.resolveFrom(context),
               ),
             ),
             const SizedBox(height: 16),
@@ -158,7 +158,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -186,9 +186,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SizedBox(height: 4),
             Text(
               '@${user.username}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: CupertinoColors.systemGrey,
+                color: CupertinoColors.systemGrey.resolveFrom(context),
               ),
             ),
           ],
@@ -256,20 +256,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           user.isAdministrator ? 'Yes' : 'No',
           valueColor: user.isAdministrator
               ? CupertinoColors.systemOrange
-              : CupertinoColors.systemGrey,
+              : CupertinoColors.systemGrey.resolveFrom(context),
         ),
         InfoRow(
           'Two-Factor Authentication',
           user.hasTwoFactor ? 'Enabled' : 'Disabled',
           valueColor: user.hasTwoFactor
               ? CupertinoColors.systemGreen
-              : CupertinoColors.systemGrey,
+              : CupertinoColors.systemGrey.resolveFrom(context),
         ),
         if (user.groupList.isNotEmpty) ...[
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Groups',
-            style: TextStyle(color: CupertinoColors.systemGrey, fontSize: 14),
+            style: TextStyle(
+              color: CupertinoColors.systemGrey.resolveFrom(context),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 4),
           Wrap(

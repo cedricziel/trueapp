@@ -174,9 +174,12 @@ class _JobsOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -188,14 +191,14 @@ class _JobsOverviewCard extends StatelessWidget {
           _Stat(
             count: jobsProvider.waitingCount,
             label: 'Waiting',
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
           _Stat(
             count: failedRecently,
             label: 'Failed 24h',
             color: failedRecently > 0
                 ? CupertinoColors.systemRed
-                : CupertinoColors.systemGrey,
+                : CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ],
       ),
@@ -226,9 +229,9 @@ class _Stat extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
           ),
         ],

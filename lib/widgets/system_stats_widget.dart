@@ -84,18 +84,21 @@ class SystemStatsWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _cardDecoration(context, bordered: false),
-      child: const Center(
+      child: Center(
         child: Column(
           children: [
             Icon(
               CupertinoIcons.chart_bar,
               size: 32,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'No system stats available',
-              style: TextStyle(color: CupertinoColors.systemGrey, fontSize: 16),
+              style: TextStyle(
+                color: CupertinoColors.systemGrey.resolveFrom(context),
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -188,22 +191,22 @@ class _CpuStatsCard extends StatelessWidget {
           ),
           if (cores.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildCoresList(),
+            _buildCoresList(context),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildCoresList() {
+  Widget _buildCoresList(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Cores',
           style: TextStyle(
             fontSize: 14,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -347,6 +350,7 @@ class _DiskStatsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildIOMetric(
+                  context,
                   'Read',
                   formatRate(diskStats.readBytes),
                   '${diskStats.readOps.toStringAsFixed(1)} ops/s',
@@ -356,6 +360,7 @@ class _DiskStatsCard extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildIOMetric(
+                  context,
                   'Write',
                   formatRate(diskStats.writeBytes),
                   '${diskStats.writeOps.toStringAsFixed(1)} ops/s',
@@ -369,7 +374,13 @@ class _DiskStatsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIOMetric(String label, String rate, String ops, Color color) {
+  Widget _buildIOMetric(
+    BuildContext context,
+    String label,
+    String rate,
+    String ops,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -390,16 +401,16 @@ class _DiskStatsCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           rate,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
         Text(
           ops,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: CupertinoColors.systemGrey2,
+            color: CupertinoColors.systemGrey2.resolveFrom(context),
           ),
         ),
       ],
@@ -453,7 +464,11 @@ class _NetworkStatsCard extends StatelessWidget {
           ...activeInterfaces.map((interface) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _buildNetworkInterface(interface.key, interface.value),
+              child: _buildNetworkInterface(
+                context,
+                interface.key,
+                interface.value,
+              ),
             );
           }),
         ],
@@ -461,7 +476,11 @@ class _NetworkStatsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNetworkInterface(String name, NetworkInterfaceStats stats) {
+  Widget _buildNetworkInterface(
+    BuildContext context,
+    String name,
+    NetworkInterfaceStats stats,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -486,9 +505,9 @@ class _NetworkStatsCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     formatRate(stats.receivedBytesRate),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: CupertinoColors.systemGrey,
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -500,9 +519,9 @@ class _NetworkStatsCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     formatRate(stats.sentBytesRate),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: CupertinoColors.systemGrey,
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
                     ),
                   ),
                 ],

@@ -20,22 +20,26 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: CupertinoColors.systemGrey),
+            Icon(
+              icon,
+              size: 48,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
+            ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: CupertinoColors.systemGrey,
+                color: CupertinoColors.systemGrey.resolveFrom(context),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: CupertinoColors.systemGrey2,
+                color: CupertinoColors.systemGrey2.resolveFrom(context),
               ),
               textAlign: TextAlign.center,
             ),

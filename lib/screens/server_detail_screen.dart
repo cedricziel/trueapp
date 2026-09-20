@@ -238,18 +238,20 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                           activeAlerts.first.message,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: CupertinoColors.secondaryLabel,
+                            color: CupertinoColors.secondaryLabel.resolveFrom(
+                              context,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 16,
-                    color: CupertinoColors.tertiaryLabel,
+                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                   ),
                 ],
               ),
@@ -464,7 +466,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     const SizedBox(height: 16),
                     // Show favorite apps
                     if (appProvider.favoriteApps.isNotEmpty) ...[
-                      const Align(
+                      Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: EdgeInsets.only(bottom: 8),
@@ -481,7 +483,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
-                                  color: CupertinoColors.systemGrey,
+                                  color: CupertinoColors.systemGrey.resolveFrom(
+                                    context,
+                                  ),
                                 ),
                               ),
                             ],
@@ -537,9 +541,12 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,10 +565,10 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
-                const Icon(
+                Icon(
                   CupertinoIcons.chevron_right,
                   size: 16,
-                  color: CupertinoColors.systemGrey,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
                 ),
               ],
             ),
@@ -582,7 +589,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     icon: CupertinoIcons.arrow_up_circle_fill,
                     color: appsWithUpdates.isNotEmpty
                         ? CupertinoColors.systemYellow
-                        : CupertinoColors.systemGrey,
+                        : CupertinoColors.systemGrey.resolveFrom(context),
                     count: appsWithUpdates.length,
                     label: 'Updates',
                   ),
@@ -617,9 +624,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
                     Expanded(
                       child: Text(
                         '${appsWithUpdates.length} app${appsWithUpdates.length == 1 ? '' : 's'} ${appsWithUpdates.length == 1 ? 'has' : 'have'} updates available',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: CupertinoColors.label,
+                          color: CupertinoColors.label.resolveFrom(context),
                         ),
                       ),
                     ),
@@ -650,9 +657,9 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
       ],
@@ -687,9 +694,12 @@ class _QuickActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
         child: Stack(
           children: [
@@ -715,7 +725,9 @@ class _QuickActionTile extends StatelessWidget {
                     fontWeight: subtitleColor != null
                         ? FontWeight.w500
                         : FontWeight.w400,
-                    color: subtitleColor ?? CupertinoColors.systemGrey,
+                    color:
+                        subtitleColor ??
+                        CupertinoColors.systemGrey.resolveFrom(context),
                   ),
                 ),
               ],

@@ -28,9 +28,9 @@ class FormRowLabel extends StatelessWidget {
           Text(title),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
           ),
         ],

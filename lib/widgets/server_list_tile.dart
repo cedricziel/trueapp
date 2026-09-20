@@ -70,8 +70,11 @@ class ServerListTile extends StatelessWidget {
             color: status != null && status!.needsAttention
                 ? CupertinoColors.systemRed.withValues(alpha: 0.05)
                 : null,
-            border: const Border(
-              bottom: BorderSide(color: CupertinoColors.separator, width: 0.5),
+            border: Border(
+              bottom: BorderSide(
+                color: CupertinoColors.separator.resolveFrom(context),
+                width: 0.5,
+              ),
             ),
           ),
           child: Column(
@@ -79,7 +82,7 @@ class ServerListTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _buildStatusIcon(),
+                  _buildStatusIcon(context),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -95,24 +98,26 @@ class ServerListTile extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           server.baseUrl,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: CupertinoColors.systemGrey,
+                            color: CupertinoColors.systemGrey.resolveFrom(
+                              context,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
-                    color: CupertinoColors.tertiaryLabel,
+                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
                     size: 20,
                   ),
                 ],
               ),
               if (status != null) ...[
                 const SizedBox(height: 10),
-                _buildStatusDetail(status!),
+                _buildStatusDetail(context, status!),
               ],
             ],
           ),
@@ -121,7 +126,7 @@ class ServerListTile extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusIcon() {
+  Widget _buildStatusIcon(BuildContext context) {
     final connectivity = status?.connectivity;
     final Color color;
     if (connectivity == FleetServerConnectivity.online) {
@@ -133,7 +138,7 @@ class ServerListTile extends StatelessWidget {
     } else if (server.isActive) {
       color = CupertinoColors.activeGreen;
     } else {
-      color = CupertinoColors.systemGrey;
+      color = CupertinoColors.systemGrey.resolveFrom(context);
     }
 
     return Container(
@@ -147,17 +152,17 @@ class ServerListTile extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusDetail(FleetServerStatus status) {
+  Widget _buildStatusDetail(BuildContext context, FleetServerStatus status) {
     switch (status.connectivity) {
       case FleetServerConnectivity.loading:
       case FleetServerConnectivity.unknown:
-        return const Padding(
+        return Padding(
           padding: EdgeInsets.only(left: 52),
           child: Text(
             'Checking…',
             style: TextStyle(
               fontSize: 12,
-              color: CupertinoColors.tertiaryLabel,
+              color: CupertinoColors.tertiaryLabel.resolveFrom(context),
             ),
           ),
         );
@@ -178,9 +183,17 @@ class ServerListTile extends StatelessWidget {
           padding: const EdgeInsets.only(left: 52, right: 8),
           child: Row(
             children: [
-              Expanded(child: _buildMiniMetric('CPU', status.cpuUsage)),
+              Expanded(
+                child: _buildMiniMetric(context, 'CPU', status.cpuUsage),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildMiniMetric('Storage', status.storageUsage)),
+              Expanded(
+                child: _buildMiniMetric(
+                  context,
+                  'Storage',
+                  status.storageUsage,
+                ),
+              ),
               if (status.activeAlertCount > 0) ...[
                 const SizedBox(width: 8),
                 Icon(
@@ -195,13 +208,13 @@ class ServerListTile extends StatelessWidget {
     }
   }
 
-  Widget _buildMiniMetric(String label, double? value) {
+  Widget _buildMiniMetric(BuildContext context, String label, double? value) {
     // `value == null` means the server never reported this metric - distinct
     // from a genuine 0% reading, so it renders as "unavailable" (an empty
     // bar and a dash) rather than a misleadingly healthy-looking 0% bar.
     final percent = value?.clamp(0, 100).toDouble();
     final color = percent == null
-        ? CupertinoColors.systemGrey4
+        ? CupertinoColors.systemGrey4.resolveFrom(context)
         : percent > 85
         ? CupertinoColors.systemRed
         : percent > 65
@@ -212,16 +225,16 @@ class ServerListTile extends StatelessWidget {
       children: [
         Text(
           '$label ',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
         Expanded(
           child: Container(
             height: 4,
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey5,
+              color: CupertinoColors.systemGrey5.resolveFrom(context),
               borderRadius: BorderRadius.circular(2),
             ),
             child: FractionallySizedBox(
@@ -239,9 +252,9 @@ class ServerListTile extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           percent == null ? '–' : '${percent.toStringAsFixed(0)}%',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
       ],

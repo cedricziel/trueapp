@@ -24,7 +24,7 @@ class JobsBellButton extends StatelessWidget {
             ? CupertinoColors.systemBlue
             : needsAttention
             ? CupertinoColors.systemRed
-            : CupertinoColors.systemGrey2;
+            : CupertinoColors.systemGrey2.resolveFrom(context);
 
         return CupertinoButton(
           padding: EdgeInsets.zero,
@@ -69,7 +69,10 @@ class _CountBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: CupertinoColors.systemBlue,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: CupertinoColors.systemBackground, width: 1.5),
+        border: Border.all(
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          width: 1.5,
+        ),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -96,7 +99,10 @@ class _AttentionDot extends StatelessWidget {
       decoration: BoxDecoration(
         color: CupertinoColors.systemRed,
         shape: BoxShape.circle,
-        border: Border.all(color: CupertinoColors.systemBackground, width: 1.5),
+        border: Border.all(
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          width: 1.5,
+        ),
       ),
     );
   }

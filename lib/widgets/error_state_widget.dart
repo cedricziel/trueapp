@@ -33,9 +33,9 @@ class ErrorStateWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: CupertinoColors.systemGrey,
+                color: CupertinoColors.systemGrey.resolveFrom(context),
               ),
               textAlign: TextAlign.center,
             ),

@@ -108,11 +108,11 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemBackground,
+            color: CupertinoColors.systemBackground.resolveFrom(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: unhealthyDisks.isEmpty
-                  ? CupertinoColors.separator
+                  ? CupertinoColors.separator.resolveFrom(context)
                   : CupertinoColors.systemRed.withValues(alpha: 0.35),
               width: 0.5,
             ),
@@ -154,8 +154,10 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           pool.topologyDescription,
-                          style: const TextStyle(
-                            color: CupertinoColors.systemGrey,
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey.resolveFrom(
+                              context,
+                            ),
                             fontSize: 14,
                           ),
                         ),
@@ -212,7 +214,7 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
       ),
       VdevDiskStatus.unknown => (
         CupertinoIcons.minus,
-        CupertinoColors.systemGrey,
+        CupertinoColors.systemGrey.resolveFrom(context),
       ),
       VdevDiskStatus.faulted ||
       VdevDiskStatus.offline ||

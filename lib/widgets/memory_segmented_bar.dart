@@ -28,9 +28,9 @@ class MemorySegmentedBar extends StatelessWidget {
               children: [
                 _Segment(
                   flex: stats.freeMemoryPercent,
-                  color: CupertinoColors.systemGrey3,
+                  color: CupertinoColors.systemGrey3.resolveFrom(context),
                   label: '${stats.freeMemoryPercent.round()}%',
-                  labelColor: CupertinoColors.label,
+                  labelColor: CupertinoColors.label.resolveFrom(context),
                 ),
                 const SizedBox(width: 1.5),
                 _Segment(
@@ -53,15 +53,18 @@ class MemorySegmentedBar extends StatelessWidget {
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.only(top: 2),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: CupertinoColors.separator, width: 0.5),
+              top: BorderSide(
+                color: CupertinoColors.separator.resolveFrom(context),
+                width: 0.5,
+              ),
             ),
           ),
           child: Column(
             children: [
               _LegendRow(
-                color: CupertinoColors.systemGrey3,
+                color: CupertinoColors.systemGrey3.resolveFrom(context),
                 label: 'Free',
                 value: formatBytes(stats.freeMemory),
                 percent: stats.freeMemoryPercent,
@@ -84,10 +87,13 @@ class MemorySegmentedBar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Free excludes the ZFS ARC cache, so Free + ZFS ARC + Apps '
           'adds up to 100% of physical memory.',
-          style: TextStyle(fontSize: 11, color: CupertinoColors.tertiaryLabel),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+          ),
         ),
       ],
     );
@@ -163,9 +169,9 @@ class _LegendRow extends StatelessWidget {
           child: Text(
             '${percent.round()}%',
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: CupertinoColors.systemGrey,
+              color: CupertinoColors.systemGrey.resolveFrom(context),
             ),
           ),
         ),

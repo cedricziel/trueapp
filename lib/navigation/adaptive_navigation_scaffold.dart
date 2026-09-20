@@ -125,8 +125,9 @@ class _AdaptiveNavigationScaffoldState
                 child: CupertinoTabTransitionBuilder(
                   child: Container(
                     key: ValueKey(_selectedIndex),
-                    decoration: const BoxDecoration(
-                      color: CupertinoColors.systemGroupedBackground,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGroupedBackground
+                          .resolveFrom(context),
                     ),
                     child: widget.child,
                   ),
@@ -153,12 +154,12 @@ class _AdaptiveNavigationScaffoldState
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: CupertinoColors.systemBackground.withValues(
-                        alpha: 0.9,
-                      ),
+                      color: CupertinoColors.systemBackground
+                          .resolveFrom(context)
+                          .withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: CupertinoColors.separator,
+                        color: CupertinoColors.separator.resolveFrom(context),
                         width: 0.5,
                       ),
                       boxShadow: [

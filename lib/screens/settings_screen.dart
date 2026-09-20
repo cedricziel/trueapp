@@ -171,18 +171,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             CupertinoFormSection(
               header: const Text('ABOUT'),
               children: [
-                const CupertinoFormRow(
+                CupertinoFormRow(
                   prefix: Text('Version'),
                   child: Text(
                     '1.0.0+1',
-                    style: TextStyle(color: CupertinoColors.systemGrey),
+                    style: TextStyle(
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
+                    ),
                   ),
                 ),
-                const CupertinoFormRow(
+                CupertinoFormRow(
                   prefix: Text('Database Schema'),
                   child: Text(
                     'Version 1',
-                    style: TextStyle(color: CupertinoColors.systemGrey),
+                    style: TextStyle(
+                      color: CupertinoColors.systemGrey.resolveFrom(context),
+                    ),
                   ),
                 ),
               ],
