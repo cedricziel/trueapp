@@ -1,16 +1,20 @@
 import 'package:flutter/cupertino.dart';
 
 class EmptyStateWidget extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+
+  /// Replaces [icon] when both are given.
+  final Widget? leading;
   final String title;
   final String message;
 
   const EmptyStateWidget({
     super.key,
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.title,
     required this.message,
-  });
+  }) : assert(icon != null || leading != null, 'Provide an icon or leading');
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +24,12 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: CupertinoColors.systemGrey.resolveFrom(context),
-            ),
+            leading ??
+                Icon(
+                  icon,
+                  size: 48,
+                  color: CupertinoColors.systemGrey.resolveFrom(context),
+                ),
             const SizedBox(height: 16),
             Text(
               title,

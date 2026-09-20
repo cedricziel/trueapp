@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/widgets/app_logo.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 
 void main() {
@@ -39,6 +40,24 @@ void main() {
         find.byIcon(CupertinoIcons.square_stack_3d_down_right),
         findsOneWidget,
       );
+    });
+
+    testWidgets('shows leading widget instead of the icon', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const CupertinoApp(
+          home: EmptyStateWidget(
+            icon: CupertinoIcons.app,
+            leading: AppLogo(),
+            title: 'No Servers',
+            message: 'Add one',
+          ),
+        ),
+      );
+
+      expect(find.byType(AppLogo), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.app), findsNothing);
     });
   });
 }

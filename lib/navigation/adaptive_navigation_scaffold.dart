@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cupertino_sidebar/cupertino_sidebar.dart';
 import 'package:truehub/navigation/compact_navigation.dart';
 import 'package:truehub/navigation/navigation_layout.dart';
+import 'package:truehub/widgets/app_logo.dart';
 
 class AdaptiveNavigationScaffold extends StatefulWidget {
   final Widget child;
@@ -105,7 +106,20 @@ class _AdaptiveNavigationScaffoldState
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _onDestinationSelected,
                   navigationBar: const SidebarNavigationBar(
-                    title: Text('TrueNAS Manager'),
+                    title: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppLogo(size: 22),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'TrueNAS Manager',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   children: const [
                     // Main Navigation - index 0
