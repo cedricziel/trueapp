@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/cedricziel/trueapp/compare/v0.9.0...v0.10.0) (2026-09-20)
+
+
+### Features
+
+* new app logo across all assets ([#172](https://github.com/cedricziel/trueapp/issues/172)) ([03f2ff9](https://github.com/cedricziel/trueapp/commit/03f2ff93a49cecc4331a5071bab6781bb7b67e5f))
+
+
+### Bug Fixes
+
+* resolve neutral colors for dark mode across the app ([#170](https://github.com/cedricziel/trueapp/issues/170)) ([5777607](https://github.com/cedricziel/trueapp/commit/577760738ef15c569a045e5fedfb9d07420fbf50))
+
 ## [0.9.0](https://github.com/cedricziel/trueapp/compare/v0.8.0...v0.9.0) (2026-09-20)
 
 
