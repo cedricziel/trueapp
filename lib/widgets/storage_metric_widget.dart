@@ -27,9 +27,9 @@ class StorageMetricWidget extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: CupertinoColors.systemGrey,
+            color: CupertinoColors.systemGrey.resolveFrom(context),
           ),
         ),
       ],

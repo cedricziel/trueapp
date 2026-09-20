@@ -23,9 +23,12 @@ class AppCardWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
         child: Column(
           children: [
@@ -49,9 +52,11 @@ class AppCardWidget extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         app.description,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: CupertinoColors.systemGrey,
+                          color: CupertinoColors.systemGrey.resolveFrom(
+                            context,
+                          ),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -77,7 +82,7 @@ class AppCardWidget extends StatelessWidget {
                               : CupertinoIcons.heart,
                           color: isFavorite
                               ? CupertinoColors.systemRed
-                              : CupertinoColors.systemGrey,
+                              : CupertinoColors.systemGrey.resolveFrom(context),
                           size: 20,
                         ),
                       );
@@ -120,7 +125,7 @@ class AppCardWidget extends StatelessWidget {
                     Icon(
                       CupertinoIcons.tag,
                       size: 14,
-                      color: CupertinoColors.systemGrey2,
+                      color: CupertinoColors.systemGrey2.resolveFrom(context),
                     ),
                     const SizedBox(width: 4),
                     Flexible(
@@ -128,9 +133,11 @@ class AppCardWidget extends StatelessWidget {
                         app.categories.take(2).join(', '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: CupertinoColors.systemGrey2,
+                          color: CupertinoColors.systemGrey2.resolveFrom(
+                            context,
+                          ),
                         ),
                       ),
                     ),
@@ -139,9 +146,9 @@ class AppCardWidget extends StatelessWidget {
                   if (app.latestAppVersion.isNotEmpty) ...[
                     Text(
                       'v${app.latestAppVersion}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: CupertinoColors.systemGrey2,
+                        color: CupertinoColors.systemGrey2.resolveFrom(context),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -155,7 +162,9 @@ class AppCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6.withValues(alpha: 0.5),
+                  color: CupertinoColors.systemGrey6
+                      .resolveFrom(context)
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -171,9 +180,9 @@ class AppCardWidget extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'CPU: ${app.resourceUsage!.cpuUsage.toStringAsFixed(1)}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: CupertinoColors.label,
+                            color: CupertinoColors.label.resolveFrom(context),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -186,9 +195,9 @@ class AppCardWidget extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Memory: ${_formatBytes(app.resourceUsage!.memoryUsage)}${app.resourceUsage!.memoryLimit > 0 ? ' / ${_formatBytes(app.resourceUsage!.memoryLimit * 1024 * 1024)}' : ''}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: CupertinoColors.label,
+                              color: CupertinoColors.label.resolveFrom(context),
                             ),
                           ),
                         ),
@@ -211,9 +220,11 @@ class AppCardWidget extends StatelessWidget {
                               'RX: ${_formatBytes(app.resourceUsage!.networkRxBytes.toInt())}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: CupertinoColors.label,
+                                color: CupertinoColors.label.resolveFrom(
+                                  context,
+                                ),
                               ),
                             ),
                           ),
@@ -229,9 +240,11 @@ class AppCardWidget extends StatelessWidget {
                               'TX: ${_formatBytes(app.resourceUsage!.networkTxBytes.toInt())}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: CupertinoColors.label,
+                                color: CupertinoColors.label.resolveFrom(
+                                  context,
+                                ),
                               ),
                             ),
                           ),
@@ -241,9 +254,11 @@ class AppCardWidget extends StatelessWidget {
                               _formatLastUpdated(
                                 app.resourceUsage!.lastUpdated!,
                               ),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: CupertinoColors.systemGrey,
+                                color: CupertinoColors.systemGrey.resolveFrom(
+                                  context,
+                                ),
                               ),
                             ),
                           ],
@@ -276,9 +291,9 @@ class AppCardWidget extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Update available: ${app.upgradeInfo!.availableVersion ?? 'Latest'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: CupertinoColors.label,
+                          color: CupertinoColors.label.resolveFrom(context),
                         ),
                       ),
                     ),
@@ -323,12 +338,12 @@ class AppCardWidget extends StatelessWidget {
                           color: CupertinoColors.systemBlue,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Ports & Access',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: CupertinoColors.label,
+                            color: CupertinoColors.label.resolveFrom(context),
                           ),
                         ),
                       ],
@@ -385,18 +400,21 @@ class AppCardWidget extends StatelessWidget {
                           const SizedBox(width: 22),
                           Text(
                             'Port ${port.containerPort} (${port.protocol.toUpperCase()})',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: CupertinoColors.secondaryLabel,
+                              color: CupertinoColors.secondaryLabel.resolveFrom(
+                                context,
+                              ),
                             ),
                           ),
                           const Spacer(),
                           if (port.hostPorts.isNotEmpty) ...[
                             Text(
                               'Host: ${port.hostPorts.first.hostPort}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: CupertinoColors.secondaryLabel,
+                                color: CupertinoColors.secondaryLabel
+                                    .resolveFrom(context),
                               ),
                             ),
                           ],
@@ -408,7 +426,7 @@ class AppCardWidget extends StatelessWidget {
                       const SizedBox(height: 4),
                       Container(
                         height: 1,
-                        color: CupertinoColors.separator,
+                        color: CupertinoColors.separator.resolveFrom(context),
                         margin: const EdgeInsets.symmetric(vertical: 4),
                       ),
                       for (final portal in app.portals.entries) ...[
@@ -528,7 +546,7 @@ class AppCardWidget extends StatelessWidget {
                 'Release notes:',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: CupertinoColors.label,
+                  color: CupertinoColors.label.resolveFrom(context),
                 ),
               ),
               const SizedBox(height: 8),

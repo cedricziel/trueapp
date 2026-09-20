@@ -24,9 +24,12 @@ class PoolCardWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: CupertinoColors.systemGrey6,
+          color: CupertinoColors.systemGrey6.resolveFrom(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator, width: 0.5),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
         child: Column(
           children: [
@@ -64,9 +67,11 @@ class PoolCardWidget extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         pool.topologyDescription,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: CupertinoColors.systemGrey,
+                          color: CupertinoColors.systemGrey.resolveFrom(
+                            context,
+                          ),
                         ),
                       ),
                     ],
@@ -122,7 +127,7 @@ class PoolCardWidget extends StatelessWidget {
                   child: StorageMetricWidget(
                     label: 'Total',
                     value: _formatBytes(pool.totalBytes),
-                    color: CupertinoColors.systemGrey,
+                    color: CupertinoColors.systemGrey.resolveFrom(context),
                   ),
                 ),
               ],
