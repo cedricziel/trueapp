@@ -48,6 +48,33 @@ class TestProviders {
     return ServerProvider(service, databaseRef: () => database);
   }
 
+  /// Builds a [ServerProvider] and waits, in real time, for its initial
+  /// server load to finish.
+  ///
+  /// The constructor fires a drift query without awaiting it. Left in flight
+  /// when a widget test's fake-async body starts, that query can never
+  /// complete, and `AppDatabase.close()` in teardown then blocks until its
+  /// guard timeout expires - about five seconds per test.
+  static Future<ServerProvider> createSettledServerProvider(
+    UnifiedServerService service,
+  ) async {
+    final provider = ServerProvider(service);
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (provider.isLoadingServers && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    return provider;
+  }
+
+  /// Lets database work that a provider started without awaiting finish.
+  ///
+  /// Call it at the end of a `setUp` that mutates servers: a change makes
+  /// [ServerProvider] reload in the background, and a reload still in flight
+  /// when the fake-async test body starts stalls `AppDatabase.close()` (see
+  /// [createSettledServerProvider]).
+  static Future<void> settlePendingLoads() =>
+      Future<void>.delayed(const Duration(milliseconds: 20));
+
   /// Sets up the test environment with mock implementations
   static void setupTestEnvironment() {
     // Set the mock API client manager

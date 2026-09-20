@@ -31,7 +31,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
     mockNetworkService = MockNetworkService();
 
     testServer = NasServer.create(
@@ -47,6 +49,7 @@ void main() {
     );
 
     await serverProvider.addServer(testServer, 'password');
+    await TestProviders.settlePendingLoads();
   });
 
   tearDown(() async {

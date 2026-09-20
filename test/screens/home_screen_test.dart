@@ -30,7 +30,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
     // HomeScreen kicks off its own real refreshAll() on mount; against the
     // mock API client manager that resolves every server to "offline",
     // racing whatever this test seeds directly. Overriding it to a no-op
