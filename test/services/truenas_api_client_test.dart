@@ -488,6 +488,44 @@ void main() {
       expect(categories, ['media', 'networking']);
     });
 
+    test('getAvailableApps retries once when the socket is recycled while the '
+        'request is in flight', () async {
+      // Regression test: app.available is slow enough that a
+      // keepalive-triggered reconnect (or any other socket recycle) can
+      // land while it's still pending. json_rpc_2 then rejects it with
+      // `StateError('The client closed with pending request ...')`
+      // instead of a response - _sendRequest must retry it against the
+      // freshly reconnected client rather than surfacing that as a
+      // failure to the caller.
+      final pending = Completer<Object?>();
+      final requestStarted = Completer<void>();
+      server.onMethod('app.available', (_) {
+        requestStarted.complete();
+        return pending.future;
+      });
+
+      final future = client.getAvailableApps();
+
+      // Wait for the server to actually receive the request (rather than a
+      // fixed delay) before yanking the socket out from under it.
+      await requestStarted.future;
+
+      // The retry lands on a new connection, so arm it with a real
+      // response before dropping the one the first attempt is stuck on.
+      server.onMethod(
+        'app.available',
+        (_) => [
+          {'name': 'plex', 'title': 'Plex'},
+        ],
+      );
+      await server.dropConnections();
+
+      final apps = await future;
+      expect(apps, hasLength(1));
+      expect(apps.first.name, 'plex');
+      expect(server.connectionCount, 2);
+    });
+
     test('getInstalledApps converts the full TrueNAS app shape', () async {
       server.onMethod(
         'app.query',
