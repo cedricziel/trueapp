@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/widgets/app_logo.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
 import 'package:truehub/widgets/server_list_tile.dart';
@@ -127,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             if (serverProvider.servers.isEmpty) {
               return const EmptyStateWidget(
-                icon: CupertinoIcons.desktopcomputer,
+                leading: AppLogo(size: 88),
                 title: 'No servers added yet',
                 message: 'Tap + to add your first TrueNAS server',
               );
