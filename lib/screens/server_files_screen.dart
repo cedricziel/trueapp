@@ -104,12 +104,12 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
             onTap: () => _navigateToPath(provider, '/'),
           ),
           for (var i = 0; i < segments.length; i++) ...[
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 4),
               child: Icon(
                 CupertinoIcons.chevron_right,
                 size: 12,
-                color: CupertinoColors.tertiaryLabel,
+                color: CupertinoColors.tertiaryLabel.resolveFrom(context),
               ),
             ),
             _buildBreadcrumb(
@@ -142,7 +142,7 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
             fontSize: 14,
             fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
             color: isCurrent
-                ? CupertinoColors.label
+                ? CupertinoColors.label.resolveFrom(context)
                 : CupertinoColors.activeBlue,
           ),
         ),
@@ -185,11 +185,13 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
 
     return ListView.separated(
       itemCount: sorted.length,
-      separatorBuilder: (context, index) => const Padding(
+      separatorBuilder: (context, index) => Padding(
         padding: EdgeInsets.only(left: 56),
         child: SizedBox(
           height: 0.5,
-          child: ColoredBox(color: CupertinoColors.separator),
+          child: ColoredBox(
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
         ),
       ),
       itemBuilder: (context, index) {
@@ -224,19 +226,19 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
                 const SizedBox(height: 2),
                 Text(
                   _subtitleFor(file),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: CupertinoColors.systemGrey,
+                    color: CupertinoColors.systemGrey.resolveFrom(context),
                   ),
                 ),
               ],
             ),
           ),
           if (file.isDirectory)
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_right,
               size: 16,
-              color: CupertinoColors.tertiaryLabel,
+              color: CupertinoColors.tertiaryLabel.resolveFrom(context),
             ),
         ],
       ),
@@ -274,6 +276,6 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
     if (mimeType.startsWith('image/')) return CupertinoColors.systemPurple;
     if (mimeType.startsWith('video/')) return CupertinoColors.systemGreen;
     if (mimeType.startsWith('audio/')) return CupertinoColors.systemOrange;
-    return CupertinoColors.systemGrey;
+    return CupertinoColors.systemGrey.resolveFrom(context);
   }
 }

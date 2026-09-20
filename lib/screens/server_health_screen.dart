@@ -112,7 +112,7 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.35), width: 0.5),
       ),
@@ -146,9 +146,11 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
                     activeAlerts.first.message,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: CupertinoColors.secondaryLabel,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(
+                        context,
+                      ),
                     ),
                   ),
                 ],
@@ -170,8 +172,11 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
-        border: Border.all(color: CupertinoColors.separator, width: 0.5),
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+          width: 0.5,
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
@@ -197,9 +202,11 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
                       const SizedBox(height: 6),
                       Text(
                         _formatRelativeTime(alert.occurredAt!),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: CupertinoColors.tertiaryLabel,
+                          color: CupertinoColors.tertiaryLabel.resolveFrom(
+                            context,
+                          ),
                         ),
                       ),
                     ],
@@ -234,7 +241,7 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: CupertinoColors.systemGrey6.resolveFrom(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.35), width: 0.5),
       ),
@@ -268,9 +275,9 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
             const SizedBox(height: 2),
             Text(
               '${disk.temperature}°C',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: CupertinoColors.tertiaryLabel,
+                color: CupertinoColors.tertiaryLabel.resolveFrom(context),
               ),
             ),
           ],
@@ -287,7 +294,7 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
         normalized == 'OK') {
       return CupertinoColors.systemGreen;
     }
-    return CupertinoColors.systemGrey;
+    return CupertinoColors.systemGrey.resolveFrom(context);
   }
 
   Widget _buildServicesSection(List<ServiceStatus> services) {
@@ -306,7 +313,7 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
                   decoration: BoxDecoration(
                     color: service.isRunning
                         ? CupertinoColors.systemGreen
-                        : CupertinoColors.systemGrey,
+                        : CupertinoColors.systemGrey.resolveFrom(context),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -324,7 +331,7 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
                     fontWeight: FontWeight.w500,
                     color: service.isRunning
                         ? CupertinoColors.systemGreen
-                        : CupertinoColors.systemGrey,
+                        : CupertinoColors.systemGrey.resolveFrom(context),
                   ),
                 ),
               ],

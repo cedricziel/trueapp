@@ -314,9 +314,11 @@ class _AddServerScreenState extends State<AddServerScreen> {
                           const Text('Current Network'),
                           Text(
                             _currentWifiSsid!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: CupertinoColors.systemGrey,
+                              color: CupertinoColors.systemGrey.resolveFrom(
+                                context,
+                              ),
                             ),
                           ),
                         ],
