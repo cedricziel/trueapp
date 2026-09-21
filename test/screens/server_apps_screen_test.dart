@@ -152,7 +152,9 @@ void main() {
   /// observed true -> false transition of `isLoading`, proving a full load
   /// cycle actually ran.
   Future<void> settleInitialLoad(WidgetTester tester) async {
-    var loadStarted = false;
+    // A tap that triggers a reload has already flipped isLoading by the time
+    // this runs, so an in-flight load counts as started.
+    var loadStarted = appProvider.isLoading;
     void listener() {
       if (appProvider.isLoading) loadStarted = true;
     }
