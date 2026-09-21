@@ -3,12 +3,25 @@
     "cedricziel": {
       "source": {
         "source": "github",
-        "repo": "cedricziel/claude-plugins"
+        "repo": "cedricziel/claude-plugins",
+        "sha": "b2f438e923dec9c50bf6370ffd1cd6316fe14125"
       }
     }
   },
   "enabledPlugins": {
     "common@cedricziel": true,
     "oss@cedricziel": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/install-claude-plugins.sh"
+          }
+        ]
+      }
+    ]
   }
 }
