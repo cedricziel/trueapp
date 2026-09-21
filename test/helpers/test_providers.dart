@@ -49,31 +49,52 @@ class TestProviders {
   }
 
   /// Builds a [ServerProvider] and waits, in real time, for its initial
-  /// server load to finish.
+  /// server load, and any auto-selection it triggers, to finish.
   ///
   /// The constructor fires a drift query without awaiting it. Left in flight
   /// when a widget test's fake-async body starts, that query can never
   /// complete, and `AppDatabase.close()` in teardown then blocks until its
   /// guard timeout expires - about five seconds per test.
+  ///
+  /// Throws a [TimeoutException] when the load does not finish in time, so a
+  /// slow database fails loudly here instead of stalling teardown later.
   static Future<ServerProvider> createSettledServerProvider(
     UnifiedServerService service,
   ) async {
     final provider = ServerProvider(service);
-    final deadline = DateTime.now().add(const Duration(seconds: 2));
-    while (provider.isLoadingServers && DateTime.now().isBefore(deadline)) {
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-    }
+    await _waitUntil(() => !provider.isLoadingServers, 'initial server load');
+    await settlePendingLoads(provider);
     return provider;
   }
 
-  /// Lets database work that a provider started without awaiting finish.
+  /// Lets background work that [provider] started finish.
   ///
   /// Call it at the end of a `setUp` that mutates servers: a change makes
-  /// [ServerProvider] reload in the background, and a reload still in flight
-  /// when the fake-async test body starts stalls `AppDatabase.close()` (see
-  /// [createSettledServerProvider]).
-  static Future<void> settlePendingLoads() =>
-      Future<void>.delayed(const Duration(milliseconds: 20));
+  /// [ServerProvider] reload and auto-select in the background, and work
+  /// still in flight when the fake-async test body starts stalls
+  /// `AppDatabase.close()` (see [createSettledServerProvider]).
+  /// `isLoadingServers` clears before auto-selection starts, so this also
+  /// waits for any authentication it kicks off.
+  static Future<void> settlePendingLoads(ServerProvider provider) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await _waitUntil(
+      () => !provider.isLoadingServers && !provider.isAuthenticating,
+      'pending server work',
+    );
+  }
+
+  static Future<void> _waitUntil(
+    bool Function() condition,
+    String description,
+  ) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (!condition()) {
+      if (DateTime.now().isAfter(deadline)) {
+        throw TimeoutException('Timed out waiting for $description');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+  }
 
   /// Sets up the test environment with mock implementations
   static void setupTestEnvironment() {

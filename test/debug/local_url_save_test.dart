@@ -47,6 +47,7 @@ void main() {
     );
 
     await serverProvider.addServer(testServer, 'password');
+    await TestProviders.settlePendingLoads(serverProvider);
   });
 
   tearDown(() async {

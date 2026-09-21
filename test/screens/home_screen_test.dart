@@ -61,6 +61,7 @@ void main() {
       ),
       'password',
     );
+    await TestProviders.settlePendingLoads(serverProvider);
   });
 
   tearDown(() async {
@@ -104,7 +105,10 @@ void main() {
     final emptyService = await TestProviders.createMockUnifiedServerService(
       database: emptyDatabase,
     );
-    final emptyServerProvider = ServerProvider(emptyService);
+    final emptyServerProvider = (await runRealAsync(
+      tester,
+      () => TestProviders.createSettledServerProvider(emptyService),
+    ))!;
     addTearDown(emptyServerProvider.dispose);
     addTearDown(() async {
       await TestProviders.disposeTestStack(
