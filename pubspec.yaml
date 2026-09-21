@@ -96,7 +96,7 @@ dependencies:
   flutter_otel:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: main
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
       path: packages/flutter_otel
 
 dev_dependencies:
@@ -168,21 +168,21 @@ flutter:
 # Pin all four to the same repo/ref/path as the `flutter_otel` dependency
 # above, and drop this block in the same cleanup mentioned there.
 dependency_overrides:
-  flutter_otel_api:
+  dart_otel_api:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: main
-      path: packages/flutter_otel_api
-  flutter_otel_sdk:
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
+      path: packages/dart_otel_api
+  dart_otel_sdk:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: main
-      path: packages/flutter_otel_sdk
-  flutter_otel_exporter_otlp_http:
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
+      path: packages/dart_otel_sdk
+  dart_otel_exporter_otlp_http:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: main
-      path: packages/flutter_otel_exporter_otlp_http
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
+      path: packages/dart_otel_exporter_otlp_http
 
 dart_pre_commit:
   format: true

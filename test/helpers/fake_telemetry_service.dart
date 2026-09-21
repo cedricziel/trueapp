@@ -97,6 +97,7 @@ class _FakeTracer implements Tracer {
     SpanKind kind = SpanKind.internal,
     Map<String, Object?>? attributes,
     SpanContext? parentContext,
+    List<SpanLink> links = const [],
   }) {
     final span = FakeSpan(name, kind: kind, attributes: attributes);
     _spans.add(span);
@@ -109,6 +110,7 @@ class _FakeTracer implements Tracer {
     Future<T> Function(Span span) body, {
     SpanKind kind = SpanKind.internal,
     Map<String, Object?>? attributes,
+    List<SpanLink> links = const [],
   }) async {
     final span = startSpan(name, kind: kind, attributes: attributes);
     try {
