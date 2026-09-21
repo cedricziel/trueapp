@@ -96,7 +96,7 @@ dependencies:
   flutter_otel:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: bde1e75213e56333646016124cccf03cbc3ae206
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
       path: packages/flutter_otel
 
 dev_dependencies:
@@ -171,17 +171,17 @@ dependency_overrides:
   dart_otel_api:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: bde1e75213e56333646016124cccf03cbc3ae206
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
       path: packages/dart_otel_api
   dart_otel_sdk:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: bde1e75213e56333646016124cccf03cbc3ae206
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
       path: packages/dart_otel_sdk
   dart_otel_exporter_otlp_http:
     git:
       url: https://github.com/cedricziel/flutter-otel.git
-      ref: bde1e75213e56333646016124cccf03cbc3ae206
+      ref: e31c5db91705f8d3264f66d28f58b5d03a9e25d7
       path: packages/dart_otel_exporter_otlp_http
 
 dart_pre_commit:
