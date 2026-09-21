@@ -31,7 +31,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
   });
 
   tearDown(() async {

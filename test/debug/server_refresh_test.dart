@@ -44,7 +44,9 @@ void main() {
       );
       await unifiedServerService.initialize();
 
-      serverProvider = ServerProvider(unifiedServerService);
+      serverProvider = await TestProviders.createSettledServerProvider(
+        unifiedServerService,
+      );
     });
 
     tearDown(() async {

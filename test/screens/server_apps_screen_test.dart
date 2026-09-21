@@ -102,7 +102,9 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(serverService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      serverService,
+    );
     appProvider = AppProvider(database: database, serverService: serverService);
     fakeClient = FakeApiClient();
 

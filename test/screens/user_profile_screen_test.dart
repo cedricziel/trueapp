@@ -32,7 +32,9 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(serverService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      serverService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(

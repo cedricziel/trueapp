@@ -19,7 +19,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
 
     // STEP 1: Start with a registered server
     testServer = NasServer.create(

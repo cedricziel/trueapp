@@ -29,7 +29,9 @@ void main() {
     );
     await unifiedServerService.initialize();
 
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
 
     // Create a test server with a problematic local URL
     testServer = NasServer.create(
@@ -45,6 +47,7 @@ void main() {
     );
 
     await serverProvider.addServer(testServer, 'password');
+    await TestProviders.settlePendingLoads(serverProvider);
   });
 
   tearDown(() async {

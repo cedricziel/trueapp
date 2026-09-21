@@ -30,7 +30,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
     // HomeScreen kicks off its own real refreshAll() on mount; against the
     // mock API client manager that resolves every server to "offline",
     // racing whatever this test seeds directly. Overriding it to a no-op
@@ -59,6 +61,7 @@ void main() {
       ),
       'password',
     );
+    await TestProviders.settlePendingLoads(serverProvider);
   });
 
   tearDown(() async {
@@ -102,7 +105,10 @@ void main() {
     final emptyService = await TestProviders.createMockUnifiedServerService(
       database: emptyDatabase,
     );
-    final emptyServerProvider = ServerProvider(emptyService);
+    final emptyServerProvider = (await runRealAsync(
+      tester,
+      () => TestProviders.createSettledServerProvider(emptyService),
+    ))!;
     addTearDown(emptyServerProvider.dispose);
     addTearDown(() async {
       await TestProviders.disposeTestStack(

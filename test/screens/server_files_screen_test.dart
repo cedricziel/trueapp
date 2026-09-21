@@ -40,7 +40,9 @@ void main() {
     unifiedServerService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    serverProvider = ServerProvider(unifiedServerService);
+    serverProvider = await TestProviders.createSettledServerProvider(
+      unifiedServerService,
+    );
     fileProvider = FileProvider(unifiedServerService);
 
     testServer = NasServer.create(
