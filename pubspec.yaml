@@ -109,7 +109,7 @@ dev_dependencies:
   # Platform-interface test doubles for SecureStorageService's tests -
   # both are already transitive deps of flutter_secure_storage/local_auth;
   # listed explicitly since the tests import them directly.
-  flutter_secure_storage_platform_interface: ^2.0.3
+  flutter_secure_storage_platform_interface: ^2.1.1
   local_auth_platform_interface: ^1.1.0
 
 # For information on the generic Dart part of this file, see the
