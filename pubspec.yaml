@@ -37,7 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.9
 
   # HTTP client for API calls
-  dio: ^5.11.0
+  dio: ^5.11.1
 
   # JSON-RPC client
   json_rpc_2: ^4.1.0
