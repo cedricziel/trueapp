@@ -50,7 +50,7 @@ dependencies:
   # database.dart's migration steps catch SqliteException directly to make
   # themselves idempotent against a partially-applied prior run - already a
   # transitive dep of drift, listed explicitly since it's imported directly.
-  sqlite3: ^3.5.2
+  sqlite3: ^3.6.0
 
   # State management
   provider: ^6.1.5+1
