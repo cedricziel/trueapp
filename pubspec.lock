@@ -367,10 +367,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_otel
-      sha256: c4756c3d02a314c4f2f97d4b8d379a04e16a1437a032fd9f573f3186c72f5161
+      sha256: "1c1a0a8e73f377f2e5027e2bc45b21e5b205b977146759c2a6c2c33ddef684f5"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.1.1"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
