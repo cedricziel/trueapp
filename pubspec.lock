@@ -237,10 +237,10 @@ packages:
     dependency: "direct dev"
     description:
       name: dart_pre_commit
-      sha256: "452aa230a1cc6d37770c3d8a359e002be10a9c535546e8a1323c5b4445817930"
+      sha256: "663408ead766560733bca392ccbcb3e1f3b5bb691a65f24a57b446efb372dd59"
       url: "https://pub.dev"
     source: hosted
-    version: "6.1.4"
+    version: "6.1.5"
   dart_style:
     dependency: transitive
     description:
@@ -457,10 +457,10 @@ packages:
     dependency: transitive
     description:
       name: get_it
-      sha256: "568d62f0e68666fb5d95519743b3c24a34c7f19d834b0658c46e26d778461f66"
+      sha256: "2b5c6b077aad30bba9782178baff6076a2044141f1d5f2f15b43bca3fbe74874"
       url: "https://pub.dev"
     source: hosted
-    version: "9.2.1"
+    version: "9.3.0"
   glob:
     dependency: transitive
     description:
