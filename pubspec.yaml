@@ -72,7 +72,7 @@ dependencies:
   permission_handler: ^13.0.2
 
   # System tray/menu bar support
-  tray_manager: ^0.5.3
+  tray_manager: ^0.7.0
 
   # Secure credential storage
   flutter_secure_storage: ^11.2.0
