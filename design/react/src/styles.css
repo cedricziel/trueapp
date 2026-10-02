@@ -1,0 +1,194 @@
+/*
+ * TrueNAS Manager - Cupertino tokens.
+ * Values are Flutter's CupertinoColors (light / dark), the app's only palette.
+ * Light is the default; dark applies under the OS dark setting,
+ * :root[data-theme="dark"], or any element with .cupertino-dark
+ * (CupertinoApp / DeviceFrame brightness="dark"). .cupertino-light forces
+ * light inside a dark page. Every theme block declares every color itself,
+ * because a custom property holding var() resolves where it is declared.
+ */
+:root {
+  --cupertino-font-text:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
+  --cupertino-font-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
+  --cupertino-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --cupertino-white: rgb(255, 255, 255);
+  --cupertino-black: rgb(0, 0, 0);
+
+  /* Shape and spacing the widgets share. */
+  --tn-radius-card: 12px;
+  --tn-radius-tile: 10px;
+  --tn-radius-chip: 8px;
+  --tn-space-xs: 4px;
+  --tn-space-sm: 8px;
+  --tn-space-md: 12px;
+  --tn-space-lg: 16px;
+  --tn-space-xl: 24px;
+  --tn-space-xxl: 32px;
+  --tn-hairline: 0.5px;
+}
+
+:root,
+.cupertino-light {
+  --cupertino-system-blue: rgb(0, 122, 255);
+  --cupertino-system-green: rgb(52, 199, 89);
+  --cupertino-system-indigo: rgb(88, 86, 214);
+  --cupertino-system-orange: rgb(255, 149, 0);
+  --cupertino-system-pink: rgb(255, 45, 85);
+  --cupertino-system-purple: rgb(175, 82, 222);
+  --cupertino-system-red: rgb(255, 59, 48);
+  --cupertino-system-teal: rgb(90, 200, 250);
+  --cupertino-system-yellow: rgb(255, 204, 0);
+  --cupertino-system-grey: rgb(142, 142, 147);
+  --cupertino-system-grey2: rgb(174, 174, 178);
+  --cupertino-system-grey3: rgb(199, 199, 204);
+  --cupertino-system-grey4: rgb(209, 209, 214);
+  --cupertino-system-grey5: rgb(229, 229, 234);
+  --cupertino-system-grey6: rgb(242, 242, 247);
+  --cupertino-label: rgb(0, 0, 0);
+  --cupertino-secondary-label: rgba(60, 60, 67, 0.6);
+  --cupertino-tertiary-label: rgba(60, 60, 67, 0.3);
+  --cupertino-system-background: rgb(255, 255, 255);
+  --cupertino-secondary-system-background: rgb(242, 242, 247);
+  --cupertino-system-grouped-background: rgb(242, 242, 247);
+  --cupertino-secondary-system-grouped-background: rgb(255, 255, 255);
+  --cupertino-separator: rgba(60, 60, 67, 0.29);
+  --cupertino-opaque-separator: rgb(198, 198, 200);
+  --cupertino-secondary-system-fill: rgba(120, 120, 128, 0.16);
+  --cupertino-tertiary-system-fill: rgba(118, 118, 128, 0.12);
+  --cupertino-activity-indicator: rgb(60, 60, 68);
+  --cupertino-bar-background: rgba(249, 249, 249, 0.94);
+  --cupertino-bar-border: rgba(0, 0, 0, 0.3);
+  --cupertino-inactive-gray: rgb(153, 153, 153);
+  --cupertino-sidebar-selected: rgb(255, 255, 255);
+  --cupertino-sidebar-selected-text: rgb(0, 122, 255);
+  /* The app's CupertinoThemeData.primaryColor (systemBlue). */
+  --cupertino-primary: rgb(0, 122, 255);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cupertino-system-blue: rgb(10, 132, 255);
+    --cupertino-system-green: rgb(48, 209, 88);
+    --cupertino-system-indigo: rgb(94, 92, 230);
+    --cupertino-system-orange: rgb(255, 159, 10);
+    --cupertino-system-pink: rgb(255, 55, 95);
+    --cupertino-system-purple: rgb(191, 90, 242);
+    --cupertino-system-red: rgb(255, 69, 58);
+    --cupertino-system-teal: rgb(100, 210, 255);
+    --cupertino-system-yellow: rgb(255, 214, 10);
+    --cupertino-system-grey: rgb(142, 142, 147);
+    --cupertino-system-grey2: rgb(99, 99, 102);
+    --cupertino-system-grey3: rgb(72, 72, 74);
+    --cupertino-system-grey4: rgb(58, 58, 60);
+    --cupertino-system-grey5: rgb(44, 44, 46);
+    --cupertino-system-grey6: rgb(28, 28, 30);
+    --cupertino-label: rgb(255, 255, 255);
+    --cupertino-secondary-label: rgba(235, 235, 245, 0.6);
+    --cupertino-tertiary-label: rgba(235, 235, 245, 0.3);
+    --cupertino-system-background: rgb(0, 0, 0);
+    --cupertino-secondary-system-background: rgb(28, 28, 30);
+    --cupertino-system-grouped-background: rgb(0, 0, 0);
+    --cupertino-secondary-system-grouped-background: rgb(28, 28, 30);
+    --cupertino-separator: rgba(84, 84, 88, 0.6);
+    --cupertino-opaque-separator: rgb(56, 56, 58);
+    --cupertino-secondary-system-fill: rgba(120, 120, 128, 0.32);
+    --cupertino-tertiary-system-fill: rgba(118, 118, 128, 0.24);
+    --cupertino-activity-indicator: rgb(235, 235, 245);
+    --cupertino-bar-background: rgba(29, 29, 29, 0.94);
+    --cupertino-bar-border: rgba(255, 255, 255, 0.16);
+    --cupertino-inactive-gray: rgb(117, 117, 117);
+    --cupertino-sidebar-selected: rgba(142, 142, 147, 0.25);
+    --cupertino-sidebar-selected-text: rgb(255, 255, 255);
+    --cupertino-primary: rgb(10, 132, 255);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"],
+.cupertino-dark {
+  --cupertino-system-blue: rgb(10, 132, 255);
+  --cupertino-system-green: rgb(48, 209, 88);
+  --cupertino-system-indigo: rgb(94, 92, 230);
+  --cupertino-system-orange: rgb(255, 159, 10);
+  --cupertino-system-pink: rgb(255, 55, 95);
+  --cupertino-system-purple: rgb(191, 90, 242);
+  --cupertino-system-red: rgb(255, 69, 58);
+  --cupertino-system-teal: rgb(100, 210, 255);
+  --cupertino-system-yellow: rgb(255, 214, 10);
+  --cupertino-system-grey: rgb(142, 142, 147);
+  --cupertino-system-grey2: rgb(99, 99, 102);
+  --cupertino-system-grey3: rgb(72, 72, 74);
+  --cupertino-system-grey4: rgb(58, 58, 60);
+  --cupertino-system-grey5: rgb(44, 44, 46);
+  --cupertino-system-grey6: rgb(28, 28, 30);
+  --cupertino-label: rgb(255, 255, 255);
+  --cupertino-secondary-label: rgba(235, 235, 245, 0.6);
+  --cupertino-tertiary-label: rgba(235, 235, 245, 0.3);
+  --cupertino-system-background: rgb(0, 0, 0);
+  --cupertino-secondary-system-background: rgb(28, 28, 30);
+  --cupertino-system-grouped-background: rgb(0, 0, 0);
+  --cupertino-secondary-system-grouped-background: rgb(28, 28, 30);
+  --cupertino-separator: rgba(84, 84, 88, 0.6);
+  --cupertino-opaque-separator: rgb(56, 56, 58);
+  --cupertino-secondary-system-fill: rgba(120, 120, 128, 0.32);
+  --cupertino-tertiary-system-fill: rgba(118, 118, 128, 0.24);
+  --cupertino-activity-indicator: rgb(235, 235, 245);
+  --cupertino-bar-background: rgba(29, 29, 29, 0.94);
+  --cupertino-bar-border: rgba(255, 255, 255, 0.16);
+  --cupertino-inactive-gray: rgb(117, 117, 117);
+  --cupertino-sidebar-selected: rgba(142, 142, 147, 0.25);
+  --cupertino-sidebar-selected-text: rgb(255, 255, 255);
+  --cupertino-primary: rgb(10, 132, 255);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--cupertino-system-background);
+  color: var(--cupertino-label);
+  font-family: var(--cupertino-font-text);
+  font-size: 17px;
+  letter-spacing: -0.41px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cupertino-app {
+  background: var(--cupertino-system-background);
+  color: var(--cupertino-label);
+  font-family: var(--cupertino-font-text);
+  font-size: 17px;
+  letter-spacing: -0.41px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cupertino-app *,
+.cupertino-app *::before,
+.cupertino-app *::after {
+  box-sizing: border-box;
+}
+
+@keyframes cupertino-activity-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cupertino-activity-indicator {
+  animation: cupertino-activity-spin 1s steps(8) infinite;
+}
+
+.cupertino-button {
+  transition: opacity 0.1s ease;
+}
+
+.cupertino-button:active:not(:disabled) {
+  opacity: 0.4;
+}
