@@ -59,8 +59,9 @@ class AppStatsTracker {
 
   Future<void> unsubscribe(ApiClientInterface? client) async {
     _epoch++;
-    await _subscription?.cancel();
+    final subscription = _subscription;
     _subscription = null;
+    await subscription?.cancel();
 
     if (client != null) {
       try {

@@ -11,6 +11,7 @@ import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
+import 'package:truehub/services/resume_refresher.dart';
 import 'package:truehub/services/telemetry_bootstrap.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/widgets/app_lifecycle_reconnector.dart';
@@ -43,10 +44,11 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
   Future<void> _refreshAfterResume(BuildContext context) async {
     final servers = context.read<ServerProvider>();
     final health = context.read<HealthProvider>();
-    await servers.refreshConnection();
-    if (servers.currentAuthStatus.isAuthenticated) {
-      await health.refreshHealth();
-    }
+    await ResumeRefresher(
+      refreshConnection: servers.refreshConnection,
+      isAuthenticated: () => servers.currentAuthStatus.isAuthenticated,
+      refreshHealth: health.refreshHealth,
+    ).refresh();
   }
 
   @override

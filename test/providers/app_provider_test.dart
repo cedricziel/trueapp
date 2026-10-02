@@ -797,6 +797,48 @@ void main() {
       expect(app.resourceUsage, isNotNull);
       expect(app.resourceUsage!.cpuUsage, 12.5);
     });
+
+    test('does not show a previous server\'s usage after a switch', () async {
+      await appProvider.setServer(testServer);
+      fakeClient.availableApps = [_sampleApp()];
+      fakeClient.installedApps = [_sampleApp()];
+      fakeClient.appCategories = [];
+      await appProvider.loadApps();
+      await Future<void>.delayed(Duration.zero);
+      fakeClient.emitAppStats({
+        'plex': const AppResourceUsage(
+          cpuUsage: 12.5,
+          memoryUsage: 1024,
+          memoryLimit: 2048,
+          networkRxBytes: 10,
+          networkTxBytes: 5,
+        ),
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        FakeApiClient(),
+      );
+      await database.appConfigsDao.insertFullAppConfig(
+        AppConfig(serverId: secondServer.id, appName: 'plex', title: 'Plex'),
+      );
+
+      await appProvider.setServer(secondServer);
+
+      final app = appProvider.apps.firstWhere((a) => a.name == 'plex');
+      expect(app.resourceUsage, isNull);
+    });
   });
 
   group('AppProvider - app configuration management', () {

@@ -4,14 +4,17 @@ import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/database/database_file_remover.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:truehub/widgets/form_row_label.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    super.key,
+    this.databaseFiles = const DocumentsDatabaseFileRemover(),
+  });
+
+  final DatabaseFileRemover databaseFiles;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -177,20 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await databaseHolder.dispose();
 
-        // Get the database file path and delete it
-        final documentsDir = await getApplicationDocumentsDirectory();
-        final dbPath = path.join(documentsDir.path, 'truenas_manager.sqlite');
-        final dbFile = File(dbPath);
-
-        if (await dbFile.exists()) {
-          await dbFile.delete();
-        }
-
-        // Also delete any associated files (WAL, SHM)
-        final walFile = File('$dbPath-wal');
-        final shmFile = File('$dbPath-shm');
-        if (await walFile.exists()) await walFile.delete();
-        if (await shmFile.exists()) await shmFile.delete();
+        await widget.databaseFiles.removeDatabaseFiles();
       } catch (e) {
         // Fallback: Drop table method
         await databaseHolder.current.customStatement(

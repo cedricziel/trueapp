@@ -55,7 +55,7 @@ class AppUpgradeBanner extends StatelessWidget {
   static void _showUpgradeDialog(BuildContext context, App app) {
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: Text('Upgrade ${app.title}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -89,12 +89,15 @@ class AppUpgradeBanner extends StatelessWidget {
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () => _performUpgrade(context, app),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _performUpgrade(context, app);
+            },
             child: const Text('Upgrade'),
           ),
         ],
@@ -103,9 +106,8 @@ class AppUpgradeBanner extends StatelessWidget {
   }
 
   static void _performUpgrade(BuildContext context, App app) async {
-    Navigator.of(context).pop();
-
-    if (!context.mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final appProvider = context.read<AppProvider>();
 
     showCupertinoDialog(
       context: context,
@@ -119,64 +121,34 @@ class AppUpgradeBanner extends StatelessWidget {
       ),
     );
 
+    String title;
+    String message;
     try {
-      final appProvider = context.read<AppProvider>();
       final success = await appProvider.upgradeApp(app.name);
-
-      if (!context.mounted) return;
-      Navigator.of(context).pop();
-
-      if (success) {
-        if (!context.mounted) return;
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Success'),
-            content: Text('${app.title} has been upgraded successfully.'),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        if (!context.mounted) return;
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to upgrade ${app.title}. Please try again.'),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      title = success ? 'Success' : 'Error';
+      message = success
+          ? '${app.title} has been upgraded successfully.'
+          : 'Failed to upgrade ${app.title}. Please try again.';
     } catch (e) {
-      if (!context.mounted) return;
-      Navigator.of(context).pop();
-      if (!context.mounted) return;
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Error'),
-          content: Text('An error occurred while upgrading ${app.title}: $e'),
-          actions: [
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      title = 'Error';
+      message = 'An error occurred while upgrading ${app.title}: $e';
     }
+
+    if (!navigator.mounted) return;
+    navigator.pop();
+    showCupertinoDialog(
+      context: navigator.context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }

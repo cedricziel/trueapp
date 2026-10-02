@@ -122,7 +122,7 @@ void main() {
 
     setUp(() {
       mockDao = MockServersDao();
-      repository = SqliteServerRepository(mockDao);
+      repository = SqliteServerRepository(_FixedServersDaoSource(mockDao));
     });
 
     tearDown(() async {
@@ -252,4 +252,11 @@ void main() {
       expect(setDefaultResult, isFalse);
     });
   });
+}
+
+class _FixedServersDaoSource implements ServersDaoSource {
+  _FixedServersDaoSource(this.serversDao);
+
+  @override
+  final ServersDao serversDao;
 }

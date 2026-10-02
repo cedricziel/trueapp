@@ -99,4 +99,25 @@ void main() {
       await client.dispose();
     },
   );
+
+  test(
+    'keeps the new subscription when resubscribing during an unsubscribe',
+    () async {
+      final oldClient = FakeApiClient();
+      final newClient = FakeApiClient();
+      await tracker.subscribe(oldClient);
+
+      final unsubscribing = tracker.unsubscribe(oldClient);
+      await tracker.subscribe(newClient);
+      await unsubscribing;
+
+      await tracker.unsubscribe(newClient);
+      newClient.emitAppStats({'plex': _usage(cpu: 4)});
+      await Future<void>.delayed(Duration.zero);
+      expect(changes, 0);
+
+      await oldClient.dispose();
+      await newClient.dispose();
+    },
+  );
 }
