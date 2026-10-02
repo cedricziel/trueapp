@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/app_config.dart' as app_models;
+import 'package:truehub/services/app_logger.dart';
 
 part 'database.g.dart';
+
+final _log = appLogger('storage.database');
 
 @DataClassName('NasServerData')
 class NasServers extends Table {
@@ -256,13 +258,10 @@ class AppDatabase extends _$AppDatabase {
         );
       } catch (e) {
         // Log error but don't fail migration
-        if (kDebugMode) {
-          // Only log in debug mode to avoid cluttering production logs
-          // This can be replaced with a proper logging mechanism
-          print(
-            'Warning: Failed to migrate some credentials to secure storage: $e',
-          );
-        }
+        _log.error(
+          'Failed to migrate some credentials to secure storage',
+          error: e,
+        );
       }
     }
   }

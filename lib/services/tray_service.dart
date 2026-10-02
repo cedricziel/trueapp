@@ -1,8 +1,10 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('platform.tray');
 
 class TrayService with TrayListener {
   static final TrayService _instance = TrayService._internal();
@@ -54,13 +56,9 @@ class TrayService with TrayListener {
       trayManager.addListener(this);
       _isInitialized = true;
 
-      if (kDebugMode) {
-        print('System tray initialized successfully');
-      }
+      _log.info('System tray initialized successfully');
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to initialize system tray: $e');
-      }
+      _log.error('Failed to initialize system tray', error: e);
     }
   }
 
@@ -156,9 +154,7 @@ class TrayService with TrayListener {
       Menu menu = Menu(items: menuItems);
       await trayManager.setContextMenu(menu);
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to update system tray status: $e');
-      }
+      _log.error('Failed to update system tray status', error: e);
     }
   }
 
@@ -174,13 +170,9 @@ class TrayService with TrayListener {
             : 'assets/icons/tray_icon.ico',
       );
 
-      if (kDebugMode) {
-        print('Updated tray icon for ${isDarkMode ? 'dark' : 'light'} mode');
-      }
+      _log.debug('Updated tray icon for ${isDarkMode ? 'dark' : 'light'} mode');
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to update tray icon theme: $e');
-      }
+      _log.error('Failed to update tray icon theme', error: e);
     }
   }
 
@@ -260,9 +252,7 @@ class TrayService with TrayListener {
         }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to handle app portal click: $e');
-      }
+      _log.error('Failed to handle app portal click', error: e);
     }
   }
 
@@ -272,14 +262,10 @@ class TrayService with TrayListener {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        if (kDebugMode) {
-          print('Cannot launch URL: $url');
-        }
+        _log.warn('Cannot launch portal URL');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to open portal URL $url: $e');
-      }
+      _log.error('Failed to open portal URL', error: e);
     }
   }
 }

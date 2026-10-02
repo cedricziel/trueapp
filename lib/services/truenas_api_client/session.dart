@@ -43,20 +43,14 @@ mixin _SessionOps on _ClientBase, _Connection, _KeepaliveAndRecovery
   ]) async {
     try {
       await _ensureConnected();
-      if (kDebugMode) {
-        print('TrueNAS API: Validating login for user: $username');
-      }
+      _log.debug('Validating login');
       final result = await _client!
           .sendRequest('auth.login', [username, password, ?otpToken])
           .timeout(const Duration(seconds: 10));
-      if (kDebugMode) {
-        print('TrueNAS API: Login validation result: $result');
-      }
+      _log.debug('Login validation result: $result');
       return result as bool;
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Login validation failed: $e');
-      }
+      _log.warn('Login validation failed');
       return false;
     }
   }

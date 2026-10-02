@@ -1,9 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('api.session');
 
 /// Keeps at most one API client checked out of an
 /// [ApiClientManagerInterface], for whichever server its owner currently
@@ -55,9 +57,10 @@ class ServerClientSession {
       final password = await _credentials.getPassword(server.id);
       if (generation != _generation) return false;
       if (password == null) {
-        if (kDebugMode) {
-          print('$_owner: No credentials available for server ${server.id}');
-        }
+        _log.warn(
+          'No credentials available',
+          attributes: {'owner': _owner, 'server.id': server.id},
+        );
         return true;
       }
 
@@ -71,9 +74,6 @@ class ServerClientSession {
       _client = client;
     } catch (e, stackTrace) {
       if (generation != _generation) return false;
-      if (kDebugMode) {
-        print('$_owner: Failed to get API client: $e');
-      }
       _telemetry?.recordError(e, stackTrace, context: '$_owner.connect');
     }
     return true;

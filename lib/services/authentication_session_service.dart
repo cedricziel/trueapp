@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('auth.session');
 
 /// Manages authentication session state for the app
 class AuthenticationSessionService {
@@ -28,11 +30,10 @@ class AuthenticationSessionService {
     final elapsed = now.difference(_authenticatedAt!);
 
     if (elapsed > sessionDuration) {
-      if (kDebugMode) {
-        print(
-          'AuthenticationSessionService: Session expired (elapsed: ${elapsed.inMinutes} minutes)',
-        );
-      }
+      _log.info(
+        'Session expired',
+        attributes: {'elapsed_minutes': elapsed.inMinutes},
+      );
       invalidateSession();
       return false;
     }
@@ -50,26 +51,18 @@ class AuthenticationSessionService {
 
     // Set up a timer to invalidate the session after the duration
     _sessionTimer = Timer(sessionDuration, () {
-      if (kDebugMode) {
-        print('AuthenticationSessionService: Session expired due to timeout');
-      }
+      _log.info('Session expired due to timeout');
       invalidateSession();
     });
 
-    if (kDebugMode) {
-      print(
-        'AuthenticationSessionService: Session authenticated at $_authenticatedAt',
-      );
-    }
+    _log.info('Session authenticated');
   }
 
   /// Extend the current session
   void extendSession() {
     if (_isAuthenticated) {
       markAuthenticated(); // This will reset the timer
-      if (kDebugMode) {
-        print('AuthenticationSessionService: Session extended');
-      }
+      _log.info('Session extended');
     }
   }
 
@@ -80,9 +73,7 @@ class AuthenticationSessionService {
     _sessionTimer?.cancel();
     _sessionTimer = null;
 
-    if (kDebugMode) {
-      print('AuthenticationSessionService: Session invalidated');
-    }
+    _log.info('Session invalidated');
   }
 
   /// Get remaining session time

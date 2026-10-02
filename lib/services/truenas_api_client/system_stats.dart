@@ -15,9 +15,7 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
     _wantsSystemStats = true;
 
     if (_isSubscribedToRealtime && _hasLiveConnection) {
-      if (kDebugMode) {
-        print('TrueNAS API: Already subscribed to realtime stats');
-      }
+      _log.debug('Already subscribed to realtime stats');
       return;
     }
 
@@ -33,21 +31,16 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
       _realtimeSubscriptionId =
           await _request('core.subscribe', ['reporting.realtime']) as String;
 
-      if (kDebugMode) {
-        print(
-          'TrueNAS API: Subscribed to realtime stats with ID: $_realtimeSubscriptionId',
-        );
-      }
+      _log.info(
+        'Subscribed to realtime stats',
+        attributes: {'subscription.id': _realtimeSubscriptionId},
+      );
 
       _isSubscribedToRealtime = true;
 
-      if (kDebugMode) {
-        print('TrueNAS API: Successfully subscribed to system stats stream');
-      }
+      _log.info('Successfully subscribed to system stats stream');
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to subscribe to system stats: $e');
-      }
+      _log.error('Failed to subscribe to system stats', error: e);
       throw _handleError(e);
     }
   }
@@ -62,16 +55,13 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
       if (_hasLiveConnection) {
         await _request('core.unsubscribe', [_realtimeSubscriptionId!]);
 
-        if (kDebugMode) {
-          print(
-            'TrueNAS API: Unsubscribed from realtime stats with ID: $_realtimeSubscriptionId',
-          );
-        }
+        _log.info(
+          'Unsubscribed from realtime stats',
+          attributes: {'subscription.id': _realtimeSubscriptionId},
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Error unsubscribing from system stats: $e');
-      }
+      _log.error('Error unsubscribing from system stats', error: e);
     } finally {
       _wantsSystemStats = false;
       _isSubscribedToRealtime = false;
@@ -79,9 +69,7 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
       await _systemStatsController?.close();
       _systemStatsController = null;
 
-      if (kDebugMode) {
-        print('TrueNAS API: System stats subscription cleaned up');
-      }
+      _log.info('System stats subscription cleaned up');
     }
   }
 }
