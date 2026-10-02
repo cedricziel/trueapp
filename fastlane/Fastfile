@@ -142,19 +142,15 @@ private_lane :build_ios do
   # Compile Dart and stage assets; signing happens in build_app below.
   # --build-name/--build-number land in Flutter/Generated.xcconfig, which
   # the Xcode project reads as MARKETING_VERSION / CURRENT_PROJECT_VERSION.
-  # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
-  # against the system gems, not this bundle (where cocoapods isn't a dep).
   dart_defines = telemetry_dart_defines
 
   Dir.chdir("..") do
-    Bundler.with_unbundled_env do
-      sh(
-        "flutter", "build", "ios", "--release", "--no-codesign",
-        "--build-name=#{marketing_version}",
-        "--build-number=#{commit_count_build_number}",
-        *dart_defines
-      )
-    end
+    sh(
+      "flutter", "build", "ios", "--release", "--no-codesign",
+      "--build-name=#{marketing_version}",
+      "--build-number=#{commit_count_build_number}",
+      *dart_defines
+    )
   end
 
   build_app(
@@ -211,19 +207,15 @@ private_lane :build_mac do
   )
 
   # Compile Dart and stage assets; signing happens in build_mac_app below.
-  # with_unbundled_env: flutter shells out to CocoaPods, which must resolve
-  # against the system gems, not this bundle (where cocoapods isn't a dep).
   dart_defines = telemetry_dart_defines
 
   Dir.chdir("..") do
-    Bundler.with_unbundled_env do
-      sh(
-        "flutter", "build", "macos", "--release",
-        "--build-name=#{marketing_version}",
-        "--build-number=#{commit_count_build_number}",
-        *dart_defines
-      )
-    end
+    sh(
+      "flutter", "build", "macos", "--release",
+      "--build-name=#{marketing_version}",
+      "--build-number=#{commit_count_build_number}",
+      *dart_defines
+    )
   end
 
   build_mac_app(
