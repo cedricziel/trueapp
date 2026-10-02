@@ -6,6 +6,7 @@ import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/job_card_widget.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 
 enum _JobsTab { running, waiting, history }
 
@@ -116,7 +117,8 @@ class _ServerJobsScreenState extends State<ServerJobsScreen> {
       return _buildEmptyView();
     }
 
-    return ListView.builder(
+    return RefreshableScrollView.builder(
+      onRefresh: jobsProvider.refreshJobs,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: jobs.length,
       itemBuilder: (context, index) {
