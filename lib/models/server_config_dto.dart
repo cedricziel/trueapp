@@ -1,7 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart' as plugins;
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('models.server_config');
 
 /// Server configuration data transfer object for CloudKit storage
 /// This contains only non-sensitive server metadata
@@ -87,10 +89,7 @@ class ServerConfigDTO {
             : DateTime.now(),
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('ServerConfigDTO.fromJson error: $e');
-        print('JSON data: $json');
-      }
+      _log.error('Failed to parse server config', error: e);
       rethrow;
     }
   }

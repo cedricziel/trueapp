@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/secure_storage_service.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.credential_migration');
 
 class CredentialMigrationService {
   static const String migrationCompletedKey = 'credential_migration_completed';
@@ -15,27 +18,20 @@ class CredentialMigrationService {
           server.id,
         );
         if (!hasCredentials) {
-          if (kDebugMode) {
-            print(
-              'CredentialMigrationService: Server ${server.id} (${server.name}) is missing credentials in secure storage',
-            );
-          }
+          _log.debug(
+            'Server is missing credentials in secure storage',
+            attributes: {'server.id': server.id},
+          );
           return false;
         }
       }
 
-      if (kDebugMode) {
-        print(
-          'CredentialMigrationService: All ${servers.length} servers have credentials in secure storage',
-        );
-      }
+      _log.debug(
+        'All ${servers.length} servers have credentials in secure storage',
+      );
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'CredentialMigrationService: Error checking migration status: $e',
-        );
-      }
+      _log.error('Error checking migration status', error: e);
       return false;
     }
   }
@@ -47,11 +43,7 @@ class CredentialMigrationService {
     required String password,
   }) async {
     try {
-      if (kDebugMode) {
-        print(
-          'CredentialMigrationService: Migrating credentials for server $serverId',
-        );
-      }
+      _log.debug('Migrating credentials', attributes: {'server.id': serverId});
 
       final success = await SecureStorageService.migrateCredentials(
         serverId: serverId,
@@ -60,26 +52,17 @@ class CredentialMigrationService {
       );
 
       if (success) {
-        if (kDebugMode) {
-          print(
-            'CredentialMigrationService: Successfully migrated credentials for server $serverId',
-          );
-        }
+        _log.info('Migrated credentials', attributes: {'server.id': serverId});
       } else {
-        if (kDebugMode) {
-          print(
-            'CredentialMigrationService: Failed to migrate credentials for server $serverId',
-          );
-        }
+        _log.warn(
+          'Failed to migrate credentials',
+          attributes: {'server.id': serverId},
+        );
       }
 
       return success;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'CredentialMigrationService: Error migrating server credentials: $e',
-        );
-      }
+      _log.error('Error migrating server credentials', error: e);
       return false;
     }
   }
@@ -90,26 +73,19 @@ class CredentialMigrationService {
 
     try {
       final servers = await database.getAllServers();
-      if (kDebugMode) {
-        print(
-          'CredentialMigrationService: Debug - checking ${servers.length} servers:',
-        );
-      }
+      _log.debug('Checking credentials of ${servers.length} servers');
 
       for (final server in servers) {
         final hasCredentials = await SecureStorageService.hasCredentials(
           server.id,
         );
-        if (kDebugMode) {
-          print(
-            '  - ${server.name} (${server.id}): ${hasCredentials ? 'HAS' : 'MISSING'} credentials',
-          );
-        }
+        _log.debug(
+          'Server credentials',
+          attributes: {'server.id': server.id, 'present': hasCredentials},
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('CredentialMigrationService: Error debugging credentials: $e');
-      }
+      _log.error('Error debugging credentials', error: e);
     }
   }
 }

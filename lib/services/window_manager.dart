@@ -1,6 +1,8 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('platform.window');
 
 class WindowManager {
   static const platform = MethodChannel('com.truenas.manager/window');
@@ -12,9 +14,7 @@ class WindowManager {
     try {
       await platform.invokeMethod('showWindow');
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('Failed to show window: ${e.message}');
-      }
+      _log.error('Failed to show window', error: e);
     }
   }
 
@@ -25,9 +25,7 @@ class WindowManager {
     try {
       await platform.invokeMethod('hideWindow');
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('Failed to hide window: ${e.message}');
-      }
+      _log.error('Failed to hide window', error: e);
     }
   }
 
@@ -38,9 +36,7 @@ class WindowManager {
     try {
       await platform.invokeMethod('quitApp');
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('Failed to quit app: ${e.message}');
-      }
+      _log.error('Failed to quit app', error: e);
     }
   }
 
@@ -51,9 +47,7 @@ class WindowManager {
     try {
       await platform.invokeMethod('setDockVisibility', {'visible': visible});
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('Failed to set dock visibility: ${e.message}');
-      }
+      _log.error('Failed to set dock visibility', error: e);
     }
   }
 }

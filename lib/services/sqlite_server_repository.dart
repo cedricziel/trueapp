@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.sqlite');
 
 /// SQLite-based server repository for non-Apple platforms
 /// Provides local storage without automatic sync
@@ -29,9 +31,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SqliteServerRepository: Initialization failed: $e');
-      }
+      _log.error('Initialization failed', error: e);
       return false;
     }
   }
@@ -63,9 +63,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SqliteServerRepository: Save failed: $e');
-      }
+      _log.error('Save failed', error: e);
       return false;
     }
   }
@@ -81,9 +79,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SqliteServerRepository: Delete failed: $e');
-      }
+      _log.error('Delete failed', error: e);
       return false;
     }
   }
@@ -104,9 +100,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SqliteServerRepository: Set default failed: $e');
-      }
+      _log.error('Set default failed', error: e);
       return false;
     }
   }
@@ -122,9 +116,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SqliteServerRepository: Clear default failed: $e');
-      }
+      _log.error('Clear default failed', error: e);
       return false;
     }
   }

@@ -1,11 +1,13 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/native_keychain_service.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/server_lookup.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('services.unified_server');
 
 /// Unified server service that combines server metadata management with secure credential storage
 /// Uses platform-appropriate repository (CloudKit on Apple, SQLite elsewhere) + Keychain for passwords
@@ -78,27 +80,24 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
           _serversController.add(servers);
         },
         onError: (error) {
-          if (kDebugMode) {
-            print('UnifiedServerService: Repository stream error: $error');
-          }
+          _log.error('Repository stream error', error: error);
         },
       );
 
       _isInitialized = true;
 
-      if (kDebugMode) {
-        print(
-          'UnifiedServerService: Initialized with ${_repository.runtimeType}',
-        );
-        print('  - Offline access: ${_repository.supportsOfflineAccess}');
-        print('  - Auto sync: ${_repository.supportsAutoSync}');
-      }
+      _log.info(
+        'Initialized',
+        attributes: {
+          'repository': '${_repository.runtimeType}',
+          'offline_access': _repository.supportsOfflineAccess,
+          'auto_sync': _repository.supportsAutoSync,
+        },
+      );
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('UnifiedServerService: Initialization failed: $e');
-      }
+      _log.error('Initialization failed', error: e);
       return false;
     }
   }
@@ -135,19 +134,16 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
       );
 
       if (!passwordSuccess) {
-        if (kDebugMode) {
-          print(
-            'UnifiedServerService: Failed to store password for ${server.id}',
-          );
-        }
+        _log.warn(
+          'Failed to store password',
+          attributes: {'server.id': server.id},
+        );
         // Note: We don't rollback the metadata save since password can be added later
       }
 
       return metadataSuccess;
     } catch (e) {
-      if (kDebugMode) {
-        print('UnifiedServerService: Save failed: $e');
-      }
+      _log.error('Save failed', error: e);
       return false;
     }
   }
@@ -172,18 +168,15 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
       );
 
       if (!passwordSuccess) {
-        if (kDebugMode) {
-          print(
-            'UnifiedServerService: Failed to delete password for $serverId',
-          );
-        }
+        _log.warn(
+          'Failed to delete password',
+          attributes: {'server.id': serverId},
+        );
       }
 
       return metadataSuccess;
     } catch (e) {
-      if (kDebugMode) {
-        print('UnifiedServerService: Delete failed: $e');
-      }
+      _log.error('Delete failed', error: e);
       return false;
     }
   }

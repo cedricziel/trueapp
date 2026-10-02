@@ -7,11 +7,9 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
       return;
     }
 
-    if (kDebugMode) {
-      print(
-        'TrueNAS API: Starting keepalive with ${_keepaliveInterval.inSeconds}s interval',
-      );
-    }
+    _log.debug(
+      'Starting keepalive with ${_keepaliveInterval.inSeconds}s interval',
+    );
 
     _keepaliveTimer = Timer.periodic(_keepaliveInterval, (_) {
       _sendKeepalivePing();
@@ -23,9 +21,7 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
     _keepaliveTimer = null;
     _awaitingPong = false;
 
-    if (kDebugMode) {
-      print('TrueNAS API: Stopped keepalive');
-    }
+    _log.debug('Stopped keepalive');
   }
 
   /// True while any request younger than [busyGracePeriod] is still waiting
@@ -51,18 +47,12 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
     // only queue behind the pending reply, and a timeout here would tear
     // down the very connection that request is waiting on.
     if (_isBusyWithinGrace) {
-      if (kDebugMode) {
-        print('TrueNAS API: Skipping keepalive ping, a request is in flight');
-      }
+      _log.debug('Skipping keepalive ping, a request is in flight');
       return;
     }
 
     if (_awaitingPong) {
-      if (kDebugMode) {
-        print(
-          'TrueNAS API: Keepalive timeout - no pong received, reconnecting...',
-        );
-      }
+      _log.warn('Keepalive timeout - no pong received, reconnecting...');
       await _handleKeepaliveTimeout();
       return;
     }
@@ -71,9 +61,7 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
       _awaitingPong = true;
       final pingTime = DateTime.now();
 
-      if (kDebugMode) {
-        print('TrueNAS API: Sending keepalive ping');
-      }
+      _log.debug('Sending keepalive ping');
 
       _connectionStatusProvider?.updatePingStatus(
         _server.id,
@@ -95,21 +83,16 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
           latency: latency,
         );
 
-        if (kDebugMode) {
-          print(
-            'TrueNAS API: Received keepalive pong (${latency.inMilliseconds}ms)',
-          );
-        }
+        _log.debug('Received keepalive pong (${latency.inMilliseconds}ms)');
       } else {
-        if (kDebugMode) {
-          print('TrueNAS API: Unexpected keepalive response: $result');
-        }
+        _log.warn('Unexpected keepalive response: $result');
         _awaitingPong = false;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Keepalive ping failed: $e');
-      }
+      _log.warn(
+        'Keepalive ping failed',
+        attributes: {'exception.message': '$e'},
+      );
       // A request that started after this ping went out can hold the pong
       // up just the same; it vouches for the socket, so don't reconnect.
       if (_isBusyWithinGrace) {
@@ -128,9 +111,7 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
   Future<void> _recoverConnection() async {
     _awaitingPong = false;
 
-    if (kDebugMode) {
-      print('TrueNAS API: Keepalive failed, attempting reconnection');
-    }
+    _log.warn('Keepalive failed, attempting reconnection');
 
     _connectionStatusProvider?.updateConnectionState(
       _server.id,
@@ -185,13 +166,9 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
         TrueNASConnectionState.connected,
       );
 
-      if (kDebugMode) {
-        print('TrueNAS API: Successfully reconnected after keepalive timeout');
-      }
+      _log.info('Successfully reconnected after keepalive timeout');
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to reconnect after keepalive timeout: $e');
-      }
+      _log.error('Failed to reconnect after keepalive timeout', error: e);
       _connectionStatusProvider?.updateConnectionState(
         _server.id,
         TrueNASConnectionState.error,
@@ -227,9 +204,10 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
       try {
         await _restoreSubscriptions();
       } catch (e) {
-        if (kDebugMode) {
-          print('TrueNAS API: Subscription restore deferred: $e');
-        }
+        _log.warn(
+          'Subscription restore deferred',
+          attributes: {'exception.message': '$e'},
+        );
       }
     }
 

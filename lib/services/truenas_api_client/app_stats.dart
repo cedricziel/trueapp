@@ -13,9 +13,7 @@ mixin _AppStatsOps on _ClientTransport implements AppStatsApi {
     _wantsAppStats = true;
 
     if (_isSubscribedToAppStats && _hasLiveConnection) {
-      if (kDebugMode) {
-        print('TrueNAS API: Already subscribed to app stats');
-      }
+      _log.debug('Already subscribed to app stats');
       return;
     }
 
@@ -32,21 +30,16 @@ mixin _AppStatsOps on _ClientTransport implements AppStatsApi {
       _appStatsSubscriptionId =
           await _request('core.subscribe', ['app.stats']) as String;
 
-      if (kDebugMode) {
-        print(
-          'TrueNAS API: Subscribed to app stats with ID: $_appStatsSubscriptionId',
-        );
-      }
+      _log.info(
+        'Subscribed to app stats',
+        attributes: {'subscription.id': _appStatsSubscriptionId},
+      );
 
       _isSubscribedToAppStats = true;
 
-      if (kDebugMode) {
-        print('TrueNAS API: Successfully subscribed to app stats stream');
-      }
+      _log.info('Successfully subscribed to app stats stream');
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to subscribe to app stats: $e');
-      }
+      _log.error('Failed to subscribe to app stats', error: e);
       throw _handleError(e);
     }
   }
@@ -61,16 +54,13 @@ mixin _AppStatsOps on _ClientTransport implements AppStatsApi {
       if (_hasLiveConnection) {
         await _request('core.unsubscribe', [_appStatsSubscriptionId!]);
 
-        if (kDebugMode) {
-          print(
-            'TrueNAS API: Unsubscribed from app stats with ID: $_appStatsSubscriptionId',
-          );
-        }
+        _log.info(
+          'Unsubscribed from app stats',
+          attributes: {'subscription.id': _appStatsSubscriptionId},
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Error unsubscribing from app stats: $e');
-      }
+      _log.error('Error unsubscribing from app stats', error: e);
     } finally {
       _wantsAppStats = false;
       _isSubscribedToAppStats = false;
@@ -78,9 +68,7 @@ mixin _AppStatsOps on _ClientTransport implements AppStatsApi {
       await _appStatsController?.close();
       _appStatsController = null;
 
-      if (kDebugMode) {
-        print('TrueNAS API: App stats subscription cleaned up');
-      }
+      _log.info('App stats subscription cleaned up');
     }
   }
 }

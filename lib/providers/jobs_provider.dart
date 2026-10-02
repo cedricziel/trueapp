@@ -8,6 +8,9 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.jobs');
 
 /// How long a failed job keeps the nav bar's job indicator in its
 /// "needs attention" state after it finished.
@@ -88,9 +91,7 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
     }
 
     if (_isSubscribed) {
-      if (kDebugMode) {
-        print('JobsProvider: Already subscribed to jobs');
-      }
+      _log.debug('Already subscribed to jobs');
       return;
     }
 
@@ -111,14 +112,10 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
       );
 
       _isSubscribed = true;
-      if (kDebugMode) {
-        print('JobsProvider: Successfully subscribed to jobs stream');
-      }
+      _log.info('Successfully subscribed to jobs stream');
     } catch (e, stackTrace) {
       _setError('Failed to subscribe to jobs: ${e.toString()}');
-      if (kDebugMode) {
-        print('JobsProvider: Subscription error: $e');
-      }
+      _log.error('Subscription error', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -146,13 +143,9 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
       _jobs = [];
       _clearError();
 
-      if (kDebugMode) {
-        print('JobsProvider: Successfully unsubscribed from jobs');
-      }
+      _log.info('Successfully unsubscribed from jobs');
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('JobsProvider: Error during unsubscription: $e');
-      }
+      _log.error('Error during unsubscription', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -241,17 +234,13 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
   void _onJobsError(dynamic error) {
     _setError('Jobs stream error: ${error.toString()}');
     _setLoading(false);
-    if (kDebugMode) {
-      print('JobsProvider: Stream error: $error');
-    }
+    _log.error('Stream error', error: error);
   }
 
   void _onJobsStreamDone() {
     _isSubscribed = false;
     _setLoading(false);
-    if (kDebugMode) {
-      print('JobsProvider: Jobs stream done');
-    }
+    _log.debug('Jobs stream done');
     notifyListeners();
   }
 
@@ -277,9 +266,7 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
 
   @override
   void dispose() {
-    if (kDebugMode) {
-      print('JobsProvider: Disposing');
-    }
+    _log.info('Disposing');
     // Can't await in dispose(); fire-and-forget cleanup, same pattern as
     // SystemStatsProvider.dispose().
     _jobsSubscription?.cancel();

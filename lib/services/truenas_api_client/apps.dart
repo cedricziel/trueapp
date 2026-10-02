@@ -75,12 +75,16 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
     // a newer TrueNAS fails every entry the same way, and the catalog is
     // re-fetched on every refresh.
     if (skipped > 0) {
-      if (kDebugMode) {
-        print(
-          'TrueNAS API: $method: skipped $skipped of ${result.length} app '
-          'entries, first failure ("$firstFailedName"): $firstFailure',
-        );
-      }
+      _log.warn(
+        'Skipped unparsable app entries',
+        attributes: {
+          'method': method,
+          'skipped': skipped,
+          'total': result.length,
+          'first_failed_name': firstFailedName,
+          'first_failure': '$firstFailure',
+        },
+      );
       _telemetry?.getLogger().error(
         'TrueNAS API: $method returned app entries that could not be '
         'parsed; skipped them',
@@ -235,9 +239,11 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
       // The upgrade method returns the app object on success, so we check if it's not null
       return result != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to upgrade app $appName: $e');
-      }
+      _log.error(
+        'Failed to upgrade app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       return false;
     }
   }
@@ -249,9 +255,11 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
       final result = await _request('app.start', [appName]);
       return result != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to start app $appName: $e');
-      }
+      _log.error(
+        'Failed to start app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       return false;
     }
   }
@@ -263,9 +271,11 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
       final result = await _request('app.stop', [appName]);
       return result != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to stop app $appName: $e');
-      }
+      _log.error(
+        'Failed to stop app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       return false;
     }
   }
@@ -277,9 +287,11 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
       final result = await _request('app.restart', [appName]);
       return result != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to restart app $appName: $e');
-      }
+      _log.error(
+        'Failed to restart app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       return false;
     }
   }

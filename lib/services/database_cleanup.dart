@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/native_keychain_service.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show KeychainServiceInterface;
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.cleanup');
 
 /// One-time cleanup helper to remove old servers without passwords
 class DatabaseCleanup {
@@ -10,11 +12,7 @@ class DatabaseCleanup {
     AppDatabase database, {
     KeychainServiceInterface? keychain,
   }) async {
-    if (kDebugMode) {
-      print(
-        'DatabaseCleanup: Removing servers without passwords for clean migration',
-      );
-    }
+    _log.debug('Removing servers without passwords for clean migration');
 
     final effectiveKeychain = keychain ?? NativeKeychainService.instance;
     final servers = await database.getAllServers();
@@ -23,25 +21,20 @@ class DatabaseCleanup {
         serverId: server.id,
       );
       if (!hasPassword) {
-        if (kDebugMode) {
-          print(
-            'DatabaseCleanup: Removing server ${server.id} (${server.name}) - no password',
-          );
-        }
+        _log.warn(
+          'Removing server without password',
+          attributes: {'server.id': server.id},
+        );
         await database.deleteServer(server.id);
       }
     }
 
-    if (kDebugMode) {
-      print('DatabaseCleanup: Cleanup completed');
-    }
+    _log.info('Cleanup completed');
   }
 
   /// Clean up all keychain entries for our app (for development/testing)
   static Future<void> cleanupAllKeychainEntries() async {
-    if (kDebugMode) {
-      print('DatabaseCleanup: Cleaning up all keychain entries');
-    }
+    _log.info('Cleaning up all keychain entries');
 
     try {
       final keychain = NativeKeychainService.instance;
@@ -49,15 +42,13 @@ class DatabaseCleanup {
       // Clean up all entries with our service identifier
       final success = await keychain.deleteAllPasswords();
 
-      if (kDebugMode) {
-        print(
-          'DatabaseCleanup: Keychain cleanup ${success ? 'successful' : 'failed'}',
-        );
+      if (success) {
+        _log.info('Keychain cleanup successful');
+      } else {
+        _log.warn('Keychain cleanup failed');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('DatabaseCleanup: Error cleaning keychain: $e');
-      }
+      _log.error('Error cleaning keychain', error: e);
     }
   }
 

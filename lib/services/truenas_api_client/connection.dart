@@ -55,12 +55,9 @@ mixin _Connection on _ClientBase {
       // parameters - just whether this connection stayed on the trusted LAN.
       span?.setAttribute('server.network.trusted', isOnTrustedNetwork);
 
-      if (kDebugMode) {
-        print('TrueNAS API: Connecting to WebSocket: $wsUrl');
-        print(
-          'TrueNAS API: Using ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
-        );
-      }
+      _log.debug(
+        'Connecting to WebSocket via ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
+      );
 
       // Connect with timeout to detect network issues early
       _wsChannel = WebSocketChannel.connect(
@@ -85,9 +82,7 @@ mixin _Connection on _ClientBase {
       // the closed client and recovers.
       unawaited(
         _client!.listen().catchError((error) {
-          if (kDebugMode) {
-            print('TrueNAS API: WebSocket error: $error');
-          }
+          _log.error('WebSocket error', error: error);
           _isAuthenticated = false;
           _connectionStatusProvider?.updateConnectionState(
             _server.id,
@@ -98,15 +93,9 @@ mixin _Connection on _ClientBase {
       );
 
       _isAuthenticated = false;
-      if (kDebugMode) {
-        print('TrueNAS API: WebSocket connection established and listening');
-      }
+      _log.info('WebSocket connection established and listening');
       span?.setStatus(StatusCode.ok);
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('TrueNAS API: Connection failed: $e');
-      }
-
       // Drop the half-open channel. Keeping it means a later close() awaits a
       // handshake that never completed, which never returns.
       final failedChannel = _wsChannel;
@@ -223,19 +212,13 @@ mixin _Connection on _ClientBase {
 
     try {
       await _ensureConnected();
-      if (kDebugMode) {
-        print(
-          'TrueNAS API: Attempting authentication for user: ${_server.username}',
-        );
-      }
+      _log.debug('Attempting authentication');
 
       final result = await _client!
           .sendRequest('auth.login', [_server.username, _server.password])
           .timeout(const Duration(seconds: 15));
 
-      if (kDebugMode) {
-        print('TrueNAS API: Authentication result: $result');
-      }
+      _log.debug('Authentication result: $result');
 
       if (result != true) {
         throw ConnectionException(
@@ -246,9 +229,7 @@ mixin _Connection on _ClientBase {
       }
 
       _isAuthenticated = true;
-      if (kDebugMode) {
-        print('TrueNAS API: Successfully authenticated');
-      }
+      _log.info('Successfully authenticated');
 
       // Update connection status to connected
       _connectionStatusProvider?.updateConnectionState(

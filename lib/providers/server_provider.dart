@@ -9,6 +9,9 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.server');
 
 enum AuthenticationState {
   none,
@@ -128,9 +131,6 @@ class ServerProvider extends ChangeNotifier {
       _isLoadingServers = false;
       notifyListeners();
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('ServerProvider: Failed to load servers: $e');
-      }
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -196,11 +196,10 @@ class ServerProvider extends ChangeNotifier {
 
     // If this is the currently selected server, force complete re-authentication
     if (_selectedServer?.id == server.id) {
-      if (kDebugMode) {
-        print(
-          'ServerProvider: Forcing complete client recreation for updated server ${server.id}',
-        );
-      }
+      _log.debug(
+        'Forcing complete client recreation for updated server',
+        attributes: {'server.id': server.id},
+      );
 
       // Clear current authentication state
       _clearAuthState();
@@ -221,11 +220,10 @@ class ServerProvider extends ChangeNotifier {
           _authState = AuthenticationState.authenticated;
           _authError = null;
 
-          if (kDebugMode) {
-            print(
-              'ServerProvider: Successfully recreated client with fresh credentials for server ${server.id}',
-            );
-          }
+          _log.info(
+            'Recreated client with fresh credentials',
+            attributes: {'server.id': server.id},
+          );
         } else {
           _authState = AuthenticationState.required;
           _authError = 'Authentication required to access server credentials';
@@ -261,9 +259,6 @@ class ServerProvider extends ChangeNotifier {
       try {
         await databaseRef().deleteServer(id);
       } catch (e, stackTrace) {
-        if (kDebugMode) {
-          print('ServerProvider: Failed to clean up local anchor for $id: $e');
-        }
         _telemetryService?.recordError(
           e,
           stackTrace,
@@ -336,28 +331,21 @@ class ServerProvider extends ChangeNotifier {
         _authState = AuthenticationState.authenticated;
         _authError = null;
 
-        if (kDebugMode) {
-          print(
-            'ServerProvider: Successfully authenticated and connected to server ${server.id}',
-          );
-        }
+        _log.info(
+          'Authenticated and connected',
+          attributes: {'server.id': server.id},
+        );
       } else {
         _authState = AuthenticationState.required;
         _authError = 'Authentication required to access server credentials';
-        if (kDebugMode) {
-          print(
-            'ServerProvider: Authentication required for server ${server.id}',
-          );
-        }
+        _log.debug(
+          'Authentication required',
+          attributes: {'server.id': server.id},
+        );
       }
     } catch (e, stackTrace) {
       _authState = AuthenticationState.failed;
       _authError = 'Authentication failed: ${e.toString()}';
-      if (kDebugMode) {
-        print(
-          'ServerProvider: Authentication failed for server ${server.id}: $e',
-        );
-      }
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -374,32 +362,17 @@ class ServerProvider extends ChangeNotifier {
     UnifiedServerService serverService,
   ) async {
     try {
-      if (kDebugMode) {
-        print(
-          'ServerProvider: Loading credentials for ${server.name} - current username: "${server.username}"',
-        );
-      }
-
       final password = await serverService.getPassword(server.id);
 
       if (password != null) {
         final serverWithCreds = server.copyWith(password: password);
-        if (kDebugMode) {
-          print(
-            'ServerProvider: Loaded credentials for ${server.name} - username: "${serverWithCreds.username}", has password: true',
-          );
-        }
         return serverWithCreds;
       } else {
-        if (kDebugMode) {
-          print('ServerProvider: No password found for server ${server.id}');
-        }
+        _log.warn('No password found', attributes: {'server.id': server.id});
         return null;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('ServerProvider: Error loading server credentials: $e');
-      }
+      _log.error('Error loading server credentials', error: e);
       return null;
     }
   }
@@ -459,9 +432,7 @@ class ServerProvider extends ChangeNotifier {
     } else {
       _authState = AuthenticationState.failed;
       _authError = 'Connection lost: $failure';
-      if (kDebugMode) {
-        print('ServerProvider: Failed to refresh connection: $failure');
-      }
+      _log.error('Failed to refresh connection', error: failure);
     }
 
     _emitAuthStatus();
@@ -520,11 +491,7 @@ class ServerProvider extends ChangeNotifier {
     try {
       // For testing, use the credentials passed in the server object
       if (server.username.isEmpty || server.password.isEmpty) {
-        if (kDebugMode) {
-          print(
-            'ServerProvider: Username or password empty for connection test',
-          );
-        }
+        _log.debug('Username or password empty for connection test');
         return false;
       }
 
@@ -533,9 +500,6 @@ class ServerProvider extends ChangeNotifier {
       await apiClient.close();
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('ServerProvider: Connection test failed: $e');
-      }
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -549,11 +513,7 @@ class ServerProvider extends ChangeNotifier {
     try {
       // For validation, use the credentials passed in the server object
       if (server.username.isEmpty || server.password.isEmpty) {
-        if (kDebugMode) {
-          print(
-            'ServerProvider: Username or password empty for credential validation',
-          );
-        }
+        _log.debug('Username or password empty for credential validation');
         return false;
       }
 
@@ -564,9 +524,6 @@ class ServerProvider extends ChangeNotifier {
       await apiClient.close();
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('ServerProvider: Credential validation failed: $e');
-      }
       _telemetryService?.recordError(
         e,
         stackTrace,

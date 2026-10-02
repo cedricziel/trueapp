@@ -1,9 +1,11 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.repository_factory');
 
 /// Factory for creating platform-appropriate server repositories
 class ServerRepositoryFactory {
@@ -22,14 +24,10 @@ class ServerRepositoryFactory {
     final useCloudKit = (isApplePlatform && !forceSqlite) || forceCloudKit;
 
     if (useCloudKit) {
-      if (kDebugMode) {
-        print('ServerRepositoryFactory: Using CloudKit repository');
-      }
+      _log.info('Using CloudKit repository');
       _instance = CloudKitServerRepository();
     } else {
-      if (kDebugMode) {
-        print('ServerRepositoryFactory: Using SQLite repository');
-      }
+      _log.info('Using SQLite repository');
       final db = database ?? AppDatabase.instance;
       _instance = SqliteServerRepository(db);
     }
@@ -37,11 +35,7 @@ class ServerRepositoryFactory {
     final initialized = await _instance!.initialize();
     if (!initialized && useCloudKit) {
       // Fallback to SQLite if CloudKit fails
-      if (kDebugMode) {
-        print(
-          'ServerRepositoryFactory: CloudKit failed, falling back to SQLite',
-        );
-      }
+      _log.warn('CloudKit failed, falling back to SQLite');
       final db = database ?? AppDatabase.instance;
       _instance = SqliteServerRepository(db);
       await _instance!.initialize();

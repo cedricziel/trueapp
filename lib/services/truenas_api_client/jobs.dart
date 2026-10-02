@@ -28,9 +28,7 @@ mixin _JobsOps on _ClientTransport implements JobsApi {
     _wantsJobs = true;
 
     if (_isSubscribedToJobs && _hasLiveConnection) {
-      if (kDebugMode) {
-        print('TrueNAS API: Already subscribed to jobs');
-      }
+      _log.debug('Already subscribed to jobs');
       return;
     }
 
@@ -47,13 +45,12 @@ mixin _JobsOps on _ClientTransport implements JobsApi {
 
       _isSubscribedToJobs = true;
 
-      if (kDebugMode) {
-        print('TrueNAS API: Subscribed to jobs with ID: $_jobsSubscriptionId');
-      }
+      _log.info(
+        'Subscribed to jobs',
+        attributes: {'subscription.id': _jobsSubscriptionId},
+      );
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Failed to subscribe to jobs: $e');
-      }
+      _log.error('Failed to subscribe to jobs', error: e);
       throw _handleError(e);
     }
   }
@@ -68,16 +65,13 @@ mixin _JobsOps on _ClientTransport implements JobsApi {
       if (_hasLiveConnection) {
         await _request('core.unsubscribe', [_jobsSubscriptionId!]);
 
-        if (kDebugMode) {
-          print(
-            'TrueNAS API: Unsubscribed from jobs with ID: $_jobsSubscriptionId',
-          );
-        }
+        _log.info(
+          'Unsubscribed from jobs',
+          attributes: {'subscription.id': _jobsSubscriptionId},
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('TrueNAS API: Error unsubscribing from jobs: $e');
-      }
+      _log.error('Error unsubscribing from jobs', error: e);
     } finally {
       _wantsJobs = false;
       _isSubscribedToJobs = false;
@@ -86,9 +80,7 @@ mixin _JobsOps on _ClientTransport implements JobsApi {
       await _jobsController?.close();
       _jobsController = null;
 
-      if (kDebugMode) {
-        print('TrueNAS API: Job subscription cleaned up');
-      }
+      _log.info('Job subscription cleaned up');
     }
   }
 

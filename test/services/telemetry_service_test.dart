@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/services/telemetry_config.dart';
@@ -43,6 +44,23 @@ void main() {
 
         expect(logger, isA<Logger>());
         expect(() => logger.info('hello from a test'), returnsNormally);
+      },
+    );
+
+    test(
+      'prints logs to the console in debug builds even when disabled',
+      () async {
+        final printed = <String>[];
+        final original = debugPrint;
+        debugPrint = (String? message, {int? wrapWidth}) {
+          if (message != null) printed.add(message);
+        };
+        addTearDown(() => debugPrint = original);
+
+        final service = await TelemetryService.initialize(disabledConfig);
+        service.getLogger().info('console-visible message');
+
+        expect(printed.join('\n'), contains('console-visible message'));
       },
     );
 

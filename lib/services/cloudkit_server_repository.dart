@@ -1,10 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_config_dto.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/cloudkit_service.dart';
 import 'package:truehub/services/cloudkit_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.cloudkit');
 
 /// CloudKit-based server repository for Apple platforms
 /// Provides automatic sync across devices with offline support
@@ -34,9 +36,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
       _cloudKitSubscription = _cloudKit.serverConfigsStream.listen(
         _handleCloudKitUpdates,
         onError: (error) {
-          if (kDebugMode) {
-            print('CloudKitServerRepository: Stream error: $error');
-          }
+          _log.error('Stream error', error: error);
         },
       );
 
@@ -47,9 +47,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
       _isInitialized = true;
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Initialization failed: $e');
-      }
+      _log.error('Initialization failed', error: e);
       return false;
     }
   }
@@ -59,9 +57,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
       final configs = await _cloudKit.fetchServerConfigs();
       await _handleCloudKitUpdates(configs);
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Initial sync failed: $e');
-      }
+      _log.error('Initial sync failed', error: e);
     }
   }
 
@@ -69,11 +65,10 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
     _cachedServers = configs.map(_dtoToServer).toList();
     _serversController.add(_cachedServers);
 
-    if (kDebugMode) {
-      print(
-        'CloudKitServerRepository: Updated ${_cachedServers.length} servers',
-      );
-    }
+    _log.debug(
+      'Updated cached servers',
+      attributes: {'count': _cachedServers.length},
+    );
   }
 
   NasServer _dtoToServer(ServerConfigDTO dto) {
@@ -144,9 +139,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
 
       return success;
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Save failed: $e');
-      }
+      _log.error('Save failed', error: e);
       return false;
     }
   }
@@ -166,9 +159,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
 
       return success;
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Delete failed: $e');
-      }
+      _log.error('Delete failed', error: e);
       return false;
     }
   }
@@ -195,9 +186,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
       }
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Set default failed: $e');
-      }
+      _log.error('Set default failed', error: e);
       return false;
     }
   }
@@ -211,9 +200,7 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
       }
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('CloudKitServerRepository: Clear default failed: $e');
-      }
+      _log.error('Clear default failed', error: e);
       return false;
     }
   }

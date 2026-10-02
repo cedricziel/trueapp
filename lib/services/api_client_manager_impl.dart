@@ -6,6 +6,9 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('api.manager');
 
 /// Default implementation of ApiClientManagerInterface
 class ApiClientManagerImpl implements ApiClientManagerInterface {
@@ -25,29 +28,21 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   Future<ApiClientInterface?> getClient(NasServer server) async {
     final serverId = server.id;
 
-    if (kDebugMode) {
-      print(
-        'ApiClientManager: getClient called for ${server.name} - username: "${server.username}"',
-      );
-    }
-
     if (_clients.containsKey(serverId)) {
       _refCounts[serverId] = (_refCounts[serverId] ?? 0) + 1;
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Reusing existing client for server ${server.name} (ref count: ${_refCounts[serverId]})',
-        );
-      }
+      _log.debug(
+        'Reusing existing client',
+        attributes: {'server.id': serverId, 'ref_count': _refCounts[serverId]},
+      );
       return _clients[serverId];
     }
 
     // Check if there's already a connection in progress
     if (_connectionCompleters[serverId] != null) {
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Waiting for existing connection to server ${server.name}',
-        );
-      }
+      _log.debug(
+        'Waiting for existing connection',
+        attributes: {'server.id': serverId},
+      );
       return await _connectionCompleters[serverId]!.future;
     }
 
@@ -56,11 +51,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     _connectionCompleters[serverId] = completer;
 
     try {
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Creating new client for server ${server.name}',
-        );
-      }
+      _log.debug('Creating new client', attributes: {'server.id': serverId});
 
       final client = TrueNasApiClient(
         server,
@@ -70,20 +61,16 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
       _clients[serverId] = client;
       _refCounts[serverId] = 1;
 
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Successfully created client for server ${server.name}',
-        );
-      }
+      _log.info('Created client', attributes: {'server.id': serverId});
 
       completer.complete(client);
       return client;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Failed to create client for server ${server.name}: $e',
-        );
-      }
+      _log.error(
+        'Failed to create client',
+        error: e,
+        attributes: {'server.id': serverId},
+      );
       completer.completeError(e);
       rethrow;
     } finally {
@@ -100,18 +87,16 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     final refCount = (_refCounts[serverId] ?? 1) - 1;
     _refCounts[serverId] = refCount;
 
-    if (kDebugMode) {
-      print(
-        'ApiClientManager: Released client for server $serverId (ref count: $refCount)',
-      );
-    }
+    _log.debug(
+      'Released client',
+      attributes: {'server.id': serverId, 'ref_count': refCount},
+    );
 
     if (refCount <= 0) {
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: Closing client for server $serverId (no more references)',
-        );
-      }
+      _log.info(
+        'Closing client, no more references',
+        attributes: {'server.id': serverId},
+      );
 
       final client = _clients.remove(serverId);
       _refCounts.remove(serverId);
@@ -121,9 +106,11 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
         try {
           await client.close();
         } catch (e) {
-          if (kDebugMode) {
-            print('ApiClientManager: Error closing client for $serverId: $e');
-          }
+          _log.error(
+            'Error closing client',
+            error: e,
+            attributes: {'server.id': serverId},
+          );
         }
       }
     }
@@ -131,11 +118,14 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
 
   @override
   Future<void> closeClient(String serverId) async {
-    if (kDebugMode) {
-      print('ApiClientManager: Force closing client for server $serverId');
-      print('  - Had cached client: ${_clients.containsKey(serverId)}');
-      print('  - Ref count was: ${_refCounts[serverId]}');
-    }
+    _log.info(
+      'Force closing client',
+      attributes: {
+        'server.id': serverId,
+        'had_cached_client': _clients.containsKey(serverId),
+        'ref_count': _refCounts[serverId],
+      },
+    );
 
     final client = _clients.remove(serverId);
     _refCounts.remove(serverId);
@@ -144,24 +134,19 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     if (client != null) {
       try {
         await client.close();
-        if (kDebugMode) {
-          print(
-            'ApiClientManager: Successfully closed client for server $serverId',
-          );
-        }
+        _log.info('Closed client', attributes: {'server.id': serverId});
       } catch (e) {
-        if (kDebugMode) {
-          print(
-            'ApiClientManager: Error closing client for server $serverId: $e',
-          );
-        }
-      }
-    } else {
-      if (kDebugMode) {
-        print(
-          'ApiClientManager: No client found to close for server $serverId',
+        _log.error(
+          'Error closing client',
+          error: e,
+          attributes: {'server.id': serverId},
         );
       }
+    } else {
+      _log.debug(
+        'No client found to close',
+        attributes: {'server.id': serverId},
+      );
     }
   }
 
@@ -177,9 +162,11 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
           await client.ensureConnectionAlive();
         } catch (e) {
           failures[serverId] = e;
-          if (kDebugMode) {
-            print('ApiClientManager: Recovery failed for $serverId: $e');
-          }
+          _log.error(
+            'Recovery failed',
+            error: e,
+            attributes: {'server.id': serverId},
+          );
         }
       }),
     );
@@ -189,9 +176,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
 
   @override
   Future<void> closeAllClients() async {
-    if (kDebugMode) {
-      print('ApiClientManager: Closing all clients');
-    }
+    _log.info('Closing all clients');
 
     final clients = List<TrueNasApiClient>.from(_clients.values);
     _clients.clear();
@@ -230,11 +215,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   Future<ApiClientInterface?> forceRecreateClient(NasServer server) async {
     final serverId = server.id;
 
-    if (kDebugMode) {
-      print(
-        'ApiClientManager: Force recreating client for server ${server.name}',
-      );
-    }
+    _log.debug('Force recreating client', attributes: {'server.id': serverId});
 
     // First, forcefully close any existing client
     await closeClient(serverId);
@@ -249,9 +230,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   @override
   @visibleForTesting
   Future<void> clearAllForTesting() async {
-    if (kDebugMode) {
-      print('ApiClientManager: Clearing all clients for testing');
-    }
+    _log.debug('Clearing all clients for testing');
 
     // Close all existing clients
     final clientIds = List<String>.from(_clients.keys);

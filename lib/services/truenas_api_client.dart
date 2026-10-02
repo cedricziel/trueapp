@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -21,6 +20,7 @@ import 'package:truehub/services/api/area_apis.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
 
 part 'truenas_api_client/error_mapping.dart';
 part 'truenas_api_client/connection.dart';
@@ -34,6 +34,8 @@ part 'truenas_api_client/apps.dart';
 part 'truenas_api_client/system_stats.dart';
 part 'truenas_api_client/app_stats.dart';
 part 'truenas_api_client/jobs.dart';
+
+final _log = appLogger('api.client');
 
 /// Coalesces concurrent launches of one async operation: while a run is in
 /// flight every caller shares its future, and completion (success or failure)
@@ -178,11 +180,9 @@ abstract class _ClientBase
           final systemStats = SystemStats.fromJson(fields);
           _systemStatsController?.add(systemStats);
 
-          if (kDebugMode) {
-            print(
-              'TrueNAS API: Received realtime stats - CPU: ${systemStats.cpu.overall.usage.toStringAsFixed(1)}%',
-            );
-          }
+          _log.debug(
+            'Received realtime stats - CPU: ${systemStats.cpu.overall.usage.toStringAsFixed(1)}%',
+          );
         } else if (collection == 'app.stats') {
           final fields = parameters['fields'].value as List<dynamic>;
           final appStatsMap = <String, AppResourceUsage>{};
@@ -218,27 +218,17 @@ abstract class _ClientBase
 
           _appStatsController?.add(appStatsMap);
 
-          if (kDebugMode) {
-            print(
-              'TrueNAS API: Received app stats for ${appStatsMap.length} apps',
-            );
-          }
+          _log.debug('Received app stats for ${appStatsMap.length} apps');
         } else if (collection == 'core.get_jobs') {
           final fields = parameters['fields'].value as Map<String, dynamic>;
           final job = Job.fromJson(fields);
           _jobsById[job.id] = job;
           _jobsController?.add(_jobsById.values.toList());
 
-          if (kDebugMode) {
-            print(
-              'TrueNAS API: Job #${job.id} (${job.method}) -> ${job.state}',
-            );
-          }
+          _log.debug('Job #${job.id} (${job.method}) -> ${job.state}');
         }
       } catch (e) {
-        if (kDebugMode) {
-          print('TrueNAS API: Error parsing collection_update: $e');
-        }
+        _log.error('Error parsing collection_update', error: e);
       }
     });
   }

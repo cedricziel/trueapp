@@ -4,6 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:truehub/services/authentication_session_service.dart';
 import 'package:truehub/models/keychain_server_config.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('storage.secure');
 
 class ServerCredentials {
   final String username;
@@ -43,11 +46,7 @@ class SecureStorageService {
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       return isAvailable && isDeviceSupported;
     } catch (e) {
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Error checking biometric availability: $e',
-        );
-      }
+      _log.error('Error checking biometric availability', error: e);
       return false;
     }
   }
@@ -57,9 +56,7 @@ class SecureStorageService {
     try {
       return await _localAuth.getAvailableBiometrics();
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error getting available biometrics: $e');
-      }
+      _log.error('Error getting available biometrics', error: e);
       return [];
     }
   }
@@ -73,9 +70,7 @@ class SecureStorageService {
     try {
       // Check if we have a valid session
       if (useSession && AuthenticationSessionService.instance.isSessionValid) {
-        if (kDebugMode) {
-          print('SecureStorageService: Using existing authentication session');
-        }
+        _log.info('Using existing authentication session');
         // Extend the session on each use
         AuthenticationSessionService.instance.extendSession();
         return true;
@@ -83,21 +78,17 @@ class SecureStorageService {
 
       final isAvailable = await isBiometricAvailable();
       if (!isAvailable && biometricOnly) {
-        if (kDebugMode) {
-          print(
-            'SecureStorageService: Biometric authentication not available, but biometricOnly=true',
-          );
-        }
+        _log.debug(
+          'Biometric authentication not available, but biometricOnly=true',
+        );
         return false;
       }
 
       // If biometrics aren't available but not required, skip authentication for now
       if (!isAvailable && !biometricOnly) {
-        if (kDebugMode) {
-          print(
-            'SecureStorageService: Biometric authentication not available, skipping authentication',
-          );
-        }
+        _log.debug(
+          'Biometric authentication not available, skipping authentication',
+        );
         // Mark session as authenticated even without biometrics
         if (useSession) {
           AuthenticationSessionService.instance.markAuthenticated();
@@ -116,18 +107,12 @@ class SecureStorageService {
       if (authenticated && useSession) {
         // Mark the session as authenticated
         AuthenticationSessionService.instance.markAuthenticated();
-        if (kDebugMode) {
-          print(
-            'SecureStorageService: Authentication successful, session created',
-          );
-        }
+        _log.debug('Authentication successful, session created');
       }
 
       return authenticated;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Authentication error: $e');
-      }
+      _log.error('Authentication error', error: e);
       return false;
     }
   }
@@ -140,22 +125,20 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Attempting to store credentials for server $serverId',
-        );
-      }
+      _log.debug(
+        'Attempting to store credentials',
+        attributes: {'server.id': serverId},
+      );
 
       if (requireAuthentication) {
         final authenticated = await authenticate(
           reason: 'Authenticate to save server credentials',
         );
         if (!authenticated) {
-          if (kDebugMode) {
-            print(
-              'SecureStorageService: Authentication failed while storing credentials for server $serverId',
-            );
-          }
+          _log.warn(
+            'Authentication failed while storing credentials',
+            attributes: {'server.id': serverId},
+          );
           return false;
         }
       }
@@ -163,25 +146,13 @@ class SecureStorageService {
       final usernameKey = _getUsernameKey(serverId);
       final passwordKey = _getPasswordKey(serverId);
 
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Storing credentials with keys: $usernameKey, $passwordKey',
-        );
-      }
-
       await _storage.write(key: usernameKey, value: username);
       await _storage.write(key: passwordKey, value: password);
 
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Successfully stored credentials for server $serverId',
-        );
-      }
+      _log.info('Stored credentials', attributes: {'server.id': serverId});
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error storing credentials: $e');
-      }
+      _log.error('Error storing credentials', error: e);
       return false;
     }
   }
@@ -192,20 +163,15 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
-      // if (kDebugMode) {
-      //   print('SecureStorageService: Attempting to retrieve credentials for server $serverId');
-      // }
-
       if (requireAuthentication) {
         final authenticated = await authenticate(
           reason: 'Authenticate to access server credentials',
         );
         if (!authenticated) {
-          if (kDebugMode) {
-            print(
-              'SecureStorageService: Authentication failed for server $serverId',
-            );
-          }
+          _log.warn(
+            'Authentication failed',
+            attributes: {'server.id': serverId},
+          );
           return null;
         }
       }
@@ -213,31 +179,17 @@ class SecureStorageService {
       final usernameKey = _getUsernameKey(serverId);
       final passwordKey = _getPasswordKey(serverId);
 
-      // if (kDebugMode) {
-      //   print('SecureStorageService: Reading credentials with keys: $usernameKey, $passwordKey');
-      // }
-
       final username = await _storage.read(key: usernameKey);
       final password = await _storage.read(key: passwordKey);
-
-      // if (kDebugMode) {
-      //   print('SecureStorageService: Retrieved credentials - username: ${username != null ? 'found' : 'not found'}, password: ${password != null ? 'found' : 'not found'}');
-      // }
 
       if (username != null && password != null) {
         return ServerCredentials(username: username, password: password);
       }
 
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: No credentials found for server $serverId',
-        );
-      }
+      _log.warn('No credentials found', attributes: {'server.id': serverId});
       return null;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error retrieving credentials: $e');
-      }
+      _log.error('Error retrieving credentials', error: e);
       return null;
     }
   }
@@ -249,9 +201,7 @@ class SecureStorageService {
       final password = await _storage.read(key: _getPasswordKey(serverId));
       return username != null && password != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error checking credentials: $e');
-      }
+      _log.error('Error checking credentials', error: e);
       return false;
     }
   }
@@ -274,14 +224,10 @@ class SecureStorageService {
       await _storage.delete(key: _getUsernameKey(serverId));
       await _storage.delete(key: _getPasswordKey(serverId));
 
-      if (kDebugMode) {
-        print('SecureStorageService: Credentials deleted for server $serverId');
-      }
+      _log.debug('Credentials deleted', attributes: {'server.id': serverId});
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error deleting credentials: $e');
-      }
+      _log.error('Error deleting credentials', error: e);
       return false;
     }
   }
@@ -302,14 +248,10 @@ class SecureStorageService {
 
       await _storage.deleteAll();
 
-      if (kDebugMode) {
-        print('SecureStorageService: All credentials deleted');
-      }
+      _log.debug('All credentials deleted');
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error deleting all credentials: $e');
-      }
+      _log.error('Error deleting all credentials', error: e);
       return false;
     }
   }
@@ -331,9 +273,7 @@ class SecureStorageService {
 
       return success;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error migrating credentials: $e');
-      }
+      _log.error('Error migrating credentials', error: e);
       return false;
     }
   }
@@ -343,12 +283,12 @@ class SecureStorageService {
     if (kDebugMode) {
       try {
         final allKeys = await _storage.readAll();
-        print('SecureStorageService: Stored keys (${allKeys.length} total):');
-        for (final key in allKeys.keys) {
-          print('  - $key: ${allKeys[key] != null ? 'has value' : 'null'}');
-        }
+        _log.debug(
+          'Stored keys',
+          attributes: {'count': allKeys.length, 'keys': allKeys.keys.join(',')},
+        );
       } catch (e) {
-        print('SecureStorageService: Error listing stored keys: $e');
+        _log.error('Error listing stored keys', error: e);
       }
     }
   }
@@ -359,11 +299,10 @@ class SecureStorageService {
     bool requireAuthentication = true,
   }) async {
     try {
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Attempting to store server config for ${config.id}',
-        );
-      }
+      _log.debug(
+        'Attempting to store server config',
+        attributes: {'server.id': config.id},
+      );
 
       if (requireAuthentication) {
         final authenticated = await authenticate(
@@ -391,16 +330,10 @@ class SecureStorageService {
       // Update server list
       await _addToServerList(config.id);
 
-      if (kDebugMode) {
-        print(
-          'SecureStorageService: Successfully stored server config for ${config.id}',
-        );
-      }
+      _log.info('Stored server config', attributes: {'server.id': config.id});
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error storing server config: $e');
-      }
+      _log.error('Error storing server config', error: e);
       return false;
     }
   }
@@ -433,18 +366,15 @@ class SecureStorageService {
         requireAuthentication: false,
       );
       if (credentials != null) {
-        if (kDebugMode) {
-          print(
-            'SecureStorageService: Found legacy credentials for $serverId, but no complete config',
-          );
-        }
+        _log.debug(
+          'Found legacy credentials but no complete config',
+          attributes: {'server.id': serverId},
+        );
       }
 
       return null;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error retrieving server config: $e');
-      }
+      _log.error('Error retrieving server config', error: e);
       return null;
     }
   }
@@ -459,9 +389,7 @@ class SecureStorageService {
       }
       return [];
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error retrieving server list: $e');
-      }
+      _log.error('Error retrieving server list', error: e);
       return [];
     }
   }
@@ -478,9 +406,7 @@ class SecureStorageService {
         );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error updating server list: $e');
-      }
+      _log.error('Error updating server list', error: e);
     }
   }
 
@@ -491,9 +417,7 @@ class SecureStorageService {
       serverList.remove(serverId);
       await _storage.write(key: _serverListKey, value: jsonEncode(serverList));
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error updating server list: $e');
-      }
+      _log.error('Error updating server list', error: e);
     }
   }
 
@@ -520,14 +444,10 @@ class SecureStorageService {
       // Remove from server list
       await _removeFromServerList(serverId);
 
-      if (kDebugMode) {
-        print('SecureStorageService: Server config deleted for $serverId');
-      }
+      _log.debug('Server config deleted', attributes: {'server.id': serverId});
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error deleting server config: $e');
-      }
+      _log.error('Error deleting server config', error: e);
       return false;
     }
   }
@@ -539,9 +459,7 @@ class SecureStorageService {
       final config = await _storage.read(key: configKey);
       return config != null;
     } catch (e) {
-      if (kDebugMode) {
-        print('SecureStorageService: Error checking server config: $e');
-      }
+      _log.error('Error checking server config', error: e);
       return false;
     }
   }
