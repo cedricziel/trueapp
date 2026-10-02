@@ -60,13 +60,17 @@ class FakeTrayServerSource extends ChangeNotifier implements TrayServerSource {
   @override
   List<NasServer> servers = [];
 
-  @override
-  String? healthError;
-
   int refreshCalls = 0;
 
   @override
   Future<void> refreshSelectedServer() async => refreshCalls++;
+
+  void change() => notifyListeners();
+}
+
+class FakeTrayHealthSource extends ChangeNotifier implements TrayHealthSource {
+  @override
+  String? healthError;
 
   void change() => notifyListeners();
 }

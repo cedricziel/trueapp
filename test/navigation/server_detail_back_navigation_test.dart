@@ -51,7 +51,7 @@ void main() {
     // provider and closes the stream it tries to emit on.
     var attempts = 0;
     while ((serverProvider.selectedServer == null ||
-            serverProvider.isAuthenticating) &&
+            serverProvider.currentAuthStatus.isAuthenticating) &&
         attempts < 100) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       attempts++;

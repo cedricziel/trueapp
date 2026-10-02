@@ -276,6 +276,17 @@ void main() {
       );
     });
 
+    test('a load failure is exposed as the tray health error', () async {
+      expect(provider.healthError, isNull);
+      fakeClient.failingMethods.add('getAlerts');
+
+      await provider.setServer(testServer);
+      await provider.loadHealth();
+
+      expect(provider.healthError, provider.error);
+      expect(provider.healthError, isNotNull);
+    });
+
     test('refreshHealth re-runs loadHealth', () async {
       await provider.setServer(testServer);
       await provider.refreshHealth();

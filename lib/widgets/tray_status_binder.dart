@@ -12,6 +12,7 @@ class TrayStatusBinder extends StatefulWidget {
     required this.isDesktop,
     required this.tray,
     required this.serverSource,
+    required this.healthSource,
     required this.appsSource,
     required this.connectionSource,
     required this.onShowWindow,
@@ -22,6 +23,7 @@ class TrayStatusBinder extends StatefulWidget {
   final bool isDesktop;
   final TrayStatusSink tray;
   final TrayServerSource serverSource;
+  final TrayHealthSource healthSource;
   final TrayAppsSource appsSource;
   final TrayConnectionSource connectionSource;
   final VoidCallback onShowWindow;
@@ -50,6 +52,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       await widget.tray.initializeTray();
       if (!mounted) return;
       widget.serverSource.addListener(_updateTrayStatus);
+      widget.healthSource.addListener(_updateTrayStatus);
       widget.appsSource.addListener(_updateTrayStatus);
       widget.connectionSource.addListener(_updateTrayStatus);
       _listening = true;
@@ -63,7 +66,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
     final connectedIds = widget.connectionSource.connectedServers.toSet();
 
     final alerts = <String>[];
-    final healthError = serverSource.healthError;
+    final healthError = widget.healthSource.healthError;
     if (healthError != null) alerts.add(healthError);
 
     var appsWithPortals = <AppConfig>[];
@@ -96,6 +99,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
   void dispose() {
     if (_listening) {
       widget.serverSource.removeListener(_updateTrayStatus);
+      widget.healthSource.removeListener(_updateTrayStatus);
       widget.appsSource.removeListener(_updateTrayStatus);
       widget.connectionSource.removeListener(_updateTrayStatus);
     }

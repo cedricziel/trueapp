@@ -445,22 +445,6 @@ void main() {
       // Test current auth status
       final authStatus = serverProvider.currentAuthStatus;
       expect(authStatus.state, isA<AuthenticationState>());
-
-      // Test legacy getters
-      expect(serverProvider.authState, isA<AuthenticationState>());
-      expect(serverProvider.isAuthenticated, isA<bool>());
-      expect(serverProvider.requiresAuthentication, isA<bool>());
-      expect(serverProvider.isAuthenticating, isA<bool>());
-    });
-
-    test('should handle server health and user info', () async {
-      // Test initial state
-      expect(serverProvider.serverHealth, isNull);
-      expect(serverProvider.isLoadingHealth, isFalse);
-      expect(serverProvider.healthError, isNull);
-      expect(serverProvider.currentUser, isNull);
-      expect(serverProvider.isLoadingUser, isFalse);
-      expect(serverProvider.userError, isNull);
     });
 
     test('should handle server list operations', () async {
@@ -641,73 +625,14 @@ void main() {
 
         await serverProvider.selectServer(testServer);
 
-        expect(serverProvider.authState, AuthenticationState.failed);
+        expect(
+          serverProvider.currentAuthStatus.state,
+          AuthenticationState.failed,
+        );
         expect(telemetryService.recordedErrors, hasLength(1));
         expect(
           telemetryService.recordedErrors.single.context,
-          'ServerProvider._authenticateAndConnect',
-        );
-      },
-    );
-
-    test('a failure loading server health is reported to telemetry', () async {
-      // A dedicated provider whose first (and only) selectServer() call
-      // picks up the mock client: `selectServer` unconditionally releases
-      // whatever client the *previous* selection held (see the comment on
-      // "should close the cached API client when a server is deleted"
-      // above), so reusing the already-selected `serverProvider` here would
-      // have this release wipe the mock client out before loadServerHealth()
-      // ever saw it.
-      final client = FakeApiClient();
-      client.failingMethods.add('getServerHealth');
-      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-
-      final provider = ServerProvider(
-        clientManager: TestProviders.mockApiClientManager,
-        mockServerService,
-        serversDaoSource: database,
-        telemetryService: telemetryService,
-      );
-      addTearDown(provider.dispose);
-      telemetryService.recordedErrors.clear();
-
-      await provider.selectServer(testServer);
-      await provider.loadServerHealth();
-
-      expect(provider.healthError, isNotNull);
-      expect(telemetryService.recordedErrors, hasLength(1));
-      expect(
-        telemetryService.recordedErrors.single.context,
-        'ServerProvider.loadServerHealth',
-      );
-    });
-
-    test(
-      'a failure loading the current user is reported to telemetry',
-      () async {
-        // See the comment in the loadServerHealth test above for why this
-        // uses a dedicated, freshly-selected provider.
-        final client = FakeApiClient();
-        client.failingMethods.add('getCurrentUser');
-        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-
-        final provider = ServerProvider(
-          clientManager: TestProviders.mockApiClientManager,
-          mockServerService,
-          serversDaoSource: database,
-          telemetryService: telemetryService,
-        );
-        addTearDown(provider.dispose);
-        telemetryService.recordedErrors.clear();
-
-        await provider.selectServer(testServer);
-        await provider.loadCurrentUser();
-
-        expect(provider.userError, isNotNull);
-        expect(telemetryService.recordedErrors, hasLength(1));
-        expect(
-          telemetryService.recordedErrors.single.context,
-          'ServerProvider.loadCurrentUser',
+          'ServerAuthSession._authenticate',
         );
       },
     );

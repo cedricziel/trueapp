@@ -11,6 +11,7 @@ import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
+import 'package:truehub/providers/user_profile_provider.dart';
 import 'package:truehub/services/active_server.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/database.dart';
@@ -64,6 +65,14 @@ List<SingleChildWidget> buildAppProviders(AppDependencies deps) {
     ),
     ChangeNotifierProvider(
       create: (context) => HealthProvider(
+        serverService,
+        clientManager: clientManager,
+        telemetryService: telemetry,
+        activeServer: activeServer,
+      ),
+    ),
+    ChangeNotifierProvider(
+      create: (context) => UserProfileProvider(
         serverService,
         clientManager: clientManager,
         telemetryService: telemetry,

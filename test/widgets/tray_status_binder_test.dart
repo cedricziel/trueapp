@@ -16,6 +16,7 @@ NasServer _server(String id) => NasServer(
 void main() {
   late FakeTraySink tray;
   late FakeTrayServerSource serverSource;
+  late FakeTrayHealthSource healthSource;
   late FakeTrayAppsSource appsSource;
   late FakeTrayConnectionSource connectionSource;
   late int showCalls;
@@ -24,6 +25,7 @@ void main() {
   setUp(() {
     tray = FakeTraySink();
     serverSource = FakeTrayServerSource();
+    healthSource = FakeTrayHealthSource();
     appsSource = FakeTrayAppsSource();
     connectionSource = FakeTrayConnectionSource();
     showCalls = 0;
@@ -36,6 +38,7 @@ void main() {
         isDesktop: isDesktop,
         tray: tray,
         serverSource: serverSource,
+        healthSource: healthSource,
         appsSource: appsSource,
         connectionSource: connectionSource,
         onShowWindow: () => showCalls++,
@@ -74,11 +77,20 @@ void main() {
     tester,
   ) async {
     serverSource.servers = [_server('a'), _server('b')];
-    serverSource.healthError = 'boom';
+    healthSource.healthError = 'boom';
     await pumpBinder(tester);
 
     expect(tray.updates.single.totalServers, 2);
     expect(tray.updates.single.alerts, ['boom']);
+  });
+
+  testWidgets('pushes status when the health error changes', (tester) async {
+    await pumpBinder(tester);
+
+    healthSource.healthError = 'boom';
+    healthSource.change();
+
+    expect(tray.updates.last.alerts, ['boom']);
   });
 
   testWidgets('pushes status when servers change', (tester) async {
@@ -145,6 +157,8 @@ void main() {
     serverSource.servers = [_server('a')];
     serverSource.change();
     appsSource.change();
+    healthSource.healthError = 'late';
+    healthSource.change();
 
     expect(tray.updates, hasLength(1));
   });

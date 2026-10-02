@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
-import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/user_profile_provider.dart';
 import 'package:truehub/widgets/section_card.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -23,13 +23,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    final provider = context.read<ServerProvider>();
-    if (provider.selectedServer?.id == widget.server.id) {
-      await provider.loadCurrentUser();
-    } else {
-      await provider.selectServer(widget.server);
-      await provider.loadCurrentUser();
-    }
+    await context.read<UserProfileProvider>().loadCurrentUser();
   }
 
   @override
@@ -44,7 +38,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
       child: SafeArea(
-        child: Consumer<ServerProvider>(
+        child: Consumer<UserProfileProvider>(
           builder: (context, provider, child) {
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -64,8 +58,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildUserHeader(ServerProvider provider) {
-    if (provider.isLoadingUser) {
+  Widget _buildUserHeader(UserProfileProvider provider) {
+    if (provider.isLoading) {
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
@@ -76,7 +70,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       );
     }
 
-    if (provider.userError != null) {
+    if (provider.error != null) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -104,7 +98,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              provider.userError!,
+              provider.error!,
               style: const TextStyle(
                 fontSize: 14,
                 color: CupertinoColors.systemRed,
@@ -223,7 +217,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildUserDetails(ServerProvider provider) {
+  Widget _buildUserDetails(UserProfileProvider provider) {
     if (provider.currentUser == null) return const SizedBox.shrink();
 
     final user = provider.currentUser!;
@@ -243,7 +237,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildSecurityInfo(ServerProvider provider) {
+  Widget _buildSecurityInfo(UserProfileProvider provider) {
     if (provider.currentUser == null) return const SizedBox.shrink();
 
     final user = provider.currentUser!;
@@ -300,7 +294,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildSystemInfo(ServerProvider provider) {
+  Widget _buildSystemInfo(UserProfileProvider provider) {
     return SectionCard(
       title: 'Server Information',
       icon: CupertinoIcons.cube_box,

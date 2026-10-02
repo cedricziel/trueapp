@@ -12,6 +12,7 @@ class MockApiClientManager implements ApiClientManagerInterface {
   bool shouldFailConnection = false;
   bool shouldReturnNull = false;
   int connectionDelay = 0;
+  Map<String, Object> connectionFailures = {};
 
   // Track method calls for verification
   final List<String> methodCalls = [];
@@ -69,7 +70,7 @@ class MockApiClientManager implements ApiClientManagerInterface {
   @override
   Future<Map<String, Object>> ensureAllConnectionsAlive() async {
     methodCalls.add('ensureAllConnectionsAlive');
-    return <String, Object>{};
+    return Map.of(connectionFailures);
   }
 
   @override

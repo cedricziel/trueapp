@@ -50,7 +50,7 @@ void main() {
     // on).
     var attempts = 0;
     while ((serverProvider.selectedServer == null ||
-            serverProvider.isAuthenticating) &&
+            serverProvider.currentAuthStatus.isAuthenticating) &&
         attempts < 100) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       attempts++;
@@ -59,7 +59,8 @@ void main() {
     // Fail here rather than letting every test in this group run against a
     // provider that never settled and report an unrelated symptom.
     expect(
-      serverProvider.selectedServer != null && !serverProvider.isAuthenticating,
+      serverProvider.selectedServer != null &&
+          !serverProvider.currentAuthStatus.isAuthenticating,
       isTrue,
       reason:
           'ServerProvider did not finish auto-selecting and authenticating '
