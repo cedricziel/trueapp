@@ -16,8 +16,8 @@ void main() {
   final repo = LocalRepoFileReader();
 
   const plugins = [
-    'packages/truenas_native_plugins/ios/Classes/KeychainPlugin.swift',
-    'packages/truenas_native_plugins/macos/Classes/KeychainPlugin.swift',
+    'packages/truenas_native_plugins/ios/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
+    'packages/truenas_native_plugins/macos/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
   ];
 
   for (final path in plugins) {

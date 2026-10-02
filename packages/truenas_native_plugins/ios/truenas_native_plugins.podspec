@@ -10,7 +10,7 @@ for the TrueNAS Manager Flutter application.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'TrueNAS Manager' => 'cedric@ziel.dev' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'truenas_native_plugins/Sources/truenas_native_plugins/**/*.swift'
   s.dependency 'Flutter'
   s.platform = :ios, '12.0'
 

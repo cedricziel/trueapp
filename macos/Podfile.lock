@@ -1,21 +1,15 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - truenas_native_plugins (0.1.0):
-    - FlutterMacOS
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - truenas_native_plugins (from `Flutter/ephemeral/.symlinks/plugins/truenas_native_plugins/macos`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
-  truenas_native_plugins:
-    :path: Flutter/ephemeral/.symlinks/plugins/truenas_native_plugins/macos
 
 SPEC CHECKSUMS:
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
-  truenas_native_plugins: a8a4a8df3f75eaeb2f7b9ef30eabe84e405a601c
 
 PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
 
