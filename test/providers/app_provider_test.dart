@@ -925,5 +925,21 @@ void main() {
         isTrue,
       );
     });
+
+    test('unsubscribes from app stats', () async {
+      final scopedProvider = AppProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        daoSource: database,
+        serverService: serverService,
+      );
+      await scopedProvider.setServer(testServer);
+      await scopedProvider.loadApps();
+      await Future<void>.delayed(Duration.zero);
+
+      scopedProvider.dispose();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeClient.calls, contains('unsubscribeFromAppStats'));
+    });
   });
 }
