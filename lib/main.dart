@@ -24,10 +24,7 @@ import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/telemetry_bootstrap.dart';
-import 'package:truehub/models/app_config.dart';
-import 'package:truehub/services/app_logger.dart';
-
-final _log = appLogger('app');
+import 'package:truehub/widgets/tray_status_binder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,122 +138,29 @@ class TrueNASManagerApp extends StatefulWidget {
 
 class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
   @override
-  void initState() {
-    super.initState();
-    // Only initialize tray on desktop platforms that support it
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _initializeTray();
-        _setupServerStatusListener();
-      });
-    }
-  }
-
-  void _setupServerStatusListener() {
-    // Only set up listener on desktop platforms
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      final serverProvider = context.read<ServerProvider>();
-      final appProvider = context.read<AppProvider>();
-
-      serverProvider.addListener(_updateTrayStatus);
-      appProvider.addListener(_updateTrayStatus);
-    }
-  }
-
-  void _initializeTray() {
-    final trayProvider = context.read<TrayProvider>();
-    trayProvider.setCallbacks(
-      onShowWindow: _showWindow,
-      onQuitApp: _quitApp,
-      onRefresh: _refreshServers,
-    );
-    trayProvider.initializeTray();
-  }
-
-  void _showWindow() {
-    WindowManager.showWindow();
-  }
-
-  void _quitApp() {
-    WindowManager.quitApp();
-  }
-
-  void _refreshServers() {
-    final serverProvider = context.read<ServerProvider>();
-    serverProvider.refreshSelectedServer();
-  }
-
-  void _updateTrayStatus() async {
-    // Only update tray on desktop platforms
-    if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
-
-    final trayProvider = context.read<TrayProvider>();
-    final serverProvider = context.read<ServerProvider>();
-    final appProvider = context.read<AppProvider>();
-
-    int totalServers = serverProvider.servers.length;
-    int connectedServers = serverProvider.servers
-        .where(
-          (server) =>
-              // Assuming servers have a connected property or similar
-              true, // For now, assume all servers are connected
-        )
-        .length;
-
-    List<String> alerts = [];
-    // Add any server health alerts if available
-    if (serverProvider.healthError != null) {
-      alerts.add(serverProvider.healthError!);
-    }
-
-    // Get apps with portals from the unified AppProvider
-    List<AppConfig> appsWithPortals = [];
-    try {
-      appsWithPortals = appProvider.getAppsWithPortals();
-      _log.debug(
-        'Found apps with portals',
-        attributes: {'count': appsWithPortals.length},
-      );
-    } catch (e) {
-      _log.error('Error getting apps with portals', error: e);
-    }
-
-    trayProvider.updateServerStatus(
-      connectedServers: connectedServers,
-      totalServers: totalServers,
-      alerts: alerts,
-      appsWithPortals: appsWithPortals,
-    );
-  }
-
-  @override
-  void dispose() {
-    // Only remove listener on desktop platforms
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      final serverProvider = context.read<ServerProvider>();
-      final appProvider = context.read<AppProvider>();
-
-      serverProvider.removeListener(_updateTrayStatus);
-      appProvider.removeListener(_updateTrayStatus);
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     // No timer runs while the process is suspended, so a connection the OS
     // tore down in the background stays dead until something asks for it.
     // Returning to the foreground is that trigger.
-    return AppLifecycleReconnector(
-      onResumed: () {
-        unawaited(context.read<ServerProvider>().refreshConnection());
-      },
-      child: CupertinoApp.router(
-        title: 'TrueNAS Manager',
-        theme: const CupertinoThemeData(
-          primaryColor: CupertinoColors.systemBlue,
+    return TrayStatusBinder(
+      isDesktop: Platform.isMacOS || Platform.isWindows || Platform.isLinux,
+      tray: context.read<TrayProvider>(),
+      serverSource: context.read<ServerProvider>(),
+      appsSource: context.read<AppProvider>(),
+      connectionSource: context.read<ConnectionStatusProvider>(),
+      onShowWindow: WindowManager.showWindow,
+      onQuitApp: WindowManager.quitApp,
+      child: AppLifecycleReconnector(
+        onResumed: () {
+          unawaited(context.read<ServerProvider>().refreshConnection());
+        },
+        child: CupertinoApp.router(
+          title: 'TrueNAS Manager',
+          theme: const CupertinoThemeData(
+            primaryColor: CupertinoColors.systemBlue,
+          ),
+          routerConfig: appRouter,
         ),
-        routerConfig: appRouter,
       ),
     );
   }

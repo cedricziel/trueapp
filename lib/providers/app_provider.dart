@@ -14,6 +14,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
 final _log = appLogger('providers.app');
 
@@ -36,7 +37,9 @@ typedef _CatalogRequests = ({
   Future<_Outcome<List<String>>> categories,
 });
 
-class AppProvider extends ChangeNotifier with ActiveServerFollower {
+class AppProvider extends ChangeNotifier
+    with ActiveServerFollower
+    implements TrayAppsSource {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
   final ServerClientSession _session;
@@ -775,6 +778,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
     return config?.isFavorite ?? false;
   }
 
+  @override
   List<AppConfig> getAppsWithPortals() {
     return _appConfigs.where((config) {
       return config.ports.isNotEmpty &&
