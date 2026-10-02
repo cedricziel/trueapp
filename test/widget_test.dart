@@ -22,6 +22,7 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
+import 'helpers/fake_tray_host.dart';
 import 'helpers/test_providers.dart';
 
 void main() {
@@ -99,7 +100,9 @@ void main() {
               unifiedServerService,
             ),
           ),
-          ChangeNotifierProvider(create: (context) => TrayProvider()),
+          ChangeNotifierProvider(
+            create: (context) => TrayProvider(trayService: fakeTrayService()),
+          ),
         ],
         child: const CupertinoApp(
           title: 'TrueNAS Manager',

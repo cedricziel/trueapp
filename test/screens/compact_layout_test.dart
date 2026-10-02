@@ -14,6 +14,7 @@ import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/provider_scope.dart';
+import '../helpers/fake_tray_host.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
 
@@ -73,7 +74,7 @@ void main() {
     'SettingsScreen renders on a compact surface without exceptions',
     (WidgetTester tester) async {
       useCompactSurface(tester);
-      final trayProvider = TrayProvider();
+      final trayProvider = TrayProvider(trayService: fakeTrayService());
       addTearDown(trayProvider.dispose);
 
       await tester.pumpWidget(
@@ -104,7 +105,7 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       try {
         useCompactSurface(tester);
-        final trayProvider = TrayProvider();
+        final trayProvider = TrayProvider(trayService: fakeTrayService());
         addTearDown(trayProvider.dispose);
 
         await tester.pumpWidget(
@@ -134,7 +135,7 @@ void main() {
     // No useCompactSurface() call - this stays at flutter_test's default
     // 800x600 surface, confirming the compact-width fix does not regress
     // the layout above the breakpoint.
-    final trayProvider = TrayProvider();
+    final trayProvider = TrayProvider(trayService: fakeTrayService());
     addTearDown(trayProvider.dispose);
 
     await tester.pumpWidget(
