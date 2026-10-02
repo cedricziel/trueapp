@@ -5,12 +5,7 @@ import 'package:truenas_native_plugins/truenas_native_plugins.dart' as plugins;
 class NativeKeychainService implements plugins.KeychainServiceInterface {
   final plugins.KeychainServiceInterface _keychainService;
 
-  static NativeKeychainService? _instance;
-  static NativeKeychainService get instance =>
-      _instance ??= NativeKeychainService._();
-
-  NativeKeychainService._()
-    : _keychainService = plugins.NativeKeychainService();
+  NativeKeychainService() : _keychainService = plugins.NativeKeychainService();
 
   /// Store password for server ID in synchronizable keychain
   /// Uses kSecAttrSynchronizable = true for iCloud Keychain sync

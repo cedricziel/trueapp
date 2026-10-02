@@ -1,62 +1,60 @@
 import 'dart:io';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
+import 'package:truehub/services/cloudkit_service_interface.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
-import 'package:truehub/services/database.dart';
+import 'package:truehub/services/database/dao_source.dart';
 import 'package:truehub/services/app_logger.dart';
 
 final _log = appLogger('storage.repository_factory');
 
 /// Factory for creating platform-appropriate server repositories
 class ServerRepositoryFactory {
-  static ServerRepositoryInterface? _instance;
-
-  /// Get the appropriate server repository for the current platform
-  static Future<ServerRepositoryInterface> create({
+  ServerRepositoryFactory({
     required ServersDaoSource serversDaoSource,
+    required CloudKitServiceInterface Function() cloudKitServiceBuilder,
+    bool? isApplePlatform,
+  }) : _serversDaoSource = serversDaoSource,
+       _cloudKitServiceBuilder = cloudKitServiceBuilder,
+       _isApplePlatform = isApplePlatform ?? supportsCloudKit;
+
+  final ServersDaoSource _serversDaoSource;
+  final CloudKitServiceInterface Function() _cloudKitServiceBuilder;
+  final bool _isApplePlatform;
+
+  /// Creates and initializes the appropriate server repository for the
+  /// current platform.
+  Future<ServerRepositoryInterface> create({
     bool forceCloudKit = false,
     bool forceSqlite = false,
   }) async {
-    if (_instance != null) return _instance!;
+    final useCloudKit = (_isApplePlatform && !forceSqlite) || forceCloudKit;
 
-    // Platform detection
-    final isApplePlatform = Platform.isIOS || Platform.isMacOS;
-    final useCloudKit = (isApplePlatform && !forceSqlite) || forceCloudKit;
-
+    final ServerRepositoryInterface repository;
     if (useCloudKit) {
       _log.info('Using CloudKit repository');
-      _instance = CloudKitServerRepository();
+      repository = CloudKitServerRepository(
+        cloudKitService: _cloudKitServiceBuilder(),
+      );
     } else {
       _log.info('Using SQLite repository');
-      _instance = SqliteServerRepository(serversDaoSource.serversDao);
+      repository = _sqliteRepository();
     }
 
-    final initialized = await _instance!.initialize();
+    final initialized = await repository.initialize();
     if (!initialized && useCloudKit) {
       // Fallback to SQLite if CloudKit fails
       _log.warn('CloudKit failed, falling back to SQLite');
-      _instance = SqliteServerRepository(serversDaoSource.serversDao);
-      await _instance!.initialize();
+      final fallback = _sqliteRepository();
+      await fallback.initialize();
+      return fallback;
     }
 
-    return _instance!;
+    return repository;
   }
 
-  /// Get the current repository instance (must call create first)
-  static ServerRepositoryInterface get instance {
-    if (_instance == null) {
-      throw StateError(
-        'ServerRepository not initialized. Call create() first.',
-      );
-    }
-    return _instance!;
-  }
-
-  /// Reset the factory (for testing)
-  static Future<void> reset() async {
-    await _instance?.dispose();
-    _instance = null;
-  }
+  SqliteServerRepository _sqliteRepository() =>
+      SqliteServerRepository(_serversDaoSource.serversDao);
 
   /// Check if the current platform supports CloudKit
   static bool get supportsCloudKit => Platform.isIOS || Platform.isMacOS;
