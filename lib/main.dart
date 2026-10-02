@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/widgets/app_lifecycle_reconnector.dart';
@@ -26,6 +25,9 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/telemetry_bootstrap.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('app');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -211,16 +213,12 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
     List<AppConfig> appsWithPortals = [];
     try {
       appsWithPortals = appProvider.getAppsWithPortals();
-      if (kDebugMode) {
-        print('Tray: Found ${appsWithPortals.length} apps with portals');
-        for (final app in appsWithPortals) {
-          print('  - ${app.appName}: ${app.ports.length} ports');
-        }
-      }
+      _log.debug(
+        'Found apps with portals',
+        attributes: {'count': appsWithPortals.length},
+      );
     } catch (e) {
-      if (kDebugMode) {
-        print('Tray: Error getting apps with portals: $e');
-      }
+      _log.error('Error getting apps with portals', error: e);
     }
 
     trayProvider.updateServerStatus(

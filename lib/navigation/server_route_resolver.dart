@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_lookup.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -79,14 +78,11 @@ class LookupServerRouteResolver implements ServerRouteResolver {
       try {
         current = await _lookup.getServer(serverId);
       } catch (e) {
-        if (kDebugMode) {
-          // ignore: avoid_print
-          _log.error(
-            'getServer failed',
-            error: e,
-            attributes: {'server.id': serverId},
-          );
-        }
+        _log.error(
+          'getServer failed',
+          error: e,
+          attributes: {'server.id': serverId},
+        );
         current = null;
       }
     }

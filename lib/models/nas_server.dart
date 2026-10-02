@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 class NasServer extends Equatable {
@@ -102,11 +101,6 @@ class NasServer extends Equatable {
     final actualPort = port ?? defaultPort;
 
     // Debug logging to help troubleshoot URL composition issues
-    if (kDebugMode) {
-      print(
-        'BaseURL Debug: host=$host, useHttps=$useHttps, port=$port, defaultPort=$defaultPort, actualPort=$actualPort',
-      );
-    }
 
     return '${useHttps ? 'https' : 'http'}://$host:$actualPort';
   }

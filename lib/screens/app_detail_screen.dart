@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
@@ -426,9 +425,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
               onTap: () {
-                if (kDebugMode) {
-                  print('Open URL: $source');
-                }
                 // TODO: Open URL in browser
               },
               child: Container(
@@ -477,11 +473,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           child: CupertinoButton.filled(
             child: Text(widget.app.installed ? 'Manage App' : 'Install App'),
             onPressed: () {
-              if (kDebugMode) {
-                print(
-                  '${widget.app.installed ? 'Manage' : 'Install'} app: ${widget.app.name}',
-                );
-              }
               // TODO: Implement app management/installation
             },
           ),
@@ -493,9 +484,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
             child: CupertinoButton(
               child: const Text('View Homepage'),
               onPressed: () {
-                if (kDebugMode) {
-                  print('Open homepage: ${widget.app.home}');
-                }
                 // TODO: Open URL in browser
               },
             ),
@@ -581,11 +569,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
             child: Text(widget.app.installed ? 'Manage App' : 'Install App'),
             onPressed: () {
               Navigator.pop(context);
-              if (kDebugMode) {
-                print(
-                  '${widget.app.installed ? 'Manage' : 'Install'} app: ${widget.app.name}',
-                );
-              }
             },
           ),
           if (widget.app.home != null && widget.app.home!.isNotEmpty)
@@ -593,9 +576,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               child: const Text('View Homepage'),
               onPressed: () {
                 Navigator.pop(context);
-                if (kDebugMode) {
-                  print('Open homepage: ${widget.app.home}');
-                }
               },
             ),
           if (widget.app.sources.isNotEmpty)

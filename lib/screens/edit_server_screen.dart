@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('screens.edit_server');
 
 class EditServerScreen extends StatefulWidget {
   final NasServer server;
@@ -84,11 +86,9 @@ class _EditServerScreenState extends State<EditServerScreen> {
         serverService = context.read<UnifiedServerService>();
       } catch (e) {
         // Service not available, likely in a test environment
-        if (kDebugMode) {
-          print(
-            'EditServer: UnifiedServerService not available, skipping credential loading',
-          );
-        }
+        _log.debug(
+          'UnifiedServerService not available, skipping credential loading',
+        );
         return;
       }
 
@@ -98,11 +98,10 @@ class _EditServerScreenState extends State<EditServerScreen> {
         setState(() {
           _usernameController.text = server.username;
         });
-        if (kDebugMode) {
-          print(
-            'EditServer: Loaded username ${server.username} for ${widget.server.id}',
-          );
-        }
+        _log.debug(
+          'Loaded username',
+          attributes: {'server.id': widget.server.id},
+        );
       }
 
       // Load password from keychain
@@ -111,20 +110,18 @@ class _EditServerScreenState extends State<EditServerScreen> {
         setState(() {
           _passwordController.text = password;
         });
-        if (kDebugMode) {
-          print('EditServer: Loaded existing password for ${widget.server.id}');
-        }
+        _log.debug(
+          'Loaded existing password',
+          attributes: {'server.id': widget.server.id},
+        );
       } else {
-        if (kDebugMode) {
-          print(
-            'EditServer: No existing password found for ${widget.server.id}',
-          );
-        }
+        _log.debug(
+          'No existing password found',
+          attributes: {'server.id': widget.server.id},
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('EditServer: Error loading existing credentials: $e');
-      }
+      _log.error('Error loading existing credentials', error: e);
     } finally {
       if (mounted) {
         setState(() {
