@@ -328,7 +328,7 @@ class AppProvider extends ChangeNotifier
 
     // app_configs.server_id has an enforced foreign key to nas_servers, but
     // on Apple platforms the current server may only exist in CloudKit (see
-    // AppDatabase.upsertServerAnchor) - mirror it in first so these inserts
+    // ServersDao.upsertServerAnchor) - mirror it in first so these inserts
     // don't fail with a foreign key violation. Re-check the server still
     // exists right before writing the anchor: if ServerProvider.deleteServer
     // already ran concurrently (it cleans up this same anchor row), writing
@@ -339,12 +339,12 @@ class AppProvider extends ChangeNotifier
     if (currentServer != null) {
       final stillExists = await _serverService.getServer(currentServer.id);
       if (stillExists == null) return;
-      await _database.upsertServerAnchor(currentServer);
+      await _database.serversDao.upsertServerAnchor(currentServer);
     }
 
     for (final app in apps) {
       // Get existing config if any
-      final existingConfig = await _database.getFullAppConfig(
+      final existingConfig = await _database.appConfigsDao.getFullAppConfig(
         _currentServerId!,
         app.name,
       );
@@ -362,14 +362,14 @@ class AppProvider extends ChangeNotifier
               ports:
                   existingConfig.ports, // Preserve existing port configurations
             );
-        await _database.updateFullAppConfig(updatedConfig);
+        await _database.appConfigsDao.updateFullAppConfig(updatedConfig);
       } else {
         // Create new config from app data
         final newConfig = AppConfig.fromApp(
           serverId: _currentServerId!,
           app: app,
         );
-        await _database.insertFullAppConfig(newConfig);
+        await _database.appConfigsDao.insertFullAppConfig(newConfig);
       }
 
       // Sync portal URLs for installed apps
@@ -382,7 +382,9 @@ class AppProvider extends ChangeNotifier
   Future<void> _loadPersistedAppConfigs() async {
     if (_currentServerId == null) return;
 
-    _appConfigs = await _database.getFullAppConfigs(_currentServerId!);
+    _appConfigs = await _database.appConfigsDao.getFullAppConfigs(
+      _currentServerId!,
+    );
 
     _log.info('Loaded ${_appConfigs.length} persisted app configs');
   }
@@ -614,14 +616,14 @@ class AppProvider extends ChangeNotifier
   Future<void> _syncPortalUrls(App app) async {
     if (_currentServerId == null) return;
 
-    final existingConfig = await _database.getFullAppConfig(
+    final existingConfig = await _database.appConfigsDao.getFullAppConfig(
       _currentServerId!,
       app.name,
     );
     if (existingConfig?.id == null) return;
 
     // Get existing port configs for this app
-    final existingPorts = await _database.getAppPortConfigs(
+    final existingPorts = await _database.appConfigsDao.getAppPortConfigs(
       existingConfig!.id!,
     );
     final existingPortsMap = <int, AppPortConfigData>{};
@@ -640,7 +642,7 @@ class AppProvider extends ChangeNotifier
         final existingPort = existingPortsMap[uri.port];
 
         if (existingPort == null) {
-          await _database.insertAppPortConfig(
+          await _database.appConfigsDao.insertAppPortConfig(
             AppPortConfigsCompanion(
               appConfigId: Value(existingConfig.id!),
               portNumber: Value(uri.port),
@@ -738,7 +740,7 @@ class AppProvider extends ChangeNotifier
 
   // App configuration management methods
   Future<void> updateAppConfig(AppConfig config) async {
-    await _database.updateFullAppConfig(config);
+    await _database.appConfigsDao.updateFullAppConfig(config);
     await _loadPersistedAppConfigs();
     notifyListeners();
   }
@@ -746,7 +748,11 @@ class AppProvider extends ChangeNotifier
   Future<void> setAppFavorite(String appName, bool isFavorite) async {
     if (_currentServerId == null) return;
 
-    await _database.setAppFavorite(_currentServerId!, appName, isFavorite);
+    await _database.appConfigsDao.setAppFavorite(
+      _currentServerId!,
+      appName,
+      isFavorite,
+    );
     await _loadPersistedAppConfigs();
     notifyListeners();
   }

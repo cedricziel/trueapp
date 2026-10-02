@@ -29,7 +29,7 @@ class ServerRepositoryFactory {
     } else {
       _log.info('Using SQLite repository');
       final db = database ?? AppDatabase.instance;
-      _instance = SqliteServerRepository(db);
+      _instance = SqliteServerRepository(db.serversDao);
     }
 
     final initialized = await _instance!.initialize();
@@ -37,7 +37,7 @@ class ServerRepositoryFactory {
       // Fallback to SQLite if CloudKit fails
       _log.warn('CloudKit failed, falling back to SQLite');
       final db = database ?? AppDatabase.instance;
-      _instance = SqliteServerRepository(db);
+      _instance = SqliteServerRepository(db.serversDao);
       await _instance!.initialize();
     }
 

@@ -62,7 +62,7 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   bool _disposed = false;
 
   /// [databaseRef] is used to clean up the local `nas_servers` foreign-key
-  /// anchor row (see [AppDatabase.upsertServerAnchor]) on server deletion.
+  /// anchor row (see [ServersDao.upsertServerAnchor]) on server deletion.
   /// It has no default - callers that want that cleanup pass one explicitly
   /// (see `main.dart`, which wires up [AppDatabase.instance]); left null,
   /// deletion skips it. A widget-test default of [AppDatabase.instance]
@@ -254,13 +254,13 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
     await _clientManager.closeClient(id);
 
     // Drop the local foreign-key anchor row too (see
-    // AppDatabase.upsertServerAnchor) so it doesn't linger forever on
+    // ServersDao.upsertServerAnchor) so it doesn't linger forever on
     // platforms where the real server metadata lives in CloudKit; this
     // cascade-deletes any app_configs left over for the server as well.
     final databaseRef = _databaseRef;
     if (databaseRef != null) {
       try {
-        await databaseRef().deleteServer(id);
+        await databaseRef().serversDao.deleteServer(id);
       } catch (e, stackTrace) {
         _telemetryService?.recordError(
           e,

@@ -36,7 +36,7 @@ void main() {
       database = AppDatabase.forTesting(NativeDatabase.memory());
 
       // Create real service with SQLite repository and mock keychain
-      final sqliteRepository = SqliteServerRepository(database);
+      final sqliteRepository = SqliteServerRepository(database.serversDao);
       final mockKeychain = MockKeychainService();
       unifiedServerService = UnifiedServerService(
         repository: sqliteRepository,
@@ -72,7 +72,7 @@ void main() {
         useHttps: true,
       );
 
-      await database.insertServer(testServer);
+      await database.serversDao.insertServer(testServer);
       await serverProvider.loadServersAndAutoSelect();
 
       // Select the server
@@ -107,7 +107,7 @@ void main() {
         useHttps: true,
       );
 
-      await database.insertServer(testServer);
+      await database.serversDao.insertServer(testServer);
 
       // Update the server with new values including clearing port
       final updatedServer = testServer.copyWith(
@@ -118,7 +118,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update worked in the database
-      final savedServer = await database.getServer(testServer.id);
+      final savedServer = await database.serversDao.getServer(testServer.id);
       expect(savedServer?.name, 'Updated Server');
       expect(savedServer?.port, 8443);
 
@@ -128,7 +128,7 @@ void main() {
       await serverProvider.updateServer(clearedServer);
 
       // Verify port was cleared
-      final finalServer = await database.getServer(testServer.id);
+      final finalServer = await database.serversDao.getServer(testServer.id);
       expect(finalServer?.port, null);
     });
 
@@ -156,7 +156,7 @@ void main() {
           useHttps: true,
         );
 
-        await database.insertServer(testServer);
+        await database.serversDao.insertServer(testServer);
 
         // Select the server first to avoid authentication during update
         serverProvider.selectServer(testServer);

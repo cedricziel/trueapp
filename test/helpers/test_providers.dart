@@ -28,7 +28,7 @@ class TestProviders {
     required AppDatabase database,
   }) async {
     // Create real service with SQLite repository and mock keychain
-    final sqliteRepository = SqliteServerRepository(database);
+    final sqliteRepository = SqliteServerRepository(database.serversDao);
     final mockKeychain = MockKeychainService();
     final service = UnifiedServerService(
       repository: sqliteRepository,

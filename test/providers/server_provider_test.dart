@@ -247,11 +247,11 @@ void main() {
       'deleting a server removes its local nas_servers anchor row so it '
       "doesn't linger once the repository's own copy (e.g. CloudKit) is gone",
       () async {
-        expect(await database.getServer(testServer.id), isNotNull);
+        expect(await database.serversDao.getServer(testServer.id), isNotNull);
 
         await serverProvider.deleteServer(testServer.id);
 
-        expect(await database.getServer(testServer.id), isNull);
+        expect(await database.serversDao.getServer(testServer.id), isNull);
 
         // Restore the test server for other tests relying on setUp state.
         await serverProvider.addServer(testServer, 'password');
@@ -609,7 +609,7 @@ void main() {
         // untouched lazy connection is a no-op that would let the next query
         // silently open a fresh one instead of throwing.
         final brokenDatabase = AppDatabase.forTesting(NativeDatabase.memory());
-        await brokenDatabase.getServer('warm-up');
+        await brokenDatabase.serversDao.getServer('warm-up');
         await brokenDatabase.close();
         final provider = ServerProvider(
           clientManager: TestProviders.mockApiClientManager,
@@ -722,7 +722,7 @@ void main() {
         // Force a real connection open (see the deleteServer test's warm-up
         // comment above) so closing it below actually breaks subsequent
         // queries instead of letting them silently reopen.
-        await freshDatabase.getServer('warm-up');
+        await freshDatabase.serversDao.getServer('warm-up');
         await freshDatabase.close();
 
         final freshTelemetry = FakeTelemetryService();

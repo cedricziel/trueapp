@@ -100,8 +100,11 @@ void main() {
       isEnabled: isEnabled,
       ports: ports,
     );
-    await database.insertFullAppConfig(config);
-    final loaded = await database.getFullAppConfig(testServer.id, appName);
+    await database.appConfigsDao.insertFullAppConfig(config);
+    final loaded = await database.appConfigsDao.getFullAppConfig(
+      testServer.id,
+      appName,
+    );
     return loaded!;
   }
 
@@ -317,7 +320,10 @@ void main() {
 
       final saved = await runRealAsync(
         tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
+        () => database.appConfigsDao.getFullAppConfig(
+          testServer.id,
+          config.appName,
+        ),
       );
       expect(saved!.displayName, 'Renamed App');
     });
@@ -340,7 +346,10 @@ void main() {
 
       final saved = await runRealAsync(
         tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
+        () => database.appConfigsDao.getFullAppConfig(
+          testServer.id,
+          config.appName,
+        ),
       );
       expect(saved!.displayName, isNull);
     });
@@ -368,7 +377,10 @@ void main() {
 
       final saved = await runRealAsync(
         tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
+        () => database.appConfigsDao.getFullAppConfig(
+          testServer.id,
+          config.appName,
+        ),
       );
       expect(saved!.isEnabled, isFalse);
     });
@@ -408,7 +420,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         expect(saved!.ports, hasLength(1));
         expect(saved.ports.single.customUrl, 'https://custom.example.com:9999');
@@ -447,7 +462,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         expect(saved!.ports.single.customUrl, isNull);
       },
@@ -479,7 +497,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         expect(saved!.ports, hasLength(1));
         final newPort = saved.ports.single;
@@ -611,7 +632,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         final updated = saved!.ports.firstWhere(
           (p) => p.serviceName == 'Admin UI',
@@ -661,7 +685,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         expect(saved!.ports.single.customUrl, isNull);
       },
@@ -705,7 +732,10 @@ void main() {
 
       final saved = await runRealAsync(
         tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
+        () => database.appConfigsDao.getFullAppConfig(
+          testServer.id,
+          config.appName,
+        ),
       );
       final primary = saved!.ports.firstWhere((p) => p.isPrimary);
       expect(primary.serviceName, 'Admin');
@@ -756,7 +786,10 @@ void main() {
 
       final saved = await runRealAsync(
         tester,
-        () => database.getFullAppConfig(testServer.id, config.appName),
+        () => database.appConfigsDao.getFullAppConfig(
+          testServer.id,
+          config.appName,
+        ),
       );
       expect(saved!.ports, hasLength(1));
       expect(saved.ports.single.serviceName, 'Web UI');
@@ -803,7 +836,10 @@ void main() {
 
         final saved = await runRealAsync(
           tester,
-          () => database.getFullAppConfig(testServer.id, config.appName),
+          () => database.appConfigsDao.getFullAppConfig(
+            testServer.id,
+            config.appName,
+          ),
         );
         expect(saved!.ports, hasLength(2));
         expect(

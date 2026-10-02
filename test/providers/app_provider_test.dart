@@ -506,8 +506,8 @@ void main() {
         // this test starts from the real CloudKit-only situation, where
         // `cloudKitService` (checked by the new race guard) knows about the
         // server but the local anchor table does not.
-        await database.deleteServer(testServer.id);
-        expect(await database.getServer(testServer.id), isNull);
+        await database.serversDao.deleteServer(testServer.id);
+        expect(await database.serversDao.getServer(testServer.id), isNull);
 
         final cloudKitAppProvider = AppProvider(
           clientManager: TestProviders.mockApiClientManager,
@@ -529,7 +529,7 @@ void main() {
 
         expect(cloudKitAppProvider.connectionError, isNull);
         expect(cloudKitAppProvider.appConfigs, hasLength(1));
-        expect(await database.getServer(testServer.id), isNotNull);
+        expect(await database.serversDao.getServer(testServer.id), isNotNull);
       },
     );
 
@@ -549,13 +549,13 @@ void main() {
         fakeClient.appCategories = [];
 
         await serverService.deleteServerConfig(testServer.id);
-        await database.deleteServer(testServer.id);
+        await database.serversDao.deleteServer(testServer.id);
 
         await appProvider.loadApps();
 
         expect(appProvider.connectionError, isNull);
         expect(appProvider.appConfigs, isEmpty);
-        expect(await database.getServer(testServer.id), isNull);
+        expect(await database.serversDao.getServer(testServer.id), isNull);
       },
     );
   });
@@ -572,10 +572,10 @@ void main() {
       // key), but deliberately never stores credentials via
       // serverService.saveServerConfig - that's what keeps this server
       // "orphaned" for setServer()'s offline-fallback path below.
-      await database.insertServer(orphanServer);
+      await database.serversDao.insertServer(orphanServer);
       await appProvider.setServer(orphanServer);
 
-      await database.insertFullAppConfig(
+      await database.appConfigsDao.insertFullAppConfig(
         AppConfig(
           serverId: orphanServer.id,
           appName: 'nextcloud',
@@ -802,10 +802,12 @@ void main() {
   group('AppProvider - app configuration management', () {
     test('updateAppConfig persists and reloads', () async {
       await appProvider.setServer(testServer);
-      final inserted = await database.getFullAppConfigs(testServer.id);
+      final inserted = await database.appConfigsDao.getFullAppConfigs(
+        testServer.id,
+      );
       expect(inserted, isEmpty);
 
-      final id = await database.insertFullAppConfig(
+      final id = await database.appConfigsDao.insertFullAppConfig(
         AppConfig(serverId: testServer.id, appName: 'plex', title: 'Plex'),
       );
       await appProvider.loadApps();
@@ -821,7 +823,7 @@ void main() {
 
     test('setAppFavorite toggles favorite state', () async {
       await appProvider.setServer(testServer);
-      await database.insertFullAppConfig(
+      await database.appConfigsDao.insertFullAppConfig(
         AppConfig(serverId: testServer.id, appName: 'plex', title: 'Plex'),
       );
       await appProvider.loadApps();
@@ -844,7 +846,7 @@ void main() {
 
     test('getPrimaryUrl and getAppUrls reflect port configuration', () async {
       await appProvider.setServer(testServer);
-      await database.insertFullAppConfig(
+      await database.appConfigsDao.insertFullAppConfig(
         AppConfig(
           serverId: testServer.id,
           appName: 'plex',
@@ -869,10 +871,10 @@ void main() {
 
     test('getAppsWithPortals only returns configs with usable ports', () async {
       await appProvider.setServer(testServer);
-      await database.insertFullAppConfig(
+      await database.appConfigsDao.insertFullAppConfig(
         AppConfig(serverId: testServer.id, appName: 'no-ports', title: 'x'),
       );
-      await database.insertFullAppConfig(
+      await database.appConfigsDao.insertFullAppConfig(
         AppConfig(
           serverId: testServer.id,
           appName: 'with-port',

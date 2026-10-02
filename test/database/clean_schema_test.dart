@@ -23,10 +23,12 @@ void main() {
           useHttps: true,
         );
 
-        await database.insertServer(serverWithoutPort);
+        await database.serversDao.insertServer(serverWithoutPort);
 
         // Verify it was saved correctly
-        final savedServer = await database.getServer(serverWithoutPort.id);
+        final savedServer = await database.serversDao.getServer(
+          serverWithoutPort.id,
+        );
         expect(savedServer?.port, null);
 
         // Test inserting server with port
@@ -39,7 +41,7 @@ void main() {
           useHttps: true,
         );
 
-        await database.insertServer(serverWithPort);
+        await database.serversDao.insertServer(serverWithPort);
 
         // Test updating port to null
         final updatedServer = serverWithPort.copyWith(
@@ -47,13 +49,15 @@ void main() {
           clearPort: true,
         );
 
-        await database.updateServer(updatedServer);
+        await database.serversDao.updateServer(updatedServer);
 
-        final finalServer = await database.getServer(serverWithPort.id);
+        final finalServer = await database.serversDao.getServer(
+          serverWithPort.id,
+        );
         expect(finalServer?.port, null);
 
         // Verify all servers
-        final allServers = await database.getAllServers();
+        final allServers = await database.serversDao.getAllServers();
         expect(allServers.length, 2);
         expect(allServers.every((s) => s.port == null), true);
       },
@@ -72,7 +76,7 @@ void main() {
         useHttps: true,
       );
 
-      await database.insertServer(minimalServer);
+      await database.serversDao.insertServer(minimalServer);
 
       // Test server with all fields populated
       final fullServer = models.NasServer.create(
@@ -87,10 +91,10 @@ void main() {
         allowUntrustedCertificates: true,
       );
 
-      await database.insertServer(fullServer);
+      await database.serversDao.insertServer(fullServer);
 
       // Verify both servers were saved correctly
-      final servers = await database.getAllServers();
+      final servers = await database.serversDao.getAllServers();
       expect(servers.length, 2);
 
       final minimal = servers.firstWhere((s) => s.name == 'Minimal Server');
