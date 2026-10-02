@@ -121,9 +121,6 @@ class MockApiClientManager implements ApiClientManagerInterface {
   @visibleForTesting
   Future<void> clearAllForTesting() async {
     methodCalls.add('clearAllForTesting');
-    if (kDebugMode) {
-      print('MockApiClientManager: Clearing all clients for testing');
-    }
     _mockClients.clear();
     _mockRefCounts.clear();
     methodCalls.clear();
