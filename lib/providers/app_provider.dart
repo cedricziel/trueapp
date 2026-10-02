@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:truehub/providers/active_server_follower.dart';
-import 'package:drift/drift.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/apps/app_config_mapper.dart';
+import 'package:truehub/services/apps/app_config_repository.dart';
+import 'package:truehub/services/apps/app_stats_tracker.dart';
+import 'package:truehub/services/apps/catalog_requests.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
@@ -18,32 +21,13 @@ import 'package:truehub/services/tray_status_ports.dart';
 
 final _log = appLogger('providers.app');
 
-/// The result of a settled future: exactly one of [value] or [error] is set.
-/// [stackTrace] is only set alongside [error], so a settled failure can
-/// still be reported to telemetry with its original trace.
-class _Outcome<T> {
-  final T? value;
-  final Object? error;
-  final StackTrace? stackTrace;
-
-  const _Outcome.success(this.value) : error = null, stackTrace = null;
-  const _Outcome.failure(this.error, this.stackTrace) : value = null;
-}
-
-/// The catalog side of a load, started alongside the installed-apps request
-/// and merged in a second phase once installed apps are already visible.
-typedef _CatalogRequests = ({
-  Future<_Outcome<List<App>>> available,
-  Future<_Outcome<List<String>>> categories,
-});
-
 class AppProvider extends ChangeNotifier
     with ActiveServerFollower
     implements TrayAppsSource {
-  final DaoSource _daoSource;
-  final UnifiedServerService _serverService;
+  final AppConfigRepository _repository;
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
+  late final AppStatsTracker _stats;
   NasServer? _currentServer;
   List<AppConfig> _appConfigs = [];
   List<String> _categories = [];
@@ -55,8 +39,6 @@ class AppProvider extends ChangeNotifier
   /// Bumped by every load, server switch and dispose, so a catalog phase
   /// that finishes late can tell it no longer belongs to the current state.
   int _loadGeneration = 0;
-  StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
-  final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
   /// [daoSource] is resolved on every access rather than captured, so a
   /// source backed by an [AppDatabaseHolder] follows a recreated database
@@ -67,8 +49,10 @@ class AppProvider extends ChangeNotifier
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
     ValueListenable<NasServer?>? activeServer,
-  }) : _daoSource = daoSource,
-       _serverService = serverService,
+  }) : _repository = AppConfigRepository(
+         daoSource: daoSource,
+         serverService: serverService,
+       ),
        _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'AppProvider',
@@ -76,11 +60,16 @@ class AppProvider extends ChangeNotifier
          credentials: serverService,
          telemetry: telemetryService,
        ) {
+    _stats = AppStatsTracker(
+      onChanged: notifyListeners,
+      telemetryService: telemetryService,
+    );
     followActiveServer(activeServer);
   }
 
   ApiClientInterface? get _apiClient => _session.client;
   String? get _currentServerId => _session.serverId;
+  AppConfigMapper get _mapper => AppConfigMapper(_currentServer);
 
   List<AppConfig> get appConfigs => _appConfigs;
   List<String> get categories => _categories;
@@ -115,7 +104,17 @@ class AppProvider extends ChangeNotifier
       _appConfigs.where((app) => app.isFavorite).toList();
 
   // Legacy getter for backward compatibility - converts AppConfig to App-like interface
-  List<App> get apps => _appConfigs.map(_appConfigToApp).toList();
+  List<App> get apps {
+    final mapper = _mapper;
+    return _appConfigs
+        .map(
+          (config) => mapper.toApp(
+            config,
+            resourceUsage: _stats.usageFor(config.appName),
+          ),
+        )
+        .toList();
+  }
 
   @override
   Future<void> setServer(NasServer? server) async {
@@ -163,18 +162,14 @@ class AppProvider extends ChangeNotifier
     // megabytes over a cellular link) and must not hold the user's own apps
     // hostage. Its failures are allowed too: installed apps (`app.query`)
     // are the essential part, the catalog is not.
-    _CatalogRequests? catalog;
+    CatalogRequests? catalog;
     try {
       final apiClient = _apiClient;
       if (apiClient != null) {
-        catalog = (
-          available: _settle(apiClient.getAvailableApps()),
-          categories: _settle(apiClient.getAppCategories()),
-        );
+        catalog = CatalogRequests.start(apiClient);
         await _loadInstalledAppsOnline(apiClient);
 
-        // Subscribe to app stats for real-time resource usage
-        _subscribeToAppStats();
+        unawaited(_stats.subscribe(apiClient));
       } else {
         // Offline mode: Load from database only
         await _loadPersistedAppConfigs();
@@ -232,7 +227,7 @@ class AppProvider extends ChangeNotifier
   /// [generation] identifies the load this belongs to - a server switch or
   /// a newer load in the meantime makes this catalog stale, and it is then
   /// dropped rather than merged into the wrong server's state.
-  Future<void> _loadCatalog(int generation, _CatalogRequests catalog) async {
+  Future<void> _loadCatalog(int generation, CatalogRequests catalog) async {
     _isCatalogLoading = true;
     notifyListeners();
 
@@ -300,83 +295,25 @@ class AppProvider extends ChangeNotifier
     }
   }
 
-  /// Turns [future] into one that never fails, capturing its outcome as an
-  /// [_Outcome] instead.
-  Future<_Outcome<T>> _settle<T>(Future<T> future) => future
-      .then<_Outcome<T>>(_Outcome.success)
-      .catchError(
-        (Object e, StackTrace stackTrace) => _Outcome<T>.failure(e, stackTrace),
-      );
-
   ConnectionError _toConnectionError(Object error) {
     if (error is ConnectionException) return error.error;
     return ConnectionError.unknown(details: error.toString());
   }
 
   Future<void> _syncAppsToDatabase(List<App> apps) async {
-    if (_currentServerId == null) return;
-
-    // app_configs.server_id has an enforced foreign key to nas_servers, but
-    // on Apple platforms the current server may only exist in CloudKit (see
-    // ServersDao.upsertServerAnchor) - mirror it in first so these inserts
-    // don't fail with a foreign key violation. Re-check the server still
-    // exists right before writing the anchor: if ServerProvider.deleteServer
-    // already ran concurrently (it cleans up this same anchor row), writing
-    // here would resurrect it - and the app_configs rows below - for a
-    // server the user just deleted, with nothing left to clean them up
-    // afterward.
-    final currentServer = _currentServer;
-    if (currentServer != null) {
-      final stillExists = await _serverService.getServer(currentServer.id);
-      if (stillExists == null) return;
-      await _daoSource.serversDao.upsertServerAnchor(currentServer);
-    }
-
-    for (final app in apps) {
-      // Get existing config if any
-      final existingConfig = await _daoSource.appConfigsDao.getFullAppConfig(
-        _currentServerId!,
-        app.name,
-      );
-
-      if (existingConfig != null) {
-        // Update existing config with fresh API data while preserving user customizations
-        final updatedConfig = existingConfig
-            .updateFromApp(app)
-            .copyWith(
-              // Preserve user customizations
-              displayName: existingConfig.displayName,
-              iconUrl: existingConfig.iconUrl ?? app.iconUrl,
-              isEnabled: existingConfig.isEnabled,
-              isFavorite: existingConfig.isFavorite,
-              ports:
-                  existingConfig.ports, // Preserve existing port configurations
-            );
-        await _daoSource.appConfigsDao.updateFullAppConfig(updatedConfig);
-      } else {
-        // Create new config from app data
-        final newConfig = AppConfig.fromApp(
-          serverId: _currentServerId!,
-          app: app,
-        );
-        await _daoSource.appConfigsDao.insertFullAppConfig(newConfig);
-      }
-
-      // Sync portal URLs for installed apps
-      if (app.installed) {
-        await _syncPortalUrls(app);
-      }
-    }
+    final serverId = _currentServerId;
+    if (serverId == null) return;
+    await _repository.syncApps(
+      serverId: serverId,
+      server: _currentServer,
+      apps: apps,
+    );
   }
 
   Future<void> _loadPersistedAppConfigs() async {
-    if (_currentServerId == null) return;
-
-    _appConfigs = await _daoSource.appConfigsDao.getFullAppConfigs(
-      _currentServerId!,
-    );
-
-    _log.info('Loaded ${_appConfigs.length} persisted app configs');
+    final serverId = _currentServerId;
+    if (serverId == null) return;
+    _appConfigs = await _repository.load(serverId);
   }
 
   /// Fallback wrapper around [_loadPersistedAppConfigs] used from the
@@ -407,342 +344,63 @@ class AppProvider extends ChangeNotifier
         .toList();
   }
 
-  Future<bool> upgradeApp(String appName, {String? version}) async {
-    if (_apiClient == null) return false;
+  Future<bool> upgradeApp(String appName, {String? version}) => _runAction(
+    'upgrade',
+    appName,
+    (client) => client.upgradeApp(appName, version: version),
+  );
+
+  Future<bool> startApp(String appName) =>
+      _runAction('start', appName, (client) => client.startApp(appName));
+
+  Future<bool> stopApp(String appName) =>
+      _runAction('stop', appName, (client) => client.stopApp(appName));
+
+  Future<bool> restartApp(String appName) =>
+      _runAction('restart', appName, (client) => client.restartApp(appName));
+
+  /// Runs a lifecycle action against the API and reloads the apps on
+  /// success. Failures are logged and reported, never thrown.
+  Future<bool> _runAction(
+    String verb,
+    String appName,
+    Future<bool> Function(ApiClientInterface client) action,
+  ) async {
+    final client = _apiClient;
+    if (client == null) return false;
 
     try {
-      final result = await _apiClient!.upgradeApp(appName, version: version);
+      final result = await action(client);
       if (result) {
-        // Refresh apps after successful upgrade
         await loadApps();
       }
       return result;
     } catch (e, stackTrace) {
       _log.error(
-        'Failed to upgrade app',
+        'Failed to $verb app',
         error: e,
         attributes: {'app.name': appName},
       );
       _telemetryService?.recordError(
         e,
         stackTrace,
-        context: 'AppProvider.upgradeApp',
+        context: 'AppProvider.${verb}App',
       );
       return false;
     }
   }
 
-  Future<bool> startApp(String appName) async {
-    if (_apiClient == null) return false;
-
-    try {
-      final result = await _apiClient!.startApp(appName);
-      if (result) {
-        // Refresh apps after successful start
-        await loadApps();
-      }
-      return result;
-    } catch (e, stackTrace) {
-      _log.error(
-        'Failed to start app',
-        error: e,
-        attributes: {'app.name': appName},
-      );
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'AppProvider.startApp',
-      );
-      return false;
-    }
-  }
-
-  Future<bool> stopApp(String appName) async {
-    if (_apiClient == null) return false;
-
-    try {
-      final result = await _apiClient!.stopApp(appName);
-      if (result) {
-        // Refresh apps after successful stop
-        await loadApps();
-      }
-      return result;
-    } catch (e, stackTrace) {
-      _log.error(
-        'Failed to stop app',
-        error: e,
-        attributes: {'app.name': appName},
-      );
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'AppProvider.stopApp',
-      );
-      return false;
-    }
-  }
-
-  Future<bool> restartApp(String appName) async {
-    if (_apiClient == null) return false;
-
-    try {
-      final result = await _apiClient!.restartApp(appName);
-      if (result) {
-        // Refresh apps after successful restart
-        await loadApps();
-      }
-      return result;
-    } catch (e, stackTrace) {
-      _log.error(
-        'Failed to restart app',
-        error: e,
-        attributes: {'app.name': appName},
-      );
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'AppProvider.restartApp',
-      );
-      return false;
-    }
-  }
-
-  void _subscribeToAppStats() async {
-    if (_apiClient == null) return;
-
-    // Cancel existing subscription if any
-    await _appStatsSubscription?.cancel();
-
-    try {
-      // Subscribe to app stats from the API client
-      await _apiClient!.subscribeToAppStats();
-
-      // Listen to the app stats stream and update resource usage
-      _appStatsSubscription = _apiClient!.appStatsStream.listen(
-        (appStatsMap) {
-          _log.debug('Received app stats for ${appStatsMap.length} apps');
-
-          // Update resource usage for each app
-          _updateAppResourceUsage(appStatsMap);
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          _log.error('Error in app stats stream', error: error);
-          _telemetryService?.recordError(
-            error,
-            stackTrace,
-            context: 'AppProvider._subscribeToAppStats (stream)',
-          );
-        },
-      );
-    } catch (e, stackTrace) {
-      _log.error('Failed to subscribe to app stats', error: e);
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'AppProvider._subscribeToAppStats',
-      );
-    }
-  }
-
-  void _updateAppResourceUsage(Map<String, AppResourceUsage> appStatsMap) {
-    // Update the last known resource usage for each app in the new data
-    for (final entry in appStatsMap.entries) {
-      final appName = entry.key;
-      final newResourceUsage = entry.value;
-
-      // Merge with existing resource usage to preserve values not in this update
-      final existingResourceUsage = _lastKnownResourceUsage[appName];
-      if (existingResourceUsage != null) {
-        // Only update fields that have actual values (not zeros)
-        _lastKnownResourceUsage[appName] = AppResourceUsage(
-          cpuUsage: newResourceUsage.cpuUsage > 0
-              ? newResourceUsage.cpuUsage
-              : existingResourceUsage.cpuUsage,
-          memoryUsage: newResourceUsage.memoryUsage > 0
-              ? newResourceUsage.memoryUsage
-              : existingResourceUsage.memoryUsage,
-          memoryLimit: newResourceUsage.memoryLimit > 0
-              ? newResourceUsage.memoryLimit
-              : existingResourceUsage.memoryLimit,
-          networkRxBytes: newResourceUsage.networkRxBytes > 0
-              ? newResourceUsage.networkRxBytes
-              : existingResourceUsage.networkRxBytes,
-          networkTxBytes: newResourceUsage.networkTxBytes > 0
-              ? newResourceUsage.networkTxBytes
-              : existingResourceUsage.networkTxBytes,
-          lastUpdated: DateTime.now(),
-        );
-      } else {
-        // First time seeing this app, store as is
-        _lastKnownResourceUsage[appName] = newResourceUsage;
-      }
-    }
-
-    // Note: Real-time resource usage is now maintained in memory only
-    // The AppConfig models in _appConfigs retain their persisted state
-    // while resource usage updates are applied when converting to App via _appConfigToApp
-    notifyListeners();
-  }
-
-  Future<void> _unsubscribeFromAppStats() async {
-    await _appStatsSubscription?.cancel();
-    _appStatsSubscription = null;
-
-    if (_apiClient != null) {
-      try {
-        await _apiClient!.unsubscribeFromAppStats();
-      } catch (e, stackTrace) {
-        _log.error('Failed to unsubscribe from app stats', error: e);
-        _telemetryService?.recordError(
-          e,
-          stackTrace,
-          context: 'AppProvider._unsubscribeFromAppStats',
-        );
-      }
-    }
-  }
-
-  // Helper methods for working with AppConfig/App conversions and management
-  Future<void> _syncPortalUrls(App app) async {
-    if (_currentServerId == null) return;
-
-    final existingConfig = await _daoSource.appConfigsDao.getFullAppConfig(
-      _currentServerId!,
-      app.name,
-    );
-    if (existingConfig?.id == null) return;
-
-    // Get existing port configs for this app
-    final existingPorts = await _daoSource.appConfigsDao.getAppPortConfigs(
-      existingConfig!.id!,
-    );
-    final existingPortsMap = <int, AppPortConfigData>{};
-    for (final port in existingPorts) {
-      existingPortsMap[port.portNumber] = port;
-    }
-
-    final processedPorts = <int>{};
-    bool hasPrimary = existingPorts.any((port) => port.isPrimary);
-
-    // Sync from app.portals (new structured data)
-    for (final portal in app.portals.entries) {
-      final uri = Uri.tryParse(portal.value);
-      if (uri != null && uri.hasPort) {
-        processedPorts.add(uri.port);
-        final existingPort = existingPortsMap[uri.port];
-
-        if (existingPort == null) {
-          await _daoSource.appConfigsDao.insertAppPortConfig(
-            AppPortConfigsCompanion(
-              appConfigId: Value(existingConfig.id!),
-              portNumber: Value(uri.port),
-              protocol: Value(uri.scheme),
-              serviceName: Value(portal.key),
-              apiUrl: Value(
-                portal.value,
-              ), // Store API URL separately from custom URL
-              isPrimary: Value(!hasPrimary), // First port becomes primary
-            ),
-          );
-          if (!hasPrimary) hasPrimary = true;
-        }
-      }
-    }
-  }
-
-  App _appConfigToApp(AppConfig config) {
-    // Get real-time resource usage if available
-    final resourceUsage = _lastKnownResourceUsage[config.appName];
-
-    return App(
-      name: config.appName,
-      title: config.title ?? config.appName,
-      description: config.description ?? '',
-      installed: config.installed ?? false,
-      healthy: config.healthy ?? true,
-      healthyError: config.healthyError,
-      latestVersion: config.version ?? '',
-      latestAppVersion: config.appVersion ?? '',
-      latestHumanVersion: config.humanVersion ?? '',
-      iconUrl: config.iconUrl,
-      categories: config.categories ?? [],
-      home: config.home,
-      tags: config.tags ?? [],
-      screenshots: config.screenshots ?? [],
-      sources: config.sources ?? [],
-      appReadme: config.appReadme,
-      maintainers: config.maintainers,
-      lastUpdate: config.lastApiUpdate,
-      recommended: config.recommended ?? false,
-      catalog: config.catalog ?? '',
-      train: config.train ?? '',
-      resourceUsage: resourceUsage, // Include real-time resource usage
-      upgradeInfo: config.upgradeInfo,
-      usedPorts: config.usedPorts,
-      portals: _buildPortalsFromConfig(config),
-      customDisplayName: config.displayName,
-      customIconUrl: config.iconUrl,
-      primaryCustomUrl: config.primaryPort?.customUrl != null
-          ? _interpolateUrl(config.primaryPort!.customUrl!)
-          : null,
-    );
-  }
-
-  String _interpolateUrl(String url) {
-    if (_currentServer == null) return url;
-
-    final uri = Uri.tryParse(url);
-    if (uri == null) return url;
-
-    // Replace localhost with actual server host
-    String host = uri.host;
-    if (host == 'localhost' || host == '127.0.0.1') {
-      host = _currentServer!.host;
-    }
-
-    // Replace tcp protocol with http/https based on server config
-    String scheme = uri.scheme;
-    if (scheme == 'tcp') {
-      scheme = _currentServer!.useHttps ? 'https' : 'http';
-    }
-
-    // Reconstruct the URL with proper host and protocol
-    return Uri(
-      scheme: scheme,
-      host: host,
-      port: uri.port,
-      path: uri.path,
-      query: uri.query.isEmpty ? null : uri.query,
-      fragment: uri.fragment.isEmpty ? null : uri.fragment,
-    ).toString();
-  }
-
-  Map<String, String> _buildPortalsFromConfig(AppConfig config) {
-    final portals = <String, String>{};
-    for (final port in config.enabledPorts) {
-      // Include all enabled ports - prioritize custom URL, then API URL, then default
-      final rawUrl = port.effectiveUrl;
-      final interpolatedUrl = _interpolateUrl(rawUrl);
-      portals[port.serviceName ?? 'Port ${port.portNumber}'] = interpolatedUrl;
-    }
-    return portals;
-  }
-
-  // App configuration management methods
   Future<void> updateAppConfig(AppConfig config) async {
-    await _daoSource.appConfigsDao.updateFullAppConfig(config);
+    await _repository.update(config);
     await _loadPersistedAppConfigs();
     notifyListeners();
   }
 
   Future<void> setAppFavorite(String appName, bool isFavorite) async {
-    if (_currentServerId == null) return;
+    final serverId = _currentServerId;
+    if (serverId == null) return;
 
-    await _daoSource.appConfigsDao.setAppFavorite(
-      _currentServerId!,
-      appName,
-      isFavorite,
-    );
+    await _repository.setFavorite(serverId, appName, isFavorite);
     await _loadPersistedAppConfigs();
     notifyListeners();
   }
@@ -756,16 +414,16 @@ class AppProvider extends ChangeNotifier
   }
 
   String? getPrimaryUrl(String appName) {
-    final config = getAppConfig(appName);
-    final url = config?.primaryPort?.effectiveUrl;
-    return url != null ? _interpolateUrl(url) : null;
+    final url = getAppConfig(appName)?.primaryPort?.effectiveUrl;
+    return url != null ? _mapper.interpolateUrl(url) : null;
   }
 
   List<String> getAppUrls(String appName) {
     final config = getAppConfig(appName);
     if (config == null) return [];
+    final mapper = _mapper;
     return config.enabledPorts
-        .map((port) => _interpolateUrl(port.effectiveUrl))
+        .map((port) => mapper.interpolateUrl(port.effectiveUrl))
         .toList();
   }
 
@@ -787,11 +445,8 @@ class AppProvider extends ChangeNotifier
     // A catalog phase still in flight must not notify a disposed notifier.
     _loadGeneration++;
 
-    // Unsubscribe from app stats
-    _unsubscribeFromAppStats();
-
-    // Clear cached resource usage
-    _lastKnownResourceUsage.clear();
+    unawaited(_stats.unsubscribe(_apiClient));
+    _stats.clear();
 
     _session.dispose();
     super.dispose();
