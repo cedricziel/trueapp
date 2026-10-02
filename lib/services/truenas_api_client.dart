@@ -833,8 +833,7 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   // System information methods
-  @override
-  Future<Map<String, dynamic>> getSystemInfo() async {
+  Future<Map<String, dynamic>> _getSystemInfo() async {
     try {
       final result = await _sendRequest('system.info');
       return result as Map<String, dynamic>;
@@ -843,8 +842,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getSystemCpuInfo() async {
+  Future<Map<String, dynamic>> _getSystemCpuInfo() async {
     try {
       final result = await _sendRequest('system.cpu_info');
       return result as Map<String, dynamic>;
@@ -853,8 +851,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getSystemMemoryInfo() async {
+  Future<Map<String, dynamic>> _getSystemMemoryInfo() async {
     try {
       final result = await _sendRequest('system.memory_info');
       return result as Map<String, dynamic>;
@@ -863,8 +860,7 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<double> getSystemTemperature() async {
+  Future<double> _getSystemTemperature() async {
     try {
       final result = await _sendRequest('system.temperature');
       return (result as num).toDouble();
@@ -874,8 +870,7 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   // Pool management methods
-  @override
-  Future<List<Map<String, dynamic>>> queryPools() async {
+  Future<List<Map<String, dynamic>>> _queryPools() async {
     try {
       final result = await _sendRequest('pool.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
@@ -884,19 +879,8 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getPoolById(String id) async {
-    try {
-      final result = await _sendRequest('pool.query', {'id': id});
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   // Dataset management methods
-  @override
-  Future<List<Map<String, dynamic>>> queryDatasets() async {
+  Future<List<Map<String, dynamic>>> _queryDatasets() async {
     try {
       final result = await _sendRequest('pool.dataset.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
@@ -905,19 +889,8 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getDatasetById(String id) async {
-    try {
-      final result = await _sendRequest('pool.dataset.query', {'id': id});
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   // File system methods
-  @override
-  Future<List<Map<String, dynamic>>> listDirectory(String path) async {
+  Future<List<Map<String, dynamic>>> _listDirectory(String path) async {
     try {
       final result = await _sendRequest('filesystem.listdir', {'path': path});
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
@@ -926,19 +899,8 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getFileInfo(String path) async {
-    try {
-      final result = await _sendRequest('filesystem.stat', {'path': path});
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   // Disk information methods
-  @override
-  Future<List<Map<String, dynamic>>> queryDisks() async {
+  Future<List<Map<String, dynamic>>> _queryDisks() async {
     try {
       final result = await _sendRequest('disk.query');
       return (result as List<dynamic>).cast<Map<String, dynamic>>();
@@ -947,32 +909,11 @@ class TrueNasApiClient implements ApiClientInterface {
     }
   }
 
-  @override
-  Future<Map<String, dynamic>> getDiskById(String id) async {
-    try {
-      final result = await _sendRequest('disk.query', {'id': id});
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   // Network information methods
-  @override
-  Future<Map<String, dynamic>> getNetworkInfo() async {
+  Future<Map<String, dynamic>> _getNetworkInfo() async {
     try {
       final result = await _sendRequest('network.general.summary');
       return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
-    try {
-      final result = await _sendRequest('interface.query');
-      return (result as List<dynamic>).cast<Map<String, dynamic>>();
     } catch (e) {
       throw _handleError(e);
     }
@@ -982,12 +923,12 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<ServerHealth> getServerHealth() async {
     try {
-      await getSystemInfo();
-      final cpuInfo = await getSystemCpuInfo();
-      final memoryInfo = await getSystemMemoryInfo();
-      final diskInfo = await queryDisks();
-      final temperature = await getSystemTemperature();
-      final networkInfo = await getNetworkInfo();
+      await _getSystemInfo();
+      final cpuInfo = await _getSystemCpuInfo();
+      final memoryInfo = await _getSystemMemoryInfo();
+      final diskInfo = await _queryDisks();
+      final temperature = await _getSystemTemperature();
+      final networkInfo = await _getNetworkInfo();
 
       return ServerHealth(
         serverId: _server.id,
@@ -1030,7 +971,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<FileItem>> getDirectoryListing(String path) async {
     try {
-      final response = await listDirectory(path);
+      final response = await _listDirectory(path);
       return response.map((item) => FileItem.fromJson(item)).toList();
     } catch (e) {
       throw _handleError(e);
@@ -1040,7 +981,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> getPools() async {
     try {
-      return await queryPools();
+      return await _queryPools();
     } catch (e) {
       throw _handleError(e);
     }
@@ -1049,7 +990,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<List<Map<String, dynamic>>> getDatasets() async {
     try {
-      return await queryDatasets();
+      return await _queryDatasets();
     } catch (e) {
       throw _handleError(e);
     }
@@ -1058,7 +999,7 @@ class TrueNasApiClient implements ApiClientInterface {
   @override
   Future<bool> testConnection() async {
     try {
-      await getSystemInfo().timeout(const Duration(seconds: 10));
+      await _getSystemInfo().timeout(const Duration(seconds: 10));
       return true;
     } catch (e) {
       return false;
@@ -1292,43 +1233,6 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   @override
-  Future<Map<String, dynamic>> getDockerStatus() async {
-    try {
-      final result = await _sendRequest('docker.status');
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>> getAppResourceUsage(String appName) async {
-    // This method is not available in TrueNAS API
-    // Resource usage is extracted from app.query response instead
-    return {
-      'cpu_usage': 0.0,
-      'memory_usage': 0,
-      'memory_limit': 0,
-      'network_rx_bytes': 0.0,
-      'network_tx_bytes': 0.0,
-      'last_updated': DateTime.now().toIso8601String(),
-    };
-  }
-
-  @override
-  Future<Map<String, dynamic>> getAppUpgradeInfo(String appName) async {
-    // This method is not available in TrueNAS API
-    // Upgrade info is extracted from app.query response instead
-    return {
-      'upgrade_available': false,
-      'available_version': null,
-      'current_version': null,
-      'upgrade_notes': null,
-      'can_upgrade': false,
-    };
-  }
-
-  @override
   Future<bool> upgradeApp(String appName, {String? version}) async {
     try {
       await _ensureAuthenticated();
@@ -1553,46 +1457,6 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   // System information methods (additional)
-  @override
-  Future<Map<String, dynamic>> getSystemGeneralConfig() async {
-    try {
-      final result = await _sendRequest('system.general.config');
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
-    try {
-      final result = await _sendRequest('system.advanced.config');
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
-  Future<String> getSystemProductType() async {
-    try {
-      final result = await _sendRequest('system.product_type');
-      return result as String;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  @override
-  Future<bool> isIxHardware() async {
-    try {
-      final result = await _sendRequest('truenas.is_ix_hardware');
-      return result as bool;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
   // Job management methods
   @override
   Future<List<Job>> getJobs() async {

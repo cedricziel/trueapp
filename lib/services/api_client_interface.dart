@@ -25,34 +25,14 @@ abstract class ApiClientInterface {
   ]);
   Future<UserInfo> getCurrentUser();
 
-  // System information methods
-  Future<Map<String, dynamic>> getSystemInfo();
-  Future<Map<String, dynamic>> getSystemCpuInfo();
-  Future<Map<String, dynamic>> getSystemMemoryInfo();
-  Future<double> getSystemTemperature();
-
   // Pool management methods
-  Future<List<Map<String, dynamic>>> queryPools();
-  Future<Map<String, dynamic>> getPoolById(String id);
   Future<List<Map<String, dynamic>>> getPools();
 
   // Dataset management methods
-  Future<List<Map<String, dynamic>>> queryDatasets();
-  Future<Map<String, dynamic>> getDatasetById(String id);
   Future<List<Map<String, dynamic>>> getDatasets();
 
   // File system methods
-  Future<List<Map<String, dynamic>>> listDirectory(String path);
-  Future<Map<String, dynamic>> getFileInfo(String path);
   Future<List<FileItem>> getDirectoryListing(String path);
-
-  // Disk information methods
-  Future<List<Map<String, dynamic>>> queryDisks();
-  Future<Map<String, dynamic>> getDiskById(String id);
-
-  // Network information methods
-  Future<Map<String, dynamic>> getNetworkInfo();
-  Future<List<Map<String, dynamic>>> getNetworkInterfaces();
 
   // Higher-level methods
   Future<ServerHealth> getServerHealth();
@@ -65,9 +45,6 @@ abstract class ApiClientInterface {
   Future<List<App>> getAvailableApps();
   Future<List<App>> getInstalledApps();
   Future<List<String>> getAppCategories();
-  Future<Map<String, dynamic>> getDockerStatus();
-  Future<Map<String, dynamic>> getAppResourceUsage(String appName);
-  Future<Map<String, dynamic>> getAppUpgradeInfo(String appName);
   Future<bool> upgradeApp(String appName, {String? version});
   Future<bool> startApp(String appName);
   Future<bool> stopApp(String appName);
@@ -87,12 +64,6 @@ abstract class ApiClientInterface {
   Stream<Map<String, AppResourceUsage>> get appStatsStream;
   Future<void> subscribeToAppStats();
   Future<void> unsubscribeFromAppStats();
-
-  // Additional system information methods
-  Future<Map<String, dynamic>> getSystemGeneralConfig();
-  Future<Map<String, dynamic>> getSystemAdvancedConfig();
-  Future<String> getSystemProductType();
-  Future<bool> isIxHardware();
 
   // Job management methods
   Stream<List<Job>> get jobsStream;

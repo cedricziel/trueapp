@@ -92,53 +92,7 @@ class FakeApiClient implements ApiClientInterface {
     privilege: {},
   );
 
-  @override
-  Future<Map<String, dynamic>> getSystemInfo() async {
-    _recordAndMaybeThrow('getSystemInfo');
-    return systemInfo;
-  }
-
-  Map<String, dynamic> systemInfo = {};
-
-  @override
-  Future<Map<String, dynamic>> getSystemCpuInfo() async {
-    _recordAndMaybeThrow('getSystemCpuInfo');
-    return systemCpuInfo;
-  }
-
-  Map<String, dynamic> systemCpuInfo = {};
-
-  @override
-  Future<Map<String, dynamic>> getSystemMemoryInfo() async {
-    _recordAndMaybeThrow('getSystemMemoryInfo');
-    return systemMemoryInfo;
-  }
-
-  Map<String, dynamic> systemMemoryInfo = {};
-
-  @override
-  Future<double> getSystemTemperature() async {
-    _recordAndMaybeThrow('getSystemTemperature');
-    return systemTemperature;
-  }
-
-  double systemTemperature = 0;
-
-  @override
-  Future<List<Map<String, dynamic>>> queryPools() async {
-    _recordAndMaybeThrow('queryPools');
-    return pools;
-  }
-
   List<Map<String, dynamic>> pools = [];
-
-  @override
-  Future<Map<String, dynamic>> getPoolById(String id) async {
-    _recordAndMaybeThrow('getPoolById');
-    return poolById;
-  }
-
-  Map<String, dynamic> poolById = {};
 
   @override
   Future<List<Map<String, dynamic>>> getPools() async {
@@ -146,21 +100,7 @@ class FakeApiClient implements ApiClientInterface {
     return pools;
   }
 
-  @override
-  Future<List<Map<String, dynamic>>> queryDatasets() async {
-    _recordAndMaybeThrow('queryDatasets');
-    return datasets;
-  }
-
   List<Map<String, dynamic>> datasets = [];
-
-  @override
-  Future<Map<String, dynamic>> getDatasetById(String id) async {
-    _recordAndMaybeThrow('getDatasetById');
-    return datasetById;
-  }
-
-  Map<String, dynamic> datasetById = {};
 
   @override
   Future<List<Map<String, dynamic>>> getDatasets() async {
@@ -169,60 +109,12 @@ class FakeApiClient implements ApiClientInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listDirectory(String path) async {
-    _recordAndMaybeThrow('listDirectory');
-    return directoryEntries;
-  }
-
-  List<Map<String, dynamic>> directoryEntries = [];
-
-  @override
-  Future<Map<String, dynamic>> getFileInfo(String path) async {
-    _recordAndMaybeThrow('getFileInfo');
-    return fileInfo;
-  }
-
-  Map<String, dynamic> fileInfo = {};
-
-  @override
   Future<List<FileItem>> getDirectoryListing(String path) async {
     _recordAndMaybeThrow('getDirectoryListing');
     return directoryListing;
   }
 
   List<FileItem> directoryListing = [];
-
-  @override
-  Future<List<Map<String, dynamic>>> queryDisks() async {
-    _recordAndMaybeThrow('queryDisks');
-    return disks;
-  }
-
-  List<Map<String, dynamic>> disks = [];
-
-  @override
-  Future<Map<String, dynamic>> getDiskById(String id) async {
-    _recordAndMaybeThrow('getDiskById');
-    return diskById;
-  }
-
-  Map<String, dynamic> diskById = {};
-
-  @override
-  Future<Map<String, dynamic>> getNetworkInfo() async {
-    _recordAndMaybeThrow('getNetworkInfo');
-    return networkInfo;
-  }
-
-  Map<String, dynamic> networkInfo = {};
-
-  @override
-  Future<List<Map<String, dynamic>>> getNetworkInterfaces() async {
-    _recordAndMaybeThrow('getNetworkInterfaces');
-    return networkInterfaces;
-  }
-
-  List<Map<String, dynamic>> networkInterfaces = [];
 
   @override
   Future<List<Map<String, dynamic>>> getAlerts() async {
@@ -286,30 +178,6 @@ class FakeApiClient implements ApiClientInterface {
   }
 
   List<String> appCategories = [];
-
-  @override
-  Future<Map<String, dynamic>> getDockerStatus() async {
-    _recordAndMaybeThrow('getDockerStatus');
-    return dockerStatus;
-  }
-
-  Map<String, dynamic> dockerStatus = {};
-
-  @override
-  Future<Map<String, dynamic>> getAppResourceUsage(String appName) async {
-    _recordAndMaybeThrow('getAppResourceUsage');
-    return appResourceUsage;
-  }
-
-  Map<String, dynamic> appResourceUsage = {};
-
-  @override
-  Future<Map<String, dynamic>> getAppUpgradeInfo(String appName) async {
-    _recordAndMaybeThrow('getAppUpgradeInfo');
-    return appUpgradeInfo;
-  }
-
-  Map<String, dynamic> appUpgradeInfo = {};
 
   @override
   Future<bool> upgradeApp(String appName, {String? version}) async {
@@ -387,38 +255,6 @@ class FakeApiClient implements ApiClientInterface {
   Future<void> unsubscribeFromAppStats() async {
     _recordAndMaybeThrow('unsubscribeFromAppStats');
   }
-
-  @override
-  Future<Map<String, dynamic>> getSystemGeneralConfig() async {
-    _recordAndMaybeThrow('getSystemGeneralConfig');
-    return systemGeneralConfig;
-  }
-
-  Map<String, dynamic> systemGeneralConfig = {};
-
-  @override
-  Future<Map<String, dynamic>> getSystemAdvancedConfig() async {
-    _recordAndMaybeThrow('getSystemAdvancedConfig');
-    return systemAdvancedConfig;
-  }
-
-  Map<String, dynamic> systemAdvancedConfig = {};
-
-  @override
-  Future<String> getSystemProductType() async {
-    _recordAndMaybeThrow('getSystemProductType');
-    return systemProductType;
-  }
-
-  String systemProductType = 'COMMUNITY_EDITION';
-
-  @override
-  Future<bool> isIxHardware() async {
-    _recordAndMaybeThrow('isIxHardware');
-    return isIxHardwareResult;
-  }
-
-  bool isIxHardwareResult = false;
 
   @override
   Future<List<Job>> getJobs() async {
