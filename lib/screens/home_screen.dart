@@ -9,6 +9,7 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/widgets/app_logo.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 import 'package:truehub/widgets/server_list_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -141,95 +142,92 @@ class _HomeScreenState extends State<HomeScreen> {
             }
             final sortedServers = [...needsAttention, ...rest];
 
-            return Column(
-              children: [
-                _buildFleetBanner(needsAttention),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: sortedServers.length,
-                    itemBuilder: (context, index) {
-                      final server = sortedServers[index];
-                      return ServerListTile(
-                        server: server,
-                        status: fleetStatusProvider.statusFor(server.id),
-                        onTap: () async {
-                          // Select first, same as before #85 - this is what
-                          // guarantees `serverProvider.selectedServer`
-                          // already matches by the time `ServerDetailScreen`
-                          // builds, so its own `initState` (which only
-                          // selects when the selection doesn't already
-                          // match) skips calling `selectServer` a second
-                          // time. That matters here because Cupertino's
-                          // page-transition machinery can transiently build
-                          // more than one `ServerDetailScreen` for the same
-                          // push, and two concurrent `selectServer` calls
-                          // race each other.
-                          //
-                          // `_selectingServerId`, set synchronously first,
-                          // stops the authentication-stream listener above
-                          // from reacting to this same select with its own
-                          // `go` (see its comment).
-                          // A selection already in flight owns the
-                          // navigation. `selectServer` is a real round trip,
-                          // so a second tap lands long before the first
-                          // resolves; letting it through would run two
-                          // continuations that each `push`, stacking two
-                          // identical detail routes the user has to pop
-                          // twice for one tap.
-                          if (_selectingServerId != null) {
-                            return;
+            return RefreshableScrollView(
+              onRefresh: () =>
+                  fleetStatusProvider.refreshAll(serverProvider.servers),
+              slivers: [
+                SliverToBoxAdapter(child: _buildFleetBanner(needsAttention)),
+                SliverList.builder(
+                  itemCount: sortedServers.length,
+                  itemBuilder: (context, index) {
+                    final server = sortedServers[index];
+                    return ServerListTile(
+                      server: server,
+                      status: fleetStatusProvider.statusFor(server.id),
+                      onTap: () async {
+                        // Select first, same as before #85 - this is what
+                        // guarantees `serverProvider.selectedServer`
+                        // already matches by the time `ServerDetailScreen`
+                        // builds, so its own `initState` (which only
+                        // selects when the selection doesn't already
+                        // match) skips calling `selectServer` a second
+                        // time. That matters here because Cupertino's
+                        // page-transition machinery can transiently build
+                        // more than one `ServerDetailScreen` for the same
+                        // push, and two concurrent `selectServer` calls
+                        // race each other.
+                        //
+                        // `_selectingServerId`, set synchronously first,
+                        // stops the authentication-stream listener above
+                        // from reacting to this same select with its own
+                        // `go` (see its comment).
+                        // A selection already in flight owns the
+                        // navigation. `selectServer` is a real round trip,
+                        // so a second tap lands long before the first
+                        // resolves; letting it through would run two
+                        // continuations that each `push`, stacking two
+                        // identical detail routes the user has to pop
+                        // twice for one tap.
+                        if (_selectingServerId != null) {
+                          return;
+                        }
+                        _selectingServerId = server.id;
+                        var pushed = false;
+                        try {
+                          await serverProvider.selectServer(server);
+                          if (context.mounted) {
+                            // push, not go: the detail screen (and its
+                            // own forward navigations) needs a stack to
+                            // pop back through, otherwise there is
+                            // nothing left to return to the server list
+                            // with (ticket #85).
+                            context.push('/server/${server.id}', extra: server);
+                            pushed = true;
                           }
-                          _selectingServerId = server.id;
-                          var pushed = false;
-                          try {
-                            await serverProvider.selectServer(server);
-                            if (context.mounted) {
-                              // push, not go: the detail screen (and its
-                              // own forward navigations) needs a stack to
-                              // pop back through, otherwise there is
-                              // nothing left to return to the server list
-                              // with (ticket #85).
-                              context.push(
-                                '/server/${server.id}',
-                                extra: server,
-                              );
-                              pushed = true;
-                            }
-                          } finally {
-                            if (pushed) {
-                              // One-shot: only the window up to and
-                              // including this tap's own push needs
-                              // guarding (see the field's doc comment) -
-                              // clearing it synchronously right after
-                              // `push` would reopen exactly the race it
-                              // exists to close, since `push` inserts the
-                              // new route before the widget tree (and
-                              // therefore `ModalRoute.isCurrent`) reflects
-                              // that; deferring the clear to a post-frame
-                              // callback gives the pushed route a frame to
-                              // actually land, so the `isCurrent` guard is
-                              // reliably in place by the time the flag
-                              // stops covering the race.
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                _selectingServerId = null;
-                              });
-                            } else {
-                              // No push happened - `selectServer` threw, or
-                              // the tile left the tree mid-await. Clear
-                              // immediately: there is no pushed route for
-                              // the deferred clear to wait on, and a stuck
-                              // flag would silently suppress single-server
-                              // auto-navigation for this id for as long as
-                              // HomeScreen stays mounted, as well as
-                              // blocking every later tap by the guard
-                              // above.
+                        } finally {
+                          if (pushed) {
+                            // One-shot: only the window up to and
+                            // including this tap's own push needs
+                            // guarding (see the field's doc comment) -
+                            // clearing it synchronously right after
+                            // `push` would reopen exactly the race it
+                            // exists to close, since `push` inserts the
+                            // new route before the widget tree (and
+                            // therefore `ModalRoute.isCurrent`) reflects
+                            // that; deferring the clear to a post-frame
+                            // callback gives the pushed route a frame to
+                            // actually land, so the `isCurrent` guard is
+                            // reliably in place by the time the flag
+                            // stops covering the race.
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
                               _selectingServerId = null;
-                            }
+                            });
+                          } else {
+                            // No push happened - `selectServer` threw, or
+                            // the tile left the tree mid-await. Clear
+                            // immediately: there is no pushed route for
+                            // the deferred clear to wait on, and a stuck
+                            // flag would silently suppress single-server
+                            // auto-navigation for this id for as long as
+                            // HomeScreen stays mounted, as well as
+                            // blocking every later tap by the guard
+                            // above.
+                            _selectingServerId = null;
                           }
-                        },
-                      );
-                    },
-                  ),
+                        }
+                      },
+                    );
+                  },
                 ),
               ],
             );
