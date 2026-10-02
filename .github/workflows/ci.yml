@@ -92,7 +92,9 @@ jobs:
         path: coverage/lcov.info
 
     - name: Run fastlane helper tests
-      run: ruby fastlane/test/pubspec_version_test.rb
+      run: |
+        ruby fastlane/test/pubspec_version_test.rb
+        ruby fastlane/test/testflight_distribution_test.rb
 
     - name: Build iOS (no codesign)
       # OTLP_INGEST_URL/OTLP_INGEST_KEY may not be set as repo secrets yet -
