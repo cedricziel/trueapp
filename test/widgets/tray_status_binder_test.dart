@@ -17,6 +17,7 @@ void main() {
   late FakeTraySink tray;
   late FakeTrayServerSource serverSource;
   late FakeTrayAppsSource appsSource;
+  late FakeTrayConnectionSource connectionSource;
   late int showCalls;
   late int quitCalls;
 
@@ -24,6 +25,7 @@ void main() {
     tray = FakeTraySink();
     serverSource = FakeTrayServerSource();
     appsSource = FakeTrayAppsSource();
+    connectionSource = FakeTrayConnectionSource();
     showCalls = 0;
     quitCalls = 0;
   });
@@ -35,6 +37,7 @@ void main() {
         tray: tray,
         serverSource: serverSource,
         appsSource: appsSource,
+        connectionSource: connectionSource,
         onShowWindow: () => showCalls++,
         onQuitApp: () => quitCalls++,
         child: const SizedBox(),
@@ -77,6 +80,31 @@ void main() {
     expect(tray.updates, hasLength(2));
     expect(tray.updates.first.totalServers, 2);
     expect(tray.updates.first.alerts, ['boom']);
+  });
+
+  testWidgets('counts only servers with a live connection as connected', (
+    tester,
+  ) async {
+    serverSource.servers = [_server('a'), _server('b'), _server('c')];
+    connectionSource.connectedServers = ['b', 'removed'];
+    await pumpBinder(tester);
+
+    serverSource.change();
+
+    expect(tray.updates.single.totalServers, 3);
+    expect(tray.updates.single.connectedServers, 1);
+  });
+
+  testWidgets('updates the count when a connection state changes', (
+    tester,
+  ) async {
+    serverSource.servers = [_server('a'), _server('b')];
+    await pumpBinder(tester);
+
+    connectionSource.connectedServers = ['a', 'b'];
+    connectionSource.change();
+
+    expect(tray.updates.single.connectedServers, 2);
   });
 
   testWidgets('still pushes status when the apps lookup throws', (

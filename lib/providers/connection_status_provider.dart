@@ -1,3 +1,4 @@
+import 'package:truehub/services/tray_status_ports.dart';
 import 'package:flutter/foundation.dart';
 
 enum TrueNASConnectionState {
@@ -53,7 +54,8 @@ class ConnectionStatus {
   }
 }
 
-class ConnectionStatusProvider extends ChangeNotifier {
+class ConnectionStatusProvider extends ChangeNotifier
+    implements TrayConnectionSource {
   final Map<String, ConnectionStatus> _connectionStatuses = {};
 
   ConnectionStatus? getStatus(String serverId) {
@@ -134,6 +136,7 @@ class ConnectionStatusProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   List<String> get connectedServers {
     return _connectionStatuses.entries
         .where((entry) => entry.value.state == TrueNASConnectionState.connected)

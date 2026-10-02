@@ -27,6 +27,10 @@ abstract interface class TrayServerSource implements Listenable {
   Future<void> refreshSelectedServer();
 }
 
+abstract interface class TrayConnectionSource implements Listenable {
+  List<String> get connectedServers;
+}
+
 abstract interface class TrayAppsSource implements Listenable {
   List<AppConfig> getAppsWithPortals();
 }

@@ -147,6 +147,7 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       tray: context.read<TrayProvider>(),
       serverSource: context.read<ServerProvider>(),
       appsSource: context.read<AppProvider>(),
+      connectionSource: context.read<ConnectionStatusProvider>(),
       onShowWindow: WindowManager.showWindow,
       onQuitApp: WindowManager.quitApp,
       child: AppLifecycleReconnector(

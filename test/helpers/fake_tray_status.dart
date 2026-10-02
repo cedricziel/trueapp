@@ -71,6 +71,14 @@ class FakeTrayServerSource extends ChangeNotifier implements TrayServerSource {
   void change() => notifyListeners();
 }
 
+class FakeTrayConnectionSource extends ChangeNotifier
+    implements TrayConnectionSource {
+  @override
+  List<String> connectedServers = [];
+
+  void change() => notifyListeners();
+}
+
 class FakeTrayAppsSource extends ChangeNotifier implements TrayAppsSource {
   List<AppConfig> apps = [];
   Object? error;

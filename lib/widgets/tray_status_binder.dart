@@ -12,6 +12,7 @@ class TrayStatusBinder extends StatefulWidget {
     required this.tray,
     required this.serverSource,
     required this.appsSource,
+    required this.connectionSource,
     required this.onShowWindow,
     required this.onQuitApp,
     required this.child,
@@ -21,6 +22,7 @@ class TrayStatusBinder extends StatefulWidget {
   final TrayStatusSink tray;
   final TrayServerSource serverSource;
   final TrayAppsSource appsSource;
+  final TrayConnectionSource connectionSource;
   final VoidCallback onShowWindow;
   final VoidCallback onQuitApp;
   final Widget child;
@@ -46,6 +48,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       widget.tray.initializeTray();
       widget.serverSource.addListener(_updateTrayStatus);
       widget.appsSource.addListener(_updateTrayStatus);
+      widget.connectionSource.addListener(_updateTrayStatus);
       _listening = true;
     });
   }
@@ -53,6 +56,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
   void _updateTrayStatus() {
     final serverSource = widget.serverSource;
     final servers = serverSource.servers;
+    final connectedIds = widget.connectionSource.connectedServers.toSet();
 
     final alerts = <String>[];
     final healthError = serverSource.healthError;
@@ -66,7 +70,9 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
     }
 
     widget.tray.updateServerStatus(
-      connectedServers: servers.length,
+      connectedServers: servers
+          .where((s) => connectedIds.contains(s.id))
+          .length,
       totalServers: servers.length,
       alerts: alerts,
       appsWithPortals: appsWithPortals,
@@ -78,6 +84,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
     if (_listening) {
       widget.serverSource.removeListener(_updateTrayStatus);
       widget.appsSource.removeListener(_updateTrayStatus);
+      widget.connectionSource.removeListener(_updateTrayStatus);
     }
     super.dispose();
   }
