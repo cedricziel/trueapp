@@ -97,7 +97,7 @@ void main() {
     telemetryService = FakeTelemetryService();
     appProvider = AppProvider(
       clientManager: TestProviders.mockApiClientManager,
-      database: database,
+      daoSource: database,
       serverService: serverService,
       telemetryService: telemetryService,
     );
@@ -511,7 +511,7 @@ void main() {
 
         final cloudKitAppProvider = AppProvider(
           clientManager: TestProviders.mockApiClientManager,
-          database: database,
+          daoSource: database,
           serverService: cloudKitService,
         );
         addTearDown(cloudKitAppProvider.dispose);
@@ -894,7 +894,7 @@ void main() {
         'still resolves instead of throwing', () async {
       final scopedProvider = AppProvider(
         clientManager: TestProviders.mockApiClientManager,
-        database: database,
+        daoSource: database,
         serverService: serverService,
       );
       await scopedProvider.setServer(testServer);
@@ -911,7 +911,7 @@ void main() {
     test('releases the active client', () async {
       final scopedProvider = AppProvider(
         clientManager: TestProviders.mockApiClientManager,
-        database: database,
+        daoSource: database,
         serverService: serverService,
       );
       await scopedProvider.setServer(testServer);

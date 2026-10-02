@@ -13,7 +13,7 @@ class ServerRepositoryFactory {
 
   /// Get the appropriate server repository for the current platform
   static Future<ServerRepositoryInterface> create({
-    AppDatabase? database,
+    required ServersDaoSource serversDaoSource,
     bool forceCloudKit = false,
     bool forceSqlite = false,
   }) async {
@@ -28,16 +28,14 @@ class ServerRepositoryFactory {
       _instance = CloudKitServerRepository();
     } else {
       _log.info('Using SQLite repository');
-      final db = database ?? AppDatabase.instance;
-      _instance = SqliteServerRepository(db.serversDao);
+      _instance = SqliteServerRepository(serversDaoSource.serversDao);
     }
 
     final initialized = await _instance!.initialize();
     if (!initialized && useCloudKit) {
       // Fallback to SQLite if CloudKit fails
       _log.warn('CloudKit failed, falling back to SQLite');
-      final db = database ?? AppDatabase.instance;
-      _instance = SqliteServerRepository(db.serversDao);
+      _instance = SqliteServerRepository(serversDaoSource.serversDao);
       await _instance!.initialize();
     }
 

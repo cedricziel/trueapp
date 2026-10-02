@@ -66,7 +66,9 @@ void main() {
       () async {
         final database = createTestDatabase();
 
-        final repo = await ServerRepositoryFactory.create(database: database);
+        final repo = await ServerRepositoryFactory.create(
+          serversDaoSource: database,
+        );
 
         expect(repo, isA<SqliteServerRepository>());
         expect(identical(ServerRepositoryFactory.instance, repo), isTrue);
@@ -78,9 +80,11 @@ void main() {
       () async {
         final database = createTestDatabase();
 
-        final first = await ServerRepositoryFactory.create(database: database);
+        final first = await ServerRepositoryFactory.create(
+          serversDaoSource: database,
+        );
         final second = await ServerRepositoryFactory.create(
-          database: createTestDatabase(),
+          serversDaoSource: createTestDatabase(),
           forceCloudKit: true, // ignored - _instance is already set
         );
 
@@ -98,7 +102,7 @@ void main() {
         // channel on this platform), so `create()` should silently fall back
         // to SqliteServerRepository instead of surfacing an error.
         final repo = await ServerRepositoryFactory.create(
-          database: database,
+          serversDaoSource: database,
           forceCloudKit: true,
         );
 
@@ -111,7 +115,7 @@ void main() {
       'reset disposes the current repository and clears the singleton',
       () async {
         final database = createTestDatabase();
-        await ServerRepositoryFactory.create(database: database);
+        await ServerRepositoryFactory.create(serversDaoSource: database);
 
         await ServerRepositoryFactory.reset();
 

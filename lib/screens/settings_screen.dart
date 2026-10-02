@@ -161,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Clear the provider state first
       final serverProvider = context.read<ServerProvider>();
+      final databaseHolder = context.read<AppDatabaseHolder>();
       serverProvider.clearSelectedServer();
 
       // Delete every server through the repository abstraction so CloudKit
@@ -174,8 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // Completely recreate the database file to ensure fresh schema
       try {
-        // Close and dispose the database singleton
-        await AppDatabase.disposeInstance();
+        await databaseHolder.dispose();
 
         // Get the database file path and delete it
         final documentsDir = await getApplicationDocumentsDirectory();
@@ -193,9 +193,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (await shmFile.exists()) await shmFile.delete();
       } catch (e) {
         // Fallback: Drop table method
-        final database = AppDatabase.instance;
-        await database.customStatement('DROP TABLE IF EXISTS nas_servers');
-        await AppDatabase.disposeInstance();
+        await databaseHolder.current.customStatement(
+          'DROP TABLE IF EXISTS nas_servers',
+        );
+        await databaseHolder.dispose();
       }
 
       // Reload servers in the provider - this will create a fresh database

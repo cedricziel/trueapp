@@ -47,7 +47,7 @@ class TestProviders {
     return ServerProvider(
       clientManager: mockApiClientManager,
       service,
-      databaseRef: () => database,
+      serversDaoSource: database,
     );
   }
 

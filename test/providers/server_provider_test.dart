@@ -31,7 +31,7 @@ void main() {
     serverProvider = ServerProvider(
       clientManager: TestProviders.mockApiClientManager,
       mockServerService,
-      databaseRef: () => database,
+      serversDaoSource: database,
       telemetryService: telemetryService,
     );
 
@@ -422,7 +422,7 @@ void main() {
         final freshProvider = ServerProvider(
           clientManager: TestProviders.mockApiClientManager,
           mockServerService,
-          databaseRef: () => database,
+          serversDaoSource: database,
           telemetryService: telemetryService,
         );
         addTearDown(freshProvider.dispose);
@@ -614,7 +614,7 @@ void main() {
         final provider = ServerProvider(
           clientManager: TestProviders.mockApiClientManager,
           mockServerService,
-          databaseRef: () => brokenDatabase,
+          serversDaoSource: brokenDatabase,
           telemetryService: telemetryService,
         );
         addTearDown(provider.dispose);
@@ -665,7 +665,7 @@ void main() {
       final provider = ServerProvider(
         clientManager: TestProviders.mockApiClientManager,
         mockServerService,
-        databaseRef: () => database,
+        serversDaoSource: database,
         telemetryService: telemetryService,
       );
       addTearDown(provider.dispose);
@@ -694,7 +694,7 @@ void main() {
         final provider = ServerProvider(
           clientManager: TestProviders.mockApiClientManager,
           mockServerService,
-          databaseRef: () => database,
+          serversDaoSource: database,
           telemetryService: telemetryService,
         );
         addTearDown(provider.dispose);

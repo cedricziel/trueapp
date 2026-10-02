@@ -38,7 +38,7 @@ class AuthenticationStatus {
 class ServerProvider extends ChangeNotifier implements TrayServerSource {
   final UnifiedServerService _serverService;
   final ApiClientManagerInterface _clientManager;
-  final AppDatabase Function()? _databaseRef;
+  final ServersDaoSource? _serversDaoSource;
   final TelemetryServiceInterface? _telemetryService;
   List<models.NasServer> _servers = [];
   models.NasServer? _selectedServer;
@@ -61,21 +61,17 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
   bool _disposed = false;
 
-  /// [databaseRef] is used to clean up the local `nas_servers` foreign-key
-  /// anchor row (see [ServersDao.upsertServerAnchor]) on server deletion.
-  /// It has no default - callers that want that cleanup pass one explicitly
-  /// (see `main.dart`, which wires up [AppDatabase.instance]); left null,
-  /// deletion skips it. A widget-test default of [AppDatabase.instance]
-  /// would construct that singleton - backed by `drift_flutter`, which talks
-  /// to `path_provider` - outside a real Flutter app, which throws
-  /// `MissingPluginException` (see test/flutter_test_config.dart).
+  /// [serversDaoSource] is used to clean up the local `nas_servers`
+  /// foreign-key anchor row (see [ServersDao.upsertServerAnchor]) on server
+  /// deletion. It has no default - callers that want that cleanup pass one
+  /// explicitly (see `AppDependencies`); left null, deletion skips it.
   ServerProvider(
     this._serverService, {
     required ApiClientManagerInterface clientManager,
-    AppDatabase Function()? databaseRef,
+    ServersDaoSource? serversDaoSource,
     TelemetryServiceInterface? telemetryService,
   }) : _clientManager = clientManager,
-       _databaseRef = databaseRef,
+       _serversDaoSource = serversDaoSource,
        _telemetryService = telemetryService {
     _initializeProvider();
   }
@@ -257,10 +253,10 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
     // ServersDao.upsertServerAnchor) so it doesn't linger forever on
     // platforms where the real server metadata lives in CloudKit; this
     // cascade-deletes any app_configs left over for the server as well.
-    final databaseRef = _databaseRef;
-    if (databaseRef != null) {
+    final serversDaoSource = _serversDaoSource;
+    if (serversDaoSource != null) {
       try {
-        await databaseRef().serversDao.deleteServer(id);
+        await serversDaoSource.serversDao.deleteServer(id);
       } catch (e, stackTrace) {
         _telemetryService?.recordError(
           e,

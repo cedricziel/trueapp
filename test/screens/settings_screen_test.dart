@@ -144,13 +144,46 @@ void main() {
       );
     }
 
-    // The full "confirm -> recreate database" path is deliberately not
-    // exercised here: past the confirmation dialog it reaches for the real
-    // `AppDatabase.instance` singleton and `getApplicationDocumentsDirectory()`
-    // as a fallback, which would leave a genuine (if empty) database file
-    // behind and risks flaking under this environment's plugin-less
-    // `path_provider`. The confirm/cancel dialog tests above already cover
-    // `_showClearDatabaseDialog`'s own branches.
+    testWidgets(
+      'confirming drops the old database and leaves the holder to reopen',
+      (tester) async {
+        var opened = 0;
+        final holder = AppDatabaseHolder(
+          open: () {
+            opened++;
+            return createTestDatabase();
+          },
+        );
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<ServerProvider>.value(
+                value: serverProvider,
+              ),
+              ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
+              Provider<AppDatabaseHolder>.value(value: holder),
+              Provider<UnifiedServerService>.value(value: unifiedServerService),
+            ],
+            child: const CupertinoApp(home: SettingsScreen()),
+          ),
+        );
+
+        await tester.tap(find.text('Clear'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(CupertinoDialogAction, 'Clear Database'),
+        );
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 200)),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Database Recreated'), findsOneWidget);
+        expect(opened, 1);
+        holder.current;
+        expect(opened, 2);
+      },
+    );
 
     group('tray / system tray section', () {
       // `flutter_test` pins `defaultTargetPlatform` to a fixed default for

@@ -31,9 +31,11 @@ void main() async {
 
   final telemetryService = await bootstrapTelemetry();
 
-  final database = AppDatabase.instance;
+  final databaseHolder = AppDatabaseHolder(open: AppDatabase.production);
   final connectionStatusProvider = ConnectionStatusProvider();
-  final unifiedServerService = await UnifiedServerService.createForProduction();
+  final unifiedServerService = await UnifiedServerService.createForProduction(
+    serversDaoSource: databaseHolder,
+  );
 
   final ApiClientManagerInterface clientManager = ApiClientManagerImpl(
     connectionStatusProvider: connectionStatusProvider,
@@ -45,7 +47,7 @@ void main() async {
     MultiProvider(
       providers: [
         Provider<TelemetryServiceInterface>.value(value: telemetryService),
-        Provider<AppDatabase>.value(value: database),
+        Provider<AppDatabaseHolder>.value(value: databaseHolder),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         Provider<ApiClientManagerInterface>.value(value: clientManager),
         Provider<ActiveServer>.value(value: activeServer),
@@ -53,7 +55,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => ServerProvider(
             unifiedServerService,
-            databaseRef: () => AppDatabase.instance,
+            serversDaoSource: databaseHolder,
             clientManager: clientManager,
             telemetryService: telemetryService,
           ),
@@ -99,7 +101,7 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => AppProvider(
-            databaseRef: () => AppDatabase.instance,
+            daoSource: databaseHolder,
             serverService: unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,

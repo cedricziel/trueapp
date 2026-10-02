@@ -94,7 +94,7 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => AppProvider(
             clientManager: TestProviders.mockApiClientManager,
-            database: database,
+            daoSource: database,
             serverService: unifiedServerService,
           ),
         ),

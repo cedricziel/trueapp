@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/services/database/dao_source.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/native_keychain_service.dart';
@@ -35,10 +36,14 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
        _isSingleton = isSingleton;
 
   /// Factory for production use with platform-appropriate dependencies
-  static Future<UnifiedServerService> createForProduction() async {
+  static Future<UnifiedServerService> createForProduction({
+    required ServersDaoSource serversDaoSource,
+  }) async {
     if (_instance != null) return _instance!;
 
-    final repository = await ServerRepositoryFactory.create();
+    final repository = await ServerRepositoryFactory.create(
+      serversDaoSource: serversDaoSource,
+    );
     final keychain = NativeKeychainService.instance;
 
     _instance = UnifiedServerService(

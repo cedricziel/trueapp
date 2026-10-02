@@ -257,10 +257,4 @@ void main() {
       expect(server!.username, '');
     });
   });
-
-  group('AppDatabase.disposeInstance', () {
-    test('is safe to call when no singleton has been created', () async {
-      await AppDatabase.disposeInstance();
-    });
-  });
 }
