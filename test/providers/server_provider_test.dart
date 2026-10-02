@@ -445,12 +445,6 @@ void main() {
       // Test current auth status
       final authStatus = serverProvider.currentAuthStatus;
       expect(authStatus.state, isA<AuthenticationState>());
-
-      // Test legacy getters
-      expect(serverProvider.authState, isA<AuthenticationState>());
-      expect(serverProvider.isAuthenticated, isA<bool>());
-      expect(serverProvider.requiresAuthentication, isA<bool>());
-      expect(serverProvider.isAuthenticating, isA<bool>());
     });
 
     test('should handle server list operations', () async {
@@ -631,11 +625,14 @@ void main() {
 
         await serverProvider.selectServer(testServer);
 
-        expect(serverProvider.authState, AuthenticationState.failed);
+        expect(
+          serverProvider.currentAuthStatus.state,
+          AuthenticationState.failed,
+        );
         expect(telemetryService.recordedErrors, hasLength(1));
         expect(
           telemetryService.recordedErrors.single.context,
-          'ServerProvider._authenticateAndConnect',
+          'ServerAuthSession._authenticate',
         );
       },
     );

@@ -84,7 +84,9 @@ class TestProviders {
   static Future<void> settlePendingLoads(ServerProvider provider) async {
     await Future<void>.delayed(const Duration(milliseconds: 20));
     await _waitUntil(
-      () => !provider.isLoadingServers && !provider.isAuthenticating,
+      () =>
+          !provider.isLoadingServers &&
+          !provider.currentAuthStatus.isAuthenticating,
       'pending server work',
     );
   }

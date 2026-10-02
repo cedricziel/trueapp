@@ -11,7 +11,8 @@ final _log = appLogger('services.unified_server');
 
 /// Unified server service that combines server metadata management with secure credential storage
 /// Uses platform-appropriate repository (CloudKit on Apple, SQLite elsewhere) + Keychain for passwords
-class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
+class UnifiedServerService
+    implements ServerLookup, ServerCredentialsLookup, ServerCredentialsSource {
   final ServerRepositoryInterface _repository;
   final KeychainServiceInterface _keychain;
   final StreamController<List<NasServer>> _serversController =
@@ -150,6 +151,7 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
   }
 
   /// Get server with credentials loaded
+  @override
   Future<(NasServer?, String?)> getServerWithPassword(String serverId) async {
     await _ensureInitialized();
 

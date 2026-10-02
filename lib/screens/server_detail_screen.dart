@@ -51,7 +51,7 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       }
 
       // Only proceed if authenticated
-      if (serverProvider.isAuthenticated) {
+      if (serverProvider.currentAuthStatus.isAuthenticated) {
         await poolProvider.loadPools();
         await appProvider.loadApps();
         await systemStatsProvider.subscribeToStats();
