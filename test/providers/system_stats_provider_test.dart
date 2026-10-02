@@ -173,7 +173,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'SystemStatsProvider.setApiClient',
+        'SystemStatsProvider.connect',
       );
     });
 

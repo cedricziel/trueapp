@@ -5,21 +5,19 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/server_client_session.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
-import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
 
 class SystemStatsProvider extends ChangeNotifier {
+  final ServerClientSession _session;
+
   /// How many samples the CPU/memory trend history keeps - enough for a
   /// short at-a-glance sparkline without growing unbounded over a long
   /// subscription.
   static const int _maxHistoryLength = 30;
 
-  final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   SystemStats? _currentStats;
   String? _error;
   bool _isLoading = false;
@@ -29,11 +27,18 @@ class SystemStatsProvider extends ChangeNotifier {
   final Queue<double> _memoryHistory = Queue<double>();
 
   SystemStatsProvider(
-    this._serverService, {
+    ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+  }) : _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'SystemStatsProvider',
+         clientManager: clientManager,
+         credentials: credentials,
+         telemetry: telemetryService,
+       );
+
+  ApiClientInterface? get _apiClient => _session.client;
 
   SystemStats? get currentStats => _currentStats;
   String? get error => _error;
@@ -54,13 +59,6 @@ class SystemStatsProvider extends ChangeNotifier {
       await unsubscribeFromStats();
     }
 
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    _currentServerId = server.id;
-
     // unsubscribeFromStats() above only clears history when it actually runs
     // its cleanup - it no-ops if the stream already finished on its own
     // (_onStatsStreamDone flips _isSubscribed to false without clearing
@@ -71,32 +69,7 @@ class SystemStatsProvider extends ChangeNotifier {
     _memoryHistory.clear();
     notifyListeners();
 
-    try {
-      // Load credentials for the server
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        _apiClient = await _clientManager.getClient(serverWithCredentials);
-      } else {
-        if (kDebugMode) {
-          print(
-            'SystemStatsProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('SystemStatsProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'SystemStatsProvider.setApiClient',
-      );
-    }
+    await _session.connect(server);
   }
 
   Future<void> subscribeToStats() async {
@@ -329,9 +302,7 @@ class SystemStatsProvider extends ChangeNotifier {
     }
     _isSubscribed = false;
 
-    if (_currentServerId != null) {
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }

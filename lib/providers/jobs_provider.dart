@@ -2,22 +2,19 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/job.dart';
 import 'package:truehub/models/nas_server.dart';
-import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/server_client_session.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
-import 'package:truehub/services/unified_server_service.dart';
 
 /// How long a failed job keeps the nav bar's job indicator in its
 /// "needs attention" state after it finished.
 const kJobFailureAttentionWindow = Duration(hours: 24);
 
 class JobsProvider extends ChangeNotifier {
-  final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
+  final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   List<Job> _jobs = [];
   String? _error;
   bool _isLoading = false;
@@ -25,11 +22,18 @@ class JobsProvider extends ChangeNotifier {
   StreamSubscription<List<Job>>? _jobsSubscription;
 
   JobsProvider(
-    this._serverService, {
+    ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+  }) : _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'JobsProvider',
+         clientManager: clientManager,
+         credentials: credentials,
+         telemetry: telemetryService,
+       );
+
+  ApiClientInterface? get _apiClient => _session.client;
 
   List<Job> get jobs => _jobs;
   String? get error => _error;
@@ -67,43 +71,7 @@ class JobsProvider extends ChangeNotifier {
     if (_apiClient != null) {
       await unsubscribeFromJobs();
     }
-
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    // Cleared up front so a missing-credentials or getClient() failure below
-    // leaves this provider clientless rather than still pointed at the
-    // previous server - subscribeToJobs/abortJob/rerunJob must never act on
-    // the wrong server's jobs.
-    _apiClient = null;
-    _currentServerId = server.id;
-
-    try {
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        _apiClient = await _clientManager.getClient(serverWithCredentials);
-      } else {
-        if (kDebugMode) {
-          print(
-            'JobsProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('JobsProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'JobsProvider.setApiClient',
-      );
-    }
+    await _session.connect(server);
   }
 
   Future<void> subscribeToJobs() async {
@@ -314,9 +282,7 @@ class JobsProvider extends ChangeNotifier {
     }
     _isSubscribed = false;
 
-    if (_currentServerId != null) {
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }

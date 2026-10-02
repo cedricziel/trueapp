@@ -120,7 +120,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'DatasetProvider.setServer',
+        'DatasetProvider.connect',
       );
     });
 
@@ -197,7 +197,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'DatasetProvider.setApiClient',
+        'DatasetProvider.connect',
       );
     });
   });

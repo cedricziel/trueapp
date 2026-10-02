@@ -142,7 +142,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'PoolProvider.setServer',
+        'PoolProvider.connect',
       );
     });
 
@@ -218,7 +218,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'PoolProvider.setApiClient',
+        'PoolProvider.connect',
       );
     });
   });

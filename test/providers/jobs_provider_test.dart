@@ -153,7 +153,7 @@ void main() {
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
         telemetryService.recordedErrors.single.context,
-        'JobsProvider.setApiClient',
+        'JobsProvider.connect',
       );
     });
   });
