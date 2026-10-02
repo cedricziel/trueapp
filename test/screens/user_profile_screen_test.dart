@@ -119,6 +119,7 @@ void main() {
   Widget createTestApp({NasServer? server}) {
     final shown = server ?? testServer;
     return provideAppProviders(
+      database: database,
       userProfileProvider: createUserProfileProvider(shown),
       service: serverService,
       serverProvider: serverProvider,
@@ -403,6 +404,7 @@ void main() {
 
       await tester.pumpWidget(
         provideAppProviders(
+          database: database,
           userProfileProvider: createUserProfileProvider(testServer),
           service: serverService,
           serverProvider: serverProvider,

@@ -62,6 +62,7 @@ void main() {
 
   Widget createTestApp() {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
@@ -120,6 +121,7 @@ void main() {
 
       await tester.pumpWidget(
         provideAppProviders(
+          database: database,
           service: unifiedServerService,
           serverProvider: serverProvider,
           poolProvider: poolProvider,
@@ -210,6 +212,7 @@ void main() {
 
       await tester.pumpWidget(
         provideAppProviders(
+          database: database,
           service: unifiedServerService,
           serverProvider: serverProvider,
           appProvider: appProvider,
@@ -246,6 +249,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         systemStatsProvider: systemStatsProvider,
@@ -284,6 +288,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         systemStatsProvider: systemStatsProvider,
@@ -341,6 +346,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         healthProvider: healthProvider,
@@ -361,6 +367,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         child: CupertinoApp(home: ServerDetailScreen(server: testServer)),

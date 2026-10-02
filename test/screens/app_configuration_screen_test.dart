@@ -114,6 +114,7 @@ void main() {
   /// `Future` completes (i.e. once it has popped).
   Widget buildHost(AppConfig config, {VoidCallback? onClosed}) {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       appProvider: appProvider,

@@ -40,6 +40,7 @@ import 'test_providers.dart';
 /// that created a provider is the test that must dispose it.
 Widget provideAppProviders({
   required Widget child,
+  required AppDatabase database,
   required UnifiedServerService service,
   required ServerProvider serverProvider,
   PoolProvider? poolProvider,

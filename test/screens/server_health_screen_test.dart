@@ -51,6 +51,7 @@ void main() {
 
   Widget createTestApp(HealthProvider healthProvider) {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       healthProvider: healthProvider,

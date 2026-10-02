@@ -78,6 +78,7 @@ void main() {
 
   Widget createTestApp(String initialLocation) {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       child: CupertinoApp.router(

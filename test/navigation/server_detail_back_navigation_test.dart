@@ -68,6 +68,7 @@ void main() {
 
   Widget createTestApp() {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       child: CupertinoApp.router(routerConfig: createAppRouter()),
@@ -129,6 +130,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         child: CupertinoApp.router(

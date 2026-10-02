@@ -54,6 +54,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         child: const CupertinoApp(home: HomeScreen()),
@@ -166,6 +167,7 @@ void main() {
 
     await tester.pumpWidget(
       provideAppProviders(
+        database: database,
         service: unifiedServerService,
         serverProvider: serverProvider,
         child: CupertinoApp(home: ServerDetailScreen(server: testServer)),

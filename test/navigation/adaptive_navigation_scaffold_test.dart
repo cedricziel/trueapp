@@ -45,6 +45,7 @@ void main() {
 
   Widget createTestApp() {
     return provideAppProviders(
+      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       child: CupertinoApp.router(routerConfig: createAppRouter()),
