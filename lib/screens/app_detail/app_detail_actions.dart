@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/app.dart';
+import 'package:truehub/screens/app_detail/open_link.dart';
 import 'package:truehub/services/url_opener.dart';
 
 class AppDetailActions extends StatelessWidget {
@@ -20,7 +21,7 @@ class AppDetailActions extends StatelessWidget {
       width: double.infinity,
       child: CupertinoButton(
         child: const Text('View Homepage'),
-        onPressed: () => urlOpener.open(home),
+        onPressed: () => openLinkOrAlert(context, urlOpener, home),
       ),
     );
   }

@@ -1,5 +1,12 @@
 import 'package:url_launcher/url_launcher.dart';
 
+bool isWebUrl(String url) {
+  final uri = Uri.tryParse(url);
+  return uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
+}
+
 abstract interface class UrlOpener {
   Future<bool> open(String url);
 }
