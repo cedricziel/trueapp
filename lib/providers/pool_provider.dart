@@ -4,26 +4,30 @@ import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/server_client_session.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
-import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
 
 class PoolProvider extends ChangeNotifier {
-  final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
+  final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   List<Pool> _pools = [];
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
   PoolProvider(
-    this._serverService, {
+    ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+  }) : _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'PoolProvider',
+         clientManager: clientManager,
+         credentials: credentials,
+         telemetry: telemetryService,
+       );
+
+  ApiClientInterface? get _apiClient => _session.client;
 
   List<Pool> get pools => _pools;
   bool get isLoading => _isLoading;
@@ -31,83 +35,18 @@ class PoolProvider extends ChangeNotifier {
   String? get error => _connectionError?.shortMessage;
 
   Future<void> setServer(NasServer? server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    _currentServerId = server?.id;
-    _apiClient = null;
     _pools = [];
     _connectionError = null;
 
-    if (server != null) {
-      try {
-        // Load credentials for the server
-        final serverWithCredentials =
-            await ServerProvider.loadServerCredentials(server, _serverService);
-
-        if (serverWithCredentials != null) {
-          _apiClient = await _clientManager.getClient(serverWithCredentials);
-        } else {
-          if (kDebugMode) {
-            print(
-              'PoolProvider: No credentials available for server ${server.id}',
-            );
-          }
-        }
-      } catch (e, stackTrace) {
-        if (kDebugMode) {
-          print('PoolProvider: Failed to get API client: $e');
-        }
-        _telemetryService?.recordError(
-          e,
-          stackTrace,
-          context: 'PoolProvider.setServer',
-        );
-      }
+    if (server == null) {
+      await _session.disconnect();
+    } else if (!await _session.connect(server)) {
+      return;
     }
     notifyListeners();
   }
 
-  Future<void> setApiClient(NasServer server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    _currentServerId = server.id;
-    _pools = [];
-    _connectionError = null;
-
-    try {
-      // Load credentials for the server
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        _apiClient = await _clientManager.getClient(serverWithCredentials);
-      } else {
-        if (kDebugMode) {
-          print(
-            'PoolProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('PoolProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'PoolProvider.setApiClient',
-      );
-    }
-    notifyListeners();
-  }
+  Future<void> setApiClient(NasServer server) => setServer(server);
 
   Future<void> loadPools() async {
     if (_apiClient == null) return;
@@ -148,10 +87,7 @@ class PoolProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_currentServerId != null) {
-      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }

@@ -9,9 +9,9 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
 
 /// The result of a settled future: exactly one of [value] or [error] is set.
 /// [stackTrace] is only set alongside [error], so a settled failure can
@@ -35,10 +35,8 @@ typedef _CatalogRequests = ({
 class AppProvider extends ChangeNotifier {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
+  final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   NasServer? _currentServer;
   List<AppConfig> _appConfigs = [];
   List<String> _categories = [];
@@ -72,10 +70,17 @@ class AppProvider extends ChangeNotifier {
        ),
        _databaseRef = databaseRef ?? (() => database!),
        _serverService = serverService,
-       _clientManager = clientManager,
-       _telemetryService = telemetryService;
+       _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'AppProvider',
+         clientManager: clientManager,
+         credentials: serverService,
+         telemetry: telemetryService,
+       );
 
   AppDatabase get _database => _databaseRef();
+  ApiClientInterface? get _apiClient => _session.client;
+  String? get _currentServerId => _session.serverId;
 
   List<AppConfig> get appConfigs => _appConfigs;
   List<String> get categories => _categories;
@@ -113,101 +118,32 @@ class AppProvider extends ChangeNotifier {
   List<App> get apps => _appConfigs.map(_appConfigToApp).toList();
 
   Future<void> setServer(NasServer? server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
     _loadGeneration++;
-    _currentServerId = server?.id;
     _currentServer = server;
-    _apiClient = null;
     _appConfigs = [];
     _categories = [];
     _connectionError = null;
     _catalogError = null;
     _isCatalogLoading = false;
 
-    if (server != null) {
+    if (server == null) {
+      await _session.disconnect();
+    } else {
+      if (!await _session.connect(server)) return;
       try {
-        // Load credentials for the server
-        final serverWithCredentials =
-            await ServerProvider.loadServerCredentials(server, _serverService);
-
-        if (serverWithCredentials != null) {
-          _apiClient = await _clientManager.getClient(serverWithCredentials);
-        } else {
-          if (kDebugMode) {
-            print(
-              'AppProvider: No credentials available for server ${server.id}',
-            );
-          }
-        }
-        // Load persisted app configs for offline access
         await _loadPersistedAppConfigs();
       } catch (e, stackTrace) {
-        if (kDebugMode) {
-          print('AppProvider: Failed to get API client: $e');
-        }
         _telemetryService?.recordError(
           e,
           stackTrace,
           context: 'AppProvider.setServer',
         );
-        // Even if API client fails, load persisted configs for offline access
-        await _loadPersistedAppConfigs();
       }
     }
     notifyListeners();
   }
 
-  Future<void> setApiClient(NasServer server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    _loadGeneration++;
-    _currentServerId = server.id;
-    _currentServer = server;
-    _appConfigs = [];
-    _categories = [];
-    _connectionError = null;
-    _catalogError = null;
-    _isCatalogLoading = false;
-
-    try {
-      // Load credentials for the server
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        _apiClient = await _clientManager.getClient(serverWithCredentials);
-      } else {
-        if (kDebugMode) {
-          print(
-            'AppProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-      // Load persisted app configs for offline access
-      await _loadPersistedAppConfigs();
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'AppProvider.setApiClient',
-      );
-      // Even if API client fails, load persisted configs for offline access
-      await _loadPersistedAppConfigs();
-    }
-    notifyListeners();
-  }
+  Future<void> setApiClient(NasServer server) => setServer(server);
 
   Future<void> loadApps() async {
     if (_currentServerId == null) return;
@@ -861,10 +797,7 @@ class AppProvider extends ChangeNotifier {
     // Clear cached resource usage
     _lastKnownResourceUsage.clear();
 
-    if (_currentServerId != null) {
-      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }

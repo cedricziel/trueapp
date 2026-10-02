@@ -4,36 +4,40 @@ import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/service_status.dart';
-import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/server_client_session.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
-import 'package:truehub/services/unified_server_service.dart';
 
 class HealthProvider extends ChangeNotifier {
-  final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
+  final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   List<Alert> _alerts = [];
   List<ServiceStatus> _services = [];
   ServerHealth? _serverHealth;
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
-  /// Bumped by every [setApiClient] call, so a client lookup or
-  /// [loadHealth] call for a server the caller has already switched away
-  /// from can tell its own result is stale and discard it instead of
-  /// overwriting the newer selection's client, alerts, or services.
+  /// Bumped by every [setApiClient] call, so a [loadHealth] call for a
+  /// server the caller has already switched away from can tell its own
+  /// result is stale and discard it instead of overwriting the newer
+  /// selection's alerts or services.
   int _generation = 0;
 
   HealthProvider(
-    this._serverService, {
+    ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+  }) : _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'HealthProvider',
+         clientManager: clientManager,
+         credentials: credentials,
+         telemetry: telemetryService,
+       );
+
+  ApiClientInterface? get _apiClient => _session.client;
 
   List<Alert> get alerts => _alerts;
 
@@ -49,62 +53,13 @@ class HealthProvider extends ChangeNotifier {
   String? get error => _connectionError?.shortMessage;
 
   Future<void> setApiClient(NasServer server) async {
-    final generation = ++_generation;
-
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    if (generation != _generation) {
-      // A later setApiClient() call already superseded this one while we
-      // awaited the release above - the newer call owns _currentServerId
-      // and the provider's state now, so this one must not touch either.
-      return;
-    }
-
-    _currentServerId = server.id;
-    _apiClient = null;
+    _generation++;
     _alerts = [];
     _services = [];
     _serverHealth = null;
     _connectionError = null;
 
-    try {
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        final client = await _clientManager.getClient(serverWithCredentials);
-        if (generation != _generation) {
-          // A later setApiClient() call already superseded this one while
-          // we awaited - release what we just checked out rather than
-          // installing a client for a server the caller has moved on from.
-          if (client != null) {
-            await _clientManager.releaseClient(server.id);
-          }
-          return;
-        }
-        _apiClient = client;
-      } else {
-        if (kDebugMode) {
-          print(
-            'HealthProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('HealthProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'HealthProvider.setApiClient',
-      );
-    }
+    if (!await _session.connect(server)) return;
     notifyListeners();
   }
 
@@ -156,10 +111,7 @@ class HealthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_currentServerId != null) {
-      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }

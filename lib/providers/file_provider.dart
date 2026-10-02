@@ -4,16 +4,13 @@ import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
+import 'package:truehub/services/server_client_session.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
-import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
 
 class FileProvider extends ChangeNotifier {
-  final UnifiedServerService _serverService;
-  final ApiClientManagerInterface _clientManager;
+  final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
-  ApiClientInterface? _apiClient;
-  String? _currentServerId;
   List<FileItem> _files = [];
   String _currentPath = '/';
   String _searchQuery = '';
@@ -21,11 +18,18 @@ class FileProvider extends ChangeNotifier {
   ConnectionError? _connectionError;
 
   FileProvider(
-    this._serverService, {
+    ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+  }) : _telemetryService = telemetryService,
+       _session = ServerClientSession(
+         owner: 'FileProvider',
+         clientManager: clientManager,
+         credentials: credentials,
+         telemetry: telemetryService,
+       );
+
+  ApiClientInterface? get _apiClient => _session.client;
 
   List<FileItem> get files => _files;
 
@@ -50,46 +54,12 @@ class FileProvider extends ChangeNotifier {
   }
 
   Future<void> setApiClient(NasServer server) async {
-    // Release previous client if any
-    if (_currentServerId != null) {
-      await _clientManager.releaseClient(_currentServerId!);
-    }
-
-    _currentServerId = server.id;
-    _apiClient = null;
     _files = [];
     _currentPath = '/';
     _searchQuery = '';
     _connectionError = null;
 
-    try {
-      // Load credentials for the server - NasServer as passed through
-      // navigation carries no password, so the client would otherwise
-      // authenticate with an empty one.
-      final serverWithCredentials = await ServerProvider.loadServerCredentials(
-        server,
-        _serverService,
-      );
-
-      if (serverWithCredentials != null) {
-        _apiClient = await _clientManager.getClient(serverWithCredentials);
-      } else {
-        if (kDebugMode) {
-          print(
-            'FileProvider: No credentials available for server ${server.id}',
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('FileProvider: Failed to get API client: $e');
-      }
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'FileProvider.setApiClient',
-      );
-    }
+    if (!await _session.connect(server)) return;
     notifyListeners();
   }
 
@@ -150,10 +120,7 @@ class FileProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_currentServerId != null) {
-      // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      _clientManager.releaseClient(_currentServerId!);
-    }
+    _session.dispose();
     super.dispose();
   }
 }
