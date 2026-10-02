@@ -52,7 +52,6 @@ void main() {
 
   Widget createTestApp(PoolProvider poolProvider) {
     return provideAppProviders(
-      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       poolProvider: poolProvider,

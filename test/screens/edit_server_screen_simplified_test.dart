@@ -68,7 +68,6 @@ void main() {
         CupertinoApp(
           home: MultiProvider(
             providers: [
-              Provider<AppDatabase>.value(value: database),
               Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
             ],
@@ -115,7 +114,6 @@ void main() {
                         CupertinoPageRoute(
                           builder: (context) => MultiProvider(
                             providers: [
-                              Provider<AppDatabase>.value(value: database),
                               Provider<UnifiedServerService>.value(
                                 value: unifiedServerService,
                               ),
@@ -180,7 +178,6 @@ void main() {
                         CupertinoPageRoute(
                           builder: (context) => MultiProvider(
                             providers: [
-                              Provider<AppDatabase>.value(value: database),
                               Provider<UnifiedServerService>.value(
                                 value: unifiedServerService,
                               ),
@@ -231,7 +228,6 @@ void main() {
         CupertinoApp(
           home: MultiProvider(
             providers: [
-              Provider<AppDatabase>.value(value: database),
               Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
             ],
@@ -289,7 +285,6 @@ void main() {
         CupertinoApp(
           home: MultiProvider(
             providers: [
-              Provider<AppDatabase>.value(value: database),
               Provider<UnifiedServerService>.value(value: unifiedServerService),
               ChangeNotifierProvider.value(value: serverProvider),
             ],
@@ -398,7 +393,6 @@ void main() {
   Widget createEditScreen({NasServer? server, NetworkService? networkService}) {
     return MultiProvider(
       providers: [
-        Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: serverProvider),
       ],

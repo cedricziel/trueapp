@@ -53,7 +53,6 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          Provider<AppDatabase>.value(value: database),
           Provider<UnifiedServerService>.value(value: unifiedServerService),
           ChangeNotifierProvider.value(value: connectionStatusProvider),
           ChangeNotifierProvider(

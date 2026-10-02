@@ -149,7 +149,6 @@ void main() {
 
   Widget createTestApp() {
     return provideAppProviders(
-      database: database,
       service: serverService,
       serverProvider: serverProvider,
       appProvider: appProvider,

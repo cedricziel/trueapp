@@ -40,7 +40,6 @@ import 'test_providers.dart';
 /// that created a provider is the test that must dispose it.
 Widget provideAppProviders({
   required Widget child,
-  required AppDatabase database,
   required UnifiedServerService service,
   required ServerProvider serverProvider,
   PoolProvider? poolProvider,
@@ -57,7 +56,6 @@ Widget provideAppProviders({
 }) {
   return MultiProvider(
     providers: [
-      Provider<AppDatabase>.value(value: database),
       Provider<UnifiedServerService>.value(value: service),
       ChangeNotifierProvider.value(value: serverProvider),
       poolProvider != null

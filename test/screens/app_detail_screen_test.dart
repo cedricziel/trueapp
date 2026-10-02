@@ -147,7 +147,6 @@ void main() {
         );
     addTearDown(fakeAppProvider.dispose);
     return provideAppProviders(
-      database: database,
       service: unifiedServerService,
       serverProvider: serverProvider,
       appProvider: fakeAppProvider,

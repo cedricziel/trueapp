@@ -120,7 +120,6 @@ void main() {
     final shown = server ?? testServer;
     return provideAppProviders(
       userProfileProvider: createUserProfileProvider(shown),
-      database: database,
       service: serverService,
       serverProvider: serverProvider,
       child: CupertinoApp(
@@ -405,7 +404,6 @@ void main() {
       await tester.pumpWidget(
         provideAppProviders(
           userProfileProvider: createUserProfileProvider(testServer),
-          database: database,
           service: serverService,
           serverProvider: serverProvider,
           child: CupertinoApp(

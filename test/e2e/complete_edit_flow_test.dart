@@ -87,7 +87,6 @@ void main() {
   Widget createTestApp(GoRouter router) {
     return MultiProvider(
       providers: [
-        Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         ChangeNotifierProvider.value(value: serverProvider),
         ChangeNotifierProvider.value(value: poolProvider),
