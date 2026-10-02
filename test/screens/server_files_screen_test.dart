@@ -91,9 +91,9 @@ void main() {
   ) async {
     useCompactSurface(tester);
     await tester.pumpWidget(createTestApp());
-    // Let the screen's own initState (setApiClient + loadFiles, both
+    // Let the screen's own initState (setServer + loadFiles, both
     // no-ops with no live server) settle before seeding test data -
-    // setApiClient resets the file list, so seeding first would race it.
+    // setServer resets the file list, so seeding first would race it.
     await tester.pumpAndSettle();
 
     fileProvider.debugSetFiles([

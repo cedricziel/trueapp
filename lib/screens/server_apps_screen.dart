@@ -31,7 +31,6 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final appProvider = context.read<AppProvider>();
-      await appProvider.setApiClient(widget.server);
       await appProvider.loadApps();
     });
   }

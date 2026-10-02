@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/job.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
@@ -12,7 +13,7 @@ import 'package:truehub/services/telemetry_service_interface.dart';
 /// "needs attention" state after it finished.
 const kJobFailureAttentionWindow = Duration(hours: 24);
 
-class JobsProvider extends ChangeNotifier {
+class JobsProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Job> _jobs = [];
@@ -25,13 +26,16 @@ class JobsProvider extends ChangeNotifier {
     ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'JobsProvider',
          clientManager: clientManager,
          credentials: credentials,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   ApiClientInterface? get _apiClient => _session.client;
 
@@ -67,7 +71,8 @@ class JobsProvider extends ChangeNotifier {
   /// state: nothing running right now, but something failed recently.
   bool get needsAttention => runningCount == 0 && recentFailures.isNotEmpty;
 
-  Future<void> setApiClient(NasServer server) async {
+  @override
+  Future<void> setServer(NasServer server) async {
     if (_apiClient != null) {
       await unsubscribeFromJobs();
     }
@@ -75,6 +80,8 @@ class JobsProvider extends ChangeNotifier {
   }
 
   Future<void> subscribeToJobs() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     if (_apiClient == null) {
       _setError('No API client configured');
       return;

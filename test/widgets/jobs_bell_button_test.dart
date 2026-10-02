@@ -102,7 +102,7 @@ void main() {
       _job(id: 1, state: 'RUNNING'),
       _job(id: 2, state: 'RUNNING'),
     ];
-    await provider.setApiClient(testServer);
+    await provider.setServer(testServer);
     await provider.subscribeToJobs();
 
     await tester.pumpWidget(_wrap(provider));
@@ -117,7 +117,7 @@ void main() {
       fakeClient.jobs = [
         _job(id: 1, state: 'FAILED', timeFinished: DateTime.now()),
       ];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
 
       await tester.pumpWidget(_wrap(provider));
@@ -134,7 +134,7 @@ void main() {
       _job(id: 1, state: 'FAILED', timeFinished: DateTime.now()),
       _job(id: 2, state: 'RUNNING'),
     ];
-    await provider.setApiClient(testServer);
+    await provider.setServer(testServer);
     await provider.subscribeToJobs();
 
     await tester.pumpWidget(_wrap(provider));

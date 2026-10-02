@@ -211,9 +211,9 @@ void main() {
     });
   });
 
-  group('AppProvider - setApiClient', () {
+  group('AppProvider - setServer', () {
     test('loads a client directly and persisted configs', () async {
-      await appProvider.setApiClient(testServer);
+      await appProvider.setServer(testServer);
       expect(appProvider.appConfigs, isEmpty);
     });
   });
@@ -524,7 +524,7 @@ void main() {
         fakeClient.availableApps = [];
         fakeClient.appCategories = [];
 
-        await cloudKitAppProvider.setApiClient(testServer);
+        await cloudKitAppProvider.setServer(testServer);
         await cloudKitAppProvider.loadApps();
 
         expect(cloudKitAppProvider.connectionError, isNull);
@@ -543,7 +543,7 @@ void main() {
         // is untouched by that deletion, so the sync still runs to
         // completion - it must not write the anchor (or any app_configs)
         // back for a server that no longer exists anywhere.
-        await appProvider.setApiClient(testServer);
+        await appProvider.setServer(testServer);
         fakeClient.installedApps = [_sampleApp(name: 'ix-app')];
         fakeClient.availableApps = [];
         fakeClient.appCategories = [];

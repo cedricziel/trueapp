@@ -24,7 +24,6 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final fileProvider = context.read<FileProvider>();
-      await fileProvider.setApiClient(widget.server);
       await fileProvider.loadFiles('/');
     });
   }

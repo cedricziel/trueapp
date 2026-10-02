@@ -162,9 +162,9 @@ void main() {
     });
   });
 
-  group('DatasetProvider - setApiClient', () {
+  group('DatasetProvider - setServer', () {
     test('loads a client directly from a server', () async {
-      await datasetProvider.setApiClient(testServer);
+      await datasetProvider.setServer(testServer);
 
       fakeClient.datasets = [
         {'id': 'tank/data', 'name': 'tank/data'},
@@ -182,7 +182,7 @@ void main() {
         password: 'password',
       );
 
-      await datasetProvider.setApiClient(orphanServer);
+      await datasetProvider.setServer(orphanServer);
       await datasetProvider.loadDatasets();
 
       expect(datasetProvider.datasets, isEmpty);
@@ -191,7 +191,7 @@ void main() {
     test('swallows a getClient failure and reports it to telemetry', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await datasetProvider.setApiClient(testServer);
+      await datasetProvider.setServer(testServer);
 
       expect(datasetProvider.datasets, isEmpty);
       expect(telemetryService.recordedErrors, hasLength(1));

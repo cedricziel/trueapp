@@ -231,7 +231,7 @@ void main() {
         await TestProviders.cleanupTestEnvironment();
       });
 
-      await provider.setApiClient(server);
+      await provider.setServer(server);
       // subscribeToStats() suspends on _SlowFakeApiClient's gate, so the
       // provider stays in its loading state for as long as this test needs.
       final pending = provider.subscribeToStats();
@@ -253,7 +253,7 @@ void main() {
       final harness = await _buildHarness();
       addTearDown(harness.dispose);
 
-      // No credentials saved for this server, so `setApiClient` leaves the
+      // No credentials saved for this server, so `setServer` leaves the
       // client unset and `subscribeToStats` reports the "No API client
       // configured" error synchronously.
       final orphan = NasServer.create(
@@ -262,7 +262,7 @@ void main() {
         username: 'admin',
         password: 'password',
       );
-      await harness.provider.setApiClient(orphan);
+      await harness.provider.setServer(orphan);
       await harness.provider.subscribeToStats();
 
       useCompactSurface(tester);
@@ -283,7 +283,7 @@ void main() {
   group('SystemStatsWidget - populated state', () {
     Future<_Harness> subscribedHarness() async {
       final harness = await _buildHarness();
-      await harness.provider.setApiClient(harness.server);
+      await harness.provider.setServer(harness.server);
       await harness.provider.subscribeToStats();
       return harness;
     }

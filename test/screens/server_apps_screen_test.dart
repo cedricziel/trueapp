@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/server_apps_screen.dart';
+import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
@@ -105,11 +107,6 @@ void main() {
     serverProvider = await TestProviders.createSettledServerProvider(
       serverService,
     );
-    appProvider = AppProvider(
-      clientManager: TestProviders.mockApiClientManager,
-      database: database,
-      serverService: serverService,
-    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -124,6 +121,13 @@ void main() {
       password: 'password',
     );
     TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
+    appProvider = AppProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      database: database,
+      serverService: serverService,
+      activeServer: ActiveServer(testServer).listenable,
+    );
+    await appProvider.pendingServerSwitch;
   });
 
   tearDown(() async {
@@ -133,6 +137,15 @@ void main() {
       database: database,
     );
   });
+
+  /// Reconnects [appProvider] so it uses [client] instead of the
+  /// [FakeApiClient] it connected to in `setUp`.
+  Future<void> useClient(WidgetTester tester, ApiClientInterface client) =>
+      tester.runAsync(() async {
+        await appProvider.setServer(null);
+        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
+        await appProvider.setServer(testServer);
+      });
 
   Widget createTestApp() {
     return provideAppProviders(
@@ -145,12 +158,12 @@ void main() {
   }
 
   /// Waits for the screen's `initState` post-frame callback to finish
-  /// `setApiClient` + `loadApps` - both cross real drift/keychain I/O, so
+  /// `setServer` + `loadApps` - both cross real drift/keychain I/O, so
   /// this must use [pumpUntilAsync] rather than a plain `pump` (see
   /// pump_helpers.dart's doc comment).
   ///
   /// `!appProvider.isLoading` alone is not a safe condition to poll: it is
-  /// also true before the load has even started (`setApiClient` awaits real
+  /// also true before the load has even started (`setServer` awaits real
   /// I/O before `loadApps` ever flips `isLoading`), so a naive wait can
   /// resolve immediately and race the real load. This instead waits for an
   /// observed true -> false transition of `isLoading`, proving a full load
@@ -518,14 +531,12 @@ void main() {
       ];
       gatedClient.availableApps = [];
       gatedClient.appCategories = [];
-      TestProviders.mockApiClientManager.addMockClient(
-        testServer.id,
-        gatedClient,
-      );
+      await useClient(tester, gatedClient);
       addTearDown(gatedClient.dispose);
 
       await tester.pumpWidget(createTestApp());
       await pumpUntilAsync(tester, () => appProvider.isLoading);
+      await tester.pump();
 
       expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
       expect(find.byType(AppCardWidget), findsNothing);
@@ -551,10 +562,7 @@ void main() {
           _app(name: 'radarr', title: 'Radarr', installed: false),
         ];
         gatedClient.appCategories = [];
-        TestProviders.mockApiClientManager.addMockClient(
-          testServer.id,
-          gatedClient,
-        );
+        await useClient(tester, gatedClient);
         addTearDown(gatedClient.dispose);
 
         await tester.pumpWidget(createTestApp());

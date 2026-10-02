@@ -24,7 +24,6 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final healthProvider = context.read<HealthProvider>();
-      await healthProvider.setApiClient(widget.server);
       await healthProvider.loadHealth();
     });
   }

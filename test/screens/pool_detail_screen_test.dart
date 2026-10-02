@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/dataset_provider.dart';
@@ -32,10 +33,6 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    datasetProvider = DatasetProvider(
-      clientManager: TestProviders.mockApiClientManager,
-      serverService,
-    );
     jobsProvider = JobsProvider(
       clientManager: TestProviders.mockApiClientManager,
       serverService,
@@ -54,6 +51,12 @@ void main() {
       password: 'password',
     );
     TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
+    datasetProvider = DatasetProvider(
+      serverService,
+      clientManager: TestProviders.mockApiClientManager,
+      activeServer: ActiveServer(testServer).listenable,
+    );
+    await datasetProvider.pendingServerSwitch;
   });
 
   tearDown(() async {

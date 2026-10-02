@@ -137,9 +137,9 @@ void main() {
     });
   });
 
-  group('SystemStatsProvider - setApiClient', () {
+  group('SystemStatsProvider - setServer', () {
     test('with a known server obtains an API client', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       // Proven indirectly: subscribing now succeeds instead of failing with
       // "No API client configured".
       await provider.subscribeToStats();
@@ -155,7 +155,7 @@ void main() {
         password: 'password',
       );
 
-      await provider.setApiClient(orphanServer);
+      await provider.setServer(orphanServer);
       await provider.subscribeToStats();
 
       expect(provider.isSubscribed, isFalse);
@@ -165,7 +165,7 @@ void main() {
     test('swallows a getClient failure', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
 
       expect(provider.isSubscribed, isFalse);
@@ -178,7 +178,7 @@ void main() {
     });
 
     test('unsubscribes from a previous client before switching', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       expect(provider.isSubscribed, isTrue);
 
@@ -197,7 +197,7 @@ void main() {
         FakeApiClient(),
       );
 
-      await provider.setApiClient(secondServer);
+      await provider.setServer(secondServer);
 
       expect(provider.isSubscribed, isFalse);
       expect(
@@ -214,7 +214,7 @@ void main() {
       // disconnect) before the caller switches servers, _isSubscribed is
       // already false, so unsubscribeFromStats()'s own early-return guard
       // would otherwise skip clearing history entirely.
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       fakeClient.emitSystemStats(_sampleStats(cpuUsage: 80));
       await Future<void>.delayed(Duration.zero);
@@ -242,7 +242,7 @@ void main() {
       var notified = false;
       provider.addListener(() => notified = true);
 
-      await provider.setApiClient(secondServer);
+      await provider.setServer(secondServer);
 
       expect(provider.cpuHistory, isEmpty);
       expect(provider.memoryHistory, isEmpty);
@@ -257,7 +257,7 @@ void main() {
 
   group('SystemStatsProvider - subscribeToStats', () {
     test('subscribes and receives stats through the stream', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       var notifications = 0;
       provider.addListener(() => notifications++);
@@ -281,7 +281,7 @@ void main() {
     });
 
     test('is idempotent when already subscribed', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       final callsAfterFirst = fakeClient.calls
           .where((c) => c == 'subscribeToSystemStats')
@@ -302,7 +302,7 @@ void main() {
     });
 
     test('a subscribeToSystemStats failure sets an error', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       fakeClient.failingMethods.add('subscribeToSystemStats');
 
       await provider.subscribeToStats();
@@ -318,7 +318,7 @@ void main() {
     });
 
     test('a stream error surfaces through error state', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
 
       fakeClient.emitSystemStats(_sampleStats());
@@ -329,7 +329,7 @@ void main() {
 
   group('SystemStatsProvider - unsubscribeFromStats', () {
     test('clears stats and subscription state', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       fakeClient.emitSystemStats(_sampleStats());
       await Future<void>.delayed(Duration.zero);
@@ -350,7 +350,7 @@ void main() {
     });
 
     test('tolerates an unsubscribe failure from the client', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       fakeClient.failingMethods.add('unsubscribeFromSystemStats');
 
@@ -371,7 +371,7 @@ void main() {
 
   group('SystemStatsProvider - refreshStats', () {
     test('starts a subscription when not yet subscribed', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       await provider.refreshStats();
 
@@ -379,7 +379,7 @@ void main() {
     });
 
     test('just clears the error when already subscribed', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
       final callsBefore = fakeClient.calls
           .where((c) => c == 'subscribeToSystemStats')
@@ -397,7 +397,7 @@ void main() {
 
   group('SystemStatsProvider - cpuCores', () {
     test('returns cores sorted by key', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToStats();
 
       final stats = SystemStats(
@@ -460,7 +460,7 @@ void main() {
         clientManager: TestProviders.mockApiClientManager,
         serverService,
       );
-      await scoped.setApiClient(testServer);
+      await scoped.setServer(testServer);
       await scoped.subscribeToStats();
 
       scoped.dispose();

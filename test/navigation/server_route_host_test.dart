@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/navigation/server_route_host.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_server_lookup.dart';
 import '../helpers/mock_server_sync_service.dart';
@@ -47,6 +48,41 @@ void main() {
       ),
     );
   }
+
+  testWidgets('publishes the resolved server as the active server', (
+    WidgetTester tester,
+  ) async {
+    final registered = server();
+    await service.saveServerConfig(server: registered, password: 'pw');
+    final activeServer = ActiveServer();
+
+    await tester.pumpWidget(
+      Provider<ActiveServer>.value(
+        value: activeServer,
+        child: host(serverId: registered.id),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(activeServer.value?.id, registered.id);
+  });
+
+  testWidgets('publishes a matching cached server straight away', (
+    WidgetTester tester,
+  ) async {
+    final cached = server();
+    final activeServer = ActiveServer();
+
+    await tester.pumpWidget(
+      Provider<ActiveServer>.value(
+        value: activeServer,
+        child: host(serverId: cached.id, cachedServer: cached),
+      ),
+    );
+
+    expect(activeServer.value, same(cached));
+  });
 
   testWidgets('renders the cached server on the very first frame, without the '
       'loading placeholder', (WidgetTester tester) async {

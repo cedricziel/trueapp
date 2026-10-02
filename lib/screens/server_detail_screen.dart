@@ -54,23 +54,14 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       if (serverProvider.isAuthenticated) {
         await serverProvider.loadCurrentUser();
 
-        // Set up other providers
-        await poolProvider.setApiClient(widget.server);
         await poolProvider.loadPools();
-
-        await appProvider.setApiClient(widget.server);
         await appProvider.loadApps();
-
-        await systemStatsProvider.setApiClient(widget.server);
         await systemStatsProvider.subscribeToStats();
 
         // Subscribed here (rather than in ServerJobsScreen) so the nav bar
         // bell keeps reflecting job state on every screen pushed on top of
         // this one, not just while the Jobs screen itself is open.
-        await jobsProvider.setApiClient(widget.server);
         await jobsProvider.subscribeToJobs();
-
-        await healthProvider.setApiClient(widget.server);
         await healthProvider.loadHealth();
       }
     });

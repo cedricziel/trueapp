@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/navigation/server_route_resolver.dart';
 import 'package:truehub/navigation/shell_navigation_leading.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/services/server_lookup.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -32,6 +33,7 @@ class ServerRouteHost extends StatefulWidget {
     required this.builder,
     this.cachedServer,
     this.lookup,
+    this.activeServer,
   });
 
   /// The `serverId` path parameter of the route being hosted.
@@ -48,6 +50,11 @@ class ServerRouteHost extends StatefulWidget {
   /// `FakeServerLookup` - without registering a full [UnifiedServerService]
   /// with the widget tree.
   final ServerLookup? lookup;
+
+  /// Receives every server this route resolves, so per-server providers
+  /// follow the screen the user is looking at. Defaults to the [ActiveServer]
+  /// registered with the widget tree, if any.
+  final ActiveServer? activeServer;
 
   /// Builds the routed screen once [serverId] has resolved to a server.
   final Widget Function(BuildContext context, NasServer server) builder;
@@ -75,6 +82,7 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
     super.initState();
     _resolved = _matchingCachedServer();
     _hasEverResolved = _resolved != null;
+    _publish(_resolved);
     _listen();
   }
 
@@ -88,8 +96,15 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
         _resolved = _matchingCachedServer();
       });
       _hasEverResolved = _resolved != null;
+      _publish(_resolved);
       _listen();
     }
+  }
+
+  void _publish(NasServer? server) {
+    if (server == null) return;
+    final activeServer = widget.activeServer ?? context.read<ActiveServer?>();
+    activeServer?.value = server;
   }
 
   NasServer? _matchingCachedServer() {
@@ -111,6 +126,7 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
               setState(() {
                 _resolved = server;
               });
+              _publish(server);
             case ServerUnknown():
               _handleUnknown();
           }
@@ -151,6 +167,7 @@ class _ServerRouteHostState extends State<ServerRouteHost> {
       setState(() {
         _resolved = confirmed;
       });
+      _publish(confirmed);
       return;
     }
 

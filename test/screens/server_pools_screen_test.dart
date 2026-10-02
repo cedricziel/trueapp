@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/pool_provider.dart';
@@ -60,7 +61,7 @@ void main() {
   }
 
   /// Registers [fakeClient] as the server's API client so the screen's own
-  /// `setApiClient` + `loadPools()` in `initState` drive a real
+  /// `setServer` + `loadPools()` in `initState` drive a real
   /// `PoolProvider` through the mocked network path, rather than seeding a
   /// fake provider's getters directly.
   Future<PoolProvider> realPoolProvider(FakeApiClient fakeClient) async {
@@ -72,6 +73,7 @@ void main() {
     return PoolProvider(
       unifiedServerService,
       clientManager: TestProviders.mockApiClientManager,
+      activeServer: ActiveServer(testServer).listenable,
     );
   }
 
@@ -79,7 +81,7 @@ void main() {
     testWidgets('shows an activity indicator while pools are loading', (
       tester,
     ) async {
-      // `isLoading` only flips true once real async work (setApiClient's
+      // `isLoading` only flips true once real async work (setServer's
       // keychain lookup, then loadPools) actually progresses, which a plain
       // `pump()` inside the FakeAsync test zone can't drive - catching that
       // exact transient frame would be racy. A provider whose `isLoading`
