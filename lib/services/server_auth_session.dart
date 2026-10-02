@@ -101,7 +101,13 @@ class ServerAuthSession extends ChangeNotifier {
     _error = null;
   }
 
-  void replaceServer(NasServer server) => _server = server;
+  /// Swaps in a refreshed copy of the selected server. A copy of a server
+  /// that is no longer selected is dropped, because the held client belongs
+  /// to the current one.
+  void replaceServer(NasServer server) {
+    if (_server?.id != server.id) return;
+    _server = server;
+  }
 
   void clearServer() {
     _server = null;

@@ -240,4 +240,35 @@ void main() {
     );
     expect(await done, isTrue);
   });
+
+  group('replaceServer', () {
+    test('swaps in the refreshed copy of the selected server', () async {
+      await session.connect(testServer);
+
+      session.replaceServer(testServer.copyWith(name: 'Renamed'));
+
+      expect(session.server?.name, 'Renamed');
+    });
+
+    test('ignores a refresh of a server that is no longer selected', () async {
+      final other = NasServer.create(
+        name: 'Other',
+        host: '192.168.1.102',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(server: other, password: 'password');
+      TestProviders.mockApiClientManager.addMockClient(
+        other.id,
+        FakeApiClient(),
+      );
+      await session.connect(testServer);
+      await session.connect(other);
+
+      session.replaceServer(testServer.copyWith(name: 'Stale'));
+
+      expect(session.server?.id, other.id);
+      expect(session.client, isNotNull);
+    });
+  });
 }
