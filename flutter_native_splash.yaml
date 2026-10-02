@@ -1,0 +1,13 @@
+flutter_native_splash:
+  # Match CupertinoColors.systemBackground so launch flows into the app without a flash.
+  color: "#FFFFFF"
+  color_dark: "#000000"
+  image: assets/branding/logo.png
+  # Only one logo exists and its blue tile reads on both backgrounds.
+  image_dark: assets/branding/logo.png
+  ios_content_mode: center
+
+  # flutter_native_splash supports only Android, iOS and web.
+  ios: true
+  android: false
+  web: false
