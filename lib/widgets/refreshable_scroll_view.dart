@@ -24,7 +24,7 @@ class RefreshableScrollView extends StatelessWidget {
     slivers: [
       SliverPadding(
         padding: padding,
-        sliver: SliverList(delegate: SliverChildListDelegate(children)),
+        sliver: SliverList.list(children: children),
       ),
     ],
   );
@@ -42,11 +42,9 @@ class RefreshableScrollView extends StatelessWidget {
     slivers: [
       SliverPadding(
         padding: padding,
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            itemBuilder,
-            childCount: itemCount,
-          ),
+        sliver: SliverList.builder(
+          itemCount: itemCount,
+          itemBuilder: itemBuilder,
         ),
       ),
     ],
