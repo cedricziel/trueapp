@@ -1,4 +1,3 @@
-import 'package:truehub/services/tray_status_ports.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +14,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
 final _log = appLogger('providers.app');
 

@@ -1,5 +1,5 @@
-import 'package:truehub/services/tray_status_ports.dart';
 import 'package:flutter/foundation.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
 enum TrueNASConnectionState {
   disconnected,
