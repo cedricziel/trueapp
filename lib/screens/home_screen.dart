@@ -10,7 +10,6 @@ import 'package:truehub/widgets/app_logo.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
 import 'package:truehub/widgets/server_list_tile.dart';
-import 'package:truehub/widgets/session_indicator_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -102,14 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Servers'),
-            const SizedBox(width: 8),
-            const SessionIndicatorWidget(),
-          ],
-        ),
+        middle: const Text('Servers'),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.add),

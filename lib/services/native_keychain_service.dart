@@ -48,11 +48,4 @@ class NativeKeychainService implements plugins.KeychainServiceInterface {
   Future<List<String>> debugListStoredServerIds() async {
     return await getAllServerIds();
   }
-
-  /// Debug method to check if password exists with old flutter_secure_storage pattern
-  /// This is handled by the plugin layer now
-  Future<String?> debugGetPasswordWithOldPattern(String serverId) async {
-    // This functionality would need to be added to the plugin if needed
-    return null;
-  }
 }

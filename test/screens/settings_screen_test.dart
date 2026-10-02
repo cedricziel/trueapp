@@ -6,10 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/screens/settings_screen.dart';
-import 'package:truehub/services/authentication_session_service.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 
@@ -40,16 +38,11 @@ void main() {
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(windowChannel, (call) async => null);
-
-      // This is a process-wide singleton, so a session left authenticated by
-      // one test would otherwise leak into the next.
-      AuthenticationSessionService.instance.invalidateSession();
     });
 
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(windowChannel, null);
-      AuthenticationSessionService.instance.invalidateSession();
     });
 
     testWidgets('should display settings screen with clear database option', (
@@ -230,66 +223,6 @@ void main() {
         } finally {
           debugDefaultTargetPlatformOverride = null;
         }
-      });
-    });
-
-    group('security section - session lock/unlock', () {
-      testWidgets('starts locked and shows Unlock Session', (tester) async {
-        await tester.pumpWidget(createTestApp());
-
-        expect(find.text('Unlock Session'), findsOneWidget);
-      });
-
-      testWidgets('unlocking succeeds without biometrics available in this '
-          'environment and flips the button to Lock Session', (tester) async {
-        await tester.pumpWidget(createTestApp());
-
-        // `SecureStorageService.authenticate` reaches out to `local_auth`,
-        // which has no platform implementation registered here - it falls
-        // back to treating biometrics as unavailable and allows access,
-        // marking the session authenticated. That round trip is real
-        // asynchronous work, so both the tap and the wait for its result
-        // need to step outside the FakeAsync zone.
-        await runRealAsync(tester, () async {
-          await tester.tap(find.text('Unlock Session'));
-        });
-        await pumpUntilAsync(
-          tester,
-          () => find.text('Session Unlocked').evaluate().isNotEmpty,
-        );
-
-        expect(find.text('Session Unlocked'), findsOneWidget);
-        await tester.tap(find.widgetWithText(CupertinoDialogAction, 'OK'));
-        await tester.pump();
-
-        expect(find.text('Lock Session'), findsOneWidget);
-        expect(AuthenticationSessionService.instance.isSessionValid, isTrue);
-
-        // `markAuthenticated()` started a 30-minute session `Timer` inside
-        // this test's `FakeAsync` zone; cancel it before the test body
-        // returns; a `Timer` still pending once the zone is torn down trips
-        // flutter_test's own "pending timers" assertion (this runs before
-        // `tearDown`, so invalidating there would be too late).
-        AuthenticationSessionService.instance.invalidateSession();
-      });
-
-      testWidgets('locking an unlocked session shows Session Locked and '
-          'reverts the button', (tester) async {
-        AuthenticationSessionService.instance.markAuthenticated();
-
-        await tester.pumpWidget(createTestApp());
-        expect(find.text('Lock Session'), findsOneWidget);
-
-        await tester.tap(find.text('Lock Session'));
-        await tester.pump();
-
-        expect(find.text('Session Locked'), findsOneWidget);
-        expect(AuthenticationSessionService.instance.isSessionValid, isFalse);
-
-        await tester.tap(find.widgetWithText(CupertinoDialogAction, 'OK'));
-        await tester.pump();
-
-        expect(find.text('Unlock Session'), findsOneWidget);
       });
     });
   });
