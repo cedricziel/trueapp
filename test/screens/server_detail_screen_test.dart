@@ -14,6 +14,7 @@ import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/screens/server_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import '../helpers/fake_api_client.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/provider_scope.dart';
@@ -96,7 +97,7 @@ void main() {
       // RenderFlex overflow is only reported at paint time, so a Row below
       // the fold of the ListView never reports until it is scrolled into
       // view.
-      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
       await tester.pump();
 
       expectNoLayoutOverflow(tester);
@@ -231,7 +232,7 @@ void main() {
       );
       expectNoLayoutOverflow(tester);
 
-      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
       await tester.pump();
 
       expectNoLayoutOverflow(tester);
@@ -361,6 +362,45 @@ void main() {
     expect(find.text('1 active'), findsOneWidget);
   });
 
+  testWidgets('dragging the dashboard down refreshes pools and health', (
+    WidgetTester tester,
+  ) async {
+    useSurface(tester, tallCompactSurface);
+
+    TestProviders.mockApiClientManager.addMockClient(
+      testServer.id,
+      FakeApiClient(),
+    );
+    await tester.runAsync(() async {
+      await serverProvider.addServer(testServer, 'password');
+      await TestProviders.settlePendingLoads(serverProvider);
+      await serverProvider.selectServer(testServer);
+    });
+    final poolProvider = _FakePoolProvider(unifiedServerService, []);
+    final healthProvider = _FakeHealthProvider(unifiedServerService, []);
+    addTearDown(poolProvider.dispose);
+    addTearDown(healthProvider.dispose);
+
+    await tester.pumpWidget(
+      provideAppProviders(
+        database: database,
+        service: unifiedServerService,
+        serverProvider: serverProvider,
+        poolProvider: poolProvider,
+        healthProvider: healthProvider,
+        child: CupertinoApp(home: ServerDetailScreen(server: testServer)),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('Storage Pools'));
+    final poolRefreshesBefore = poolProvider.refreshCount;
+    final healthRefreshesBefore = healthProvider.refreshCount;
+
+    await pullToRefresh(tester, finder: find.byType(CustomScrollView));
+
+    expect(poolProvider.refreshCount, poolRefreshesBefore + 1);
+    expect(healthProvider.refreshCount, healthRefreshesBefore + 1);
+  });
+
   testWidgets('hides the alert banner and shows "All clear" when there are '
       'no active alerts', (WidgetTester tester) async {
     useSurface(tester, tallCompactSurface);
@@ -405,6 +445,11 @@ class _FakeHealthProvider extends HealthProvider {
     : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Alert> _seedAlerts;
+
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshHealth() async => refreshCount++;
 
   @override
   List<Alert> get alerts => _seedAlerts;
@@ -455,6 +500,11 @@ class _FakePoolProvider extends PoolProvider {
     : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Pool> _seedPools;
+
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshPools() async => refreshCount++;
 
   @override
   List<Pool> get pools => _seedPools;
