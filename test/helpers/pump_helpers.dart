@@ -178,3 +178,18 @@ Future<T?> runRealAsync<T>(
   await tester.pump();
   return result;
 }
+
+/// Drags the first (or [finder]-matched) vertical [Scrollable] down far
+/// enough to trigger a `CupertinoSliverRefreshControl`, then pumps a bounded
+/// amount of virtual time so the refresh callback and the indicator's
+/// collapse animation both complete.
+Future<void> pullToRefresh(WidgetTester tester, {Finder? finder}) async {
+  await tester.fling(
+    finder ?? find.byType(Scrollable).first,
+    const Offset(0, 300),
+    1000,
+  );
+  for (var i = 0; i < 40; i++) {
+    await tester.pump(kPumpStep);
+  }
+}

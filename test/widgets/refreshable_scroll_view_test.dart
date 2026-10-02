@@ -1,16 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/widgets/refreshable_scroll_view.dart';
+import '../helpers/pump_helpers.dart';
 
 void main() {
   Widget host(Widget child) => CupertinoApp(home: child);
-
-  Future<void> pullDown(WidgetTester tester) async {
-    await tester.fling(find.byType(Scrollable), const Offset(0, 300), 1000);
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
-  }
 
   testWidgets('pulling down a list invokes onRefresh once', (tester) async {
     var refreshes = 0;
@@ -23,7 +17,7 @@ void main() {
       ),
     );
 
-    await pullDown(tester);
+    await pullToRefresh(tester);
 
     expect(refreshes, 1);
     expect(find.text('first'), findsOneWidget);
@@ -41,7 +35,7 @@ void main() {
       ),
     );
 
-    await pullDown(tester);
+    await pullToRefresh(tester);
 
     expect(refreshes, 1);
     expect(find.text('item 2'), findsOneWidget);
@@ -58,7 +52,7 @@ void main() {
       ),
     );
 
-    await pullDown(tester);
+    await pullToRefresh(tester);
 
     expect(refreshes, 1);
   });
@@ -75,7 +69,7 @@ void main() {
       ),
     );
 
-    await pullDown(tester);
+    await pullToRefresh(tester);
 
     expect(tester.takeException(), isNull);
     expect(find.text('only'), findsOneWidget);
