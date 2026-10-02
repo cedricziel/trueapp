@@ -5,7 +5,7 @@ import '../helpers/repo_files.dart';
 /// The keychain plugins store passwords with `kSecAttrSynchronizable = true`
 /// (iCloud Keychain sync). Apple's keychain matching EXCLUDES synchronizable
 /// items from any query that does not itself carry a `kSecAttrSynchronizable`
-/// key, so every read or update query in the plugin must pass
+/// key, so every read, update or delete query in the plugin must pass
 /// `kSecAttrSynchronizableAny` — otherwise a just-saved password is invisible
 /// (errSecItemNotFound) and the app dead-ends on "Authentication Required".
 ///
@@ -20,16 +20,16 @@ void main() {
   for (final path in plugins) {
     group(path, () {
       test(
-        'every SecItemCopyMatching/SecItemUpdate query handles synchronizable items',
+        'every SecItemCopyMatching/SecItemUpdate/SecItemDelete query handles synchronizable items',
         () {
           final source = repo.read(path);
           final callSites = RegExp(
-            r'SecItem(CopyMatching|Update)\(',
+            r'SecItem(CopyMatching|Update|Delete)\(',
           ).allMatches(source).toList();
           expect(
             callSites,
             isNotEmpty,
-            reason: 'expected keychain read/update call sites in $path',
+            reason: 'expected keychain read/update/delete call sites in $path',
           );
 
           for (final call in callSites) {
