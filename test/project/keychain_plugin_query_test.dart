@@ -9,15 +9,12 @@ import '../helpers/repo_files.dart';
 /// `kSecAttrSynchronizableAny` — otherwise a just-saved password is invisible
 /// (errSecItemNotFound) and the app dead-ends on "Authentication Required".
 ///
-/// The macOS copy of the plugin has carried this attribute all along, which is
-/// why the bug never surfaced in desktop development; the iOS copy shipped
-/// without it in v0.1.0. This guard keeps both copies honest.
+/// iOS and macOS share this one source file (`sharedDarwinSource`).
 void main() {
   final repo = LocalRepoFileReader();
 
   const plugins = [
-    'packages/truenas_native_plugins/ios/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
-    'packages/truenas_native_plugins/macos/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
+    'packages/truenas_native_plugins/darwin/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
   ];
 
   for (final path in plugins) {

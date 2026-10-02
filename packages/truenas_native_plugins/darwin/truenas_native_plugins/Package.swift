@@ -5,6 +5,7 @@ let package = Package(
     name: "truenas_native_plugins",
     platforms: [
         .iOS("13.0"),
+        .macOS("10.15"),
     ],
     products: [
         .library(name: "truenas-native-plugins", targets: ["truenas_native_plugins"]),
