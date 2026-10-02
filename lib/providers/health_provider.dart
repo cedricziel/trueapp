@@ -10,8 +10,11 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
-class HealthProvider extends ChangeNotifier with ActiveServerFollower {
+class HealthProvider extends ChangeNotifier
+    with ActiveServerFollower
+    implements TrayHealthSource {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Alert> _alerts = [];
@@ -55,6 +58,9 @@ class HealthProvider extends ChangeNotifier with ActiveServerFollower {
   bool get isLoading => _isLoading;
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
+
+  @override
+  String? get healthError => error;
 
   @override
   Future<void> setServer(NasServer server) async {

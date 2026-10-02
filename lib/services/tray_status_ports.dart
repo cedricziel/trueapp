@@ -22,9 +22,11 @@ abstract interface class TrayStatusSink {
 abstract interface class TrayServerSource implements Listenable {
   List<NasServer> get servers;
 
-  String? get healthError;
-
   Future<void> refreshSelectedServer();
+}
+
+abstract interface class TrayHealthSource implements Listenable {
+  String? get healthError;
 }
 
 abstract interface class TrayConnectionSource implements Listenable {

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
-import 'package:truehub/models/server_health.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
@@ -50,9 +49,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   String? _authError;
 
   bool _isLoadingServers = true;
-  ServerHealth? _serverHealth;
-  bool _isLoadingHealth = false;
-  String? _healthError;
 
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
   bool _disposed = false;
@@ -110,11 +106,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
       _authState == AuthenticationState.authenticated && _apiClient != null;
   bool get requiresAuthentication => _authState == AuthenticationState.required;
   bool get isAuthenticating => _authState == AuthenticationState.authenticating;
-
-  ServerHealth? get serverHealth => _serverHealth;
-  bool get isLoadingHealth => _isLoadingHealth;
-  @override
-  String? get healthError => _healthError;
 
   Future<void> _loadServers() async {
     try {
@@ -286,8 +277,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
     _apiClient = null;
     _authState = AuthenticationState.none;
     _authError = null;
-    _serverHealth = null;
-    _healthError = null;
   }
 
   void _emitAuthStatus() {
@@ -428,32 +417,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
 
     _emitAuthStatus();
     notifyListeners();
-
-    if (_authState == AuthenticationState.authenticated) {
-      await loadServerHealth();
-    }
-  }
-
-  Future<void> loadServerHealth() async {
-    if (_apiClient == null) return;
-
-    _isLoadingHealth = true;
-    _healthError = null;
-    notifyListeners();
-
-    try {
-      _serverHealth = await _apiClient!.getServerHealth();
-    } catch (e, stackTrace) {
-      _healthError = e.toString();
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'ServerProvider.loadServerHealth',
-      );
-    } finally {
-      _isLoadingHealth = false;
-      notifyListeners();
-    }
   }
 
   Future<bool> testServerConnection(models.NasServer server) async {

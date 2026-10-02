@@ -7,6 +7,7 @@ import 'package:truehub/app_dependencies.dart';
 import 'package:truehub/app_providers.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
+import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
@@ -39,6 +40,15 @@ class TrueNASManagerApp extends StatefulWidget {
 }
 
 class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
+  Future<void> _refreshAfterResume(BuildContext context) async {
+    final servers = context.read<ServerProvider>();
+    final health = context.read<HealthProvider>();
+    await servers.refreshConnection();
+    if (servers.currentAuthStatus.isAuthenticated) {
+      await health.refreshHealth();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // No timer runs while the process is suspended, so a connection the OS
@@ -48,13 +58,14 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       isDesktop: Platform.isMacOS || Platform.isWindows || Platform.isLinux,
       tray: context.read<TrayProvider>(),
       serverSource: context.read<ServerProvider>(),
+      healthSource: context.read<HealthProvider>(),
       appsSource: context.read<AppProvider>(),
       connectionSource: context.read<ConnectionStatusProvider>(),
       onShowWindow: WindowManager.showWindow,
       onQuitApp: WindowManager.quitApp,
       child: AppLifecycleReconnector(
         onResumed: () {
-          unawaited(context.read<ServerProvider>().refreshConnection());
+          unawaited(_refreshAfterResume(context));
         },
         child: CupertinoApp.router(
           title: 'TrueNAS Manager',

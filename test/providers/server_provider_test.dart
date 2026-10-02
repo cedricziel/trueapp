@@ -453,13 +453,6 @@ void main() {
       expect(serverProvider.isAuthenticating, isA<bool>());
     });
 
-    test('should handle server health', () async {
-      // Test initial state
-      expect(serverProvider.serverHealth, isNull);
-      expect(serverProvider.isLoadingHealth, isFalse);
-      expect(serverProvider.healthError, isNull);
-    });
-
     test('should handle server list operations', () async {
       // Test initial server list
       expect(serverProvider.servers, isA<List<NasServer>>());
@@ -646,38 +639,6 @@ void main() {
         );
       },
     );
-
-    test('a failure loading server health is reported to telemetry', () async {
-      // A dedicated provider whose first (and only) selectServer() call
-      // picks up the mock client: `selectServer` unconditionally releases
-      // whatever client the *previous* selection held (see the comment on
-      // "should close the cached API client when a server is deleted"
-      // above), so reusing the already-selected `serverProvider` here would
-      // have this release wipe the mock client out before loadServerHealth()
-      // ever saw it.
-      final client = FakeApiClient();
-      client.failingMethods.add('getServerHealth');
-      TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-
-      final provider = ServerProvider(
-        clientManager: TestProviders.mockApiClientManager,
-        mockServerService,
-        serversDaoSource: database,
-        telemetryService: telemetryService,
-      );
-      addTearDown(provider.dispose);
-      telemetryService.recordedErrors.clear();
-
-      await provider.selectServer(testServer);
-      await provider.loadServerHealth();
-
-      expect(provider.healthError, isNotNull);
-      expect(telemetryService.recordedErrors, hasLength(1));
-      expect(
-        telemetryService.recordedErrors.single.context,
-        'ServerProvider.loadServerHealth',
-      );
-    });
 
     test(
       'a failure loading the server list is reported to telemetry',
