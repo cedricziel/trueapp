@@ -19,9 +19,19 @@ class _GatedUpgradeAppProvider extends AppProvider {
   }) : super(clientManager: TestProviders.mockApiClientManager);
 
   final upgrade = Completer<bool>();
+  final reload = Completer<void>();
+  final showBanner = ValueNotifier<bool>(true);
+  bool reloadsAfterUpgrade = false;
 
   @override
-  Future<bool> upgradeApp(String appName, {String? version}) => upgrade.future;
+  Future<bool> upgradeApp(String appName, {String? version}) async {
+    final success = await upgrade.future;
+    if (reloadsAfterUpgrade) {
+      showBanner.value = false;
+      await reload.future;
+    }
+    return success;
+  }
 }
 
 App _upgradableApp() => App(
@@ -77,15 +87,18 @@ void main() {
     );
   });
 
-  testWidgets('closes the progress dialog and reports the upgrade result', (
-    tester,
-  ) async {
+  Future<void> startUpgrade(WidgetTester tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider<AppProvider>.value(
         value: provider,
         child: CupertinoApp(
           home: CupertinoPageScaffold(
-            child: AppUpgradeBanner(app: _upgradableApp()),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: provider.showBanner,
+              builder: (context, show, _) => show
+                  ? AppUpgradeBanner(app: _upgradableApp())
+                  : const SizedBox(),
+            ),
           ),
         ),
       ),
@@ -98,8 +111,34 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Upgrading...'), findsOneWidget);
+  }
+
+  testWidgets('closes the progress dialog and reports the upgrade result', (
+    tester,
+  ) async {
+    await startUpgrade(tester);
 
     provider.upgrade.complete(true);
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Upgrading...'), findsNothing);
+    expect(find.text('Success'), findsOneWidget);
+  });
+
+  testWidgets('closes the progress dialog when the reload removes the banner', (
+    tester,
+  ) async {
+    provider.reloadsAfterUpgrade = true;
+    await startUpgrade(tester);
+
+    provider.upgrade.complete(true);
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    expect(find.byType(AppUpgradeBanner), findsNothing);
+
+    provider.reload.complete();
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
