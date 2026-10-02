@@ -3,6 +3,9 @@ import 'package:drift/drift.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.app_config');
 
 class AppConfigProvider extends ChangeNotifier {
   final AppDatabase _database;
@@ -40,9 +43,7 @@ class AppConfigProvider extends ChangeNotifier {
       );
       _appConfigs = _groupConfigsWithPorts(configsWithPorts);
     } catch (e) {
-      if (kDebugMode) {
-        print('AppConfigProvider: Failed to load app configs: $e');
-      }
+      _log.error('Failed to load app configs', error: e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -243,18 +244,17 @@ class AppConfigProvider extends ChangeNotifier {
 
   Future<List<AppConfig>> getAppsWithPortals() async {
     if (_currentServerId == null) {
-      if (kDebugMode) {
-        print('getAppsWithPortals: No current server ID');
-      }
+      _log.debug('No current server ID');
       return [];
     }
 
     final configsWithPorts = await _database.getAppConfigsWithPorts(
       _currentServerId!,
     );
-    if (kDebugMode) {
-      print('getAppsWithPortals: Found ${configsWithPorts.length} config rows');
-    }
+    _log.debug(
+      'Found config rows with ports',
+      attributes: {'count': configsWithPorts.length},
+    );
     final appConfigsWithPortals = <AppConfig>[];
 
     // Group the results by app config ID
@@ -312,12 +312,10 @@ class AppConfigProvider extends ChangeNotifier {
   }
 
   Future<void> _syncPortalUrls(int appConfigId, App app) async {
-    if (kDebugMode) {
-      print('Syncing portal URLs for app: ${app.name}');
-      print('  - Home URL: ${app.home}');
-      print('  - Portals: ${app.portals}');
-      print('  - Used Ports: ${app.usedPorts.length}');
-    }
+    _log.debug(
+      'Syncing portal URLs',
+      attributes: {'app.name': app.name, 'used_ports': app.usedPorts.length},
+    );
 
     // Get existing port configs for this app
     final existingPorts = await _database.getAppPortConfigs(appConfigId);

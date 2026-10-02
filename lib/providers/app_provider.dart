@@ -13,6 +13,9 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.app');
 
 /// The result of a settled future: exactly one of [value] or [error] is set.
 /// [stackTrace] is only set alongside [error], so a settled failure can
@@ -225,12 +228,10 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
     await _syncAppsToDatabase(installedApps);
     await _loadPersistedAppConfigs();
 
-    if (kDebugMode) {
-      print(
-        'AppProvider: Synced ${installedApps.length} installed apps to '
-        'database',
-      );
-    }
+    _log.debug(
+      'Synced ${installedApps.length} installed apps to '
+      'database',
+    );
   }
 
   /// Second phase of [loadApps]: waits for the catalog requests started
@@ -254,12 +255,10 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       final catalogFailure = available.error ?? categories.error;
       if (catalogFailure != null) {
         _catalogError = _toConnectionError(catalogFailure);
-        if (kDebugMode) {
-          print(
-            'AppProvider: catalog load failed, keeping installed apps: '
-            '${_catalogError!.technicalDetails ?? _catalogError!.message}',
-          );
-        }
+        _log.warn(
+          'catalog load failed, keeping installed apps: '
+          '${_catalogError!.technicalDetails ?? _catalogError!.message}',
+        );
         final catalogFailureStackTrace =
             (available.error != null
                 ? available.stackTrace
@@ -287,12 +286,10 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       if (generation != _loadGeneration) return;
       await _loadPersistedAppConfigs();
 
-      if (kDebugMode) {
-        print(
-          'AppProvider: Synced ${availableApps.length} available apps to '
-          'database',
-        );
-      }
+      _log.debug(
+        'Synced ${availableApps.length} available apps to '
+        'database',
+      );
     } catch (e, stackTrace) {
       if (generation == _loadGeneration) {
         _catalogError = _toConnectionError(e);
@@ -384,9 +381,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
 
     _appConfigs = await _database.getFullAppConfigs(_currentServerId!);
 
-    if (kDebugMode) {
-      print('AppProvider: Loaded ${_appConfigs.length} persisted app configs');
-    }
+    _log.info('Loaded ${_appConfigs.length} persisted app configs');
   }
 
   /// Fallback wrapper around [_loadPersistedAppConfigs] used from the
@@ -398,9 +393,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       await _loadPersistedAppConfigs();
     } catch (e, stackTrace) {
       _connectionError = ConnectionError.unknown(details: e.toString());
-      if (kDebugMode) {
-        print('AppProvider: Failed to load persisted app configs: $e');
-      }
+      _log.error('Failed to load persisted app configs', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -430,9 +423,11 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       }
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to upgrade app $appName: $e');
-      }
+      _log.error(
+        'Failed to upgrade app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -453,9 +448,11 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       }
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to start app $appName: $e');
-      }
+      _log.error(
+        'Failed to start app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -476,9 +473,11 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       }
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to stop app $appName: $e');
-      }
+      _log.error(
+        'Failed to stop app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -499,9 +498,11 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       }
       return result;
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to restart app $appName: $e');
-      }
+      _log.error(
+        'Failed to restart app',
+        error: e,
+        attributes: {'app.name': appName},
+      );
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -524,19 +525,13 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       // Listen to the app stats stream and update resource usage
       _appStatsSubscription = _apiClient!.appStatsStream.listen(
         (appStatsMap) {
-          if (kDebugMode) {
-            print(
-              'AppProvider: Received app stats for ${appStatsMap.length} apps',
-            );
-          }
+          _log.debug('Received app stats for ${appStatsMap.length} apps');
 
           // Update resource usage for each app
           _updateAppResourceUsage(appStatsMap);
         },
         onError: (Object error, StackTrace stackTrace) {
-          if (kDebugMode) {
-            print('AppProvider: Error in app stats stream: $error');
-          }
+          _log.error('Error in app stats stream', error: error);
           _telemetryService?.recordError(
             error,
             stackTrace,
@@ -545,9 +540,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
         },
       );
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('AppProvider: Failed to subscribe to app stats: $e');
-      }
+      _log.error('Failed to subscribe to app stats', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -604,9 +597,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
       try {
         await _apiClient!.unsubscribeFromAppStats();
       } catch (e, stackTrace) {
-        if (kDebugMode) {
-          print('AppProvider: Failed to unsubscribe from app stats: $e');
-        }
+        _log.error('Failed to unsubscribe from app stats', error: e);
         _telemetryService?.recordError(
           e,
           stackTrace,

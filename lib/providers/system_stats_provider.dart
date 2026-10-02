@@ -9,6 +9,9 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.system_stats');
 
 class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
@@ -86,9 +89,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
     }
 
     if (_isSubscribed) {
-      if (kDebugMode) {
-        print('SystemStatsProvider: Already subscribed to stats');
-      }
+      _log.debug('Already subscribed to stats');
       return;
     }
 
@@ -107,14 +108,10 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
       );
 
       _isSubscribed = true;
-      if (kDebugMode) {
-        print('SystemStatsProvider: Successfully subscribed to stats stream');
-      }
+      _log.info('Successfully subscribed to stats stream');
     } catch (e, stackTrace) {
       _setError('Failed to subscribe to system stats: ${e.toString()}');
-      if (kDebugMode) {
-        print('SystemStatsProvider: Subscription error: $e');
-      }
+      _log.error('Subscription error', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -131,9 +128,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
     }
 
     try {
-      if (kDebugMode) {
-        print('SystemStatsProvider: Unsubscribing from stats stream');
-      }
+      _log.debug('Unsubscribing from stats stream');
 
       // Cancel the stream subscription
       await _statsSubscription?.cancel();
@@ -150,13 +145,9 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
       _memoryHistory.clear();
       _clearError();
 
-      if (kDebugMode) {
-        print('SystemStatsProvider: Successfully unsubscribed from stats');
-      }
+      _log.info('Successfully unsubscribed from stats');
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('SystemStatsProvider: Error during unsubscription: $e');
-      }
+      _log.error('Error during unsubscription', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -187,28 +178,22 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
     _setLoading(false);
     notifyListeners();
 
-    if (kDebugMode) {
-      print(
-        'SystemStatsProvider: Received stats - CPU: ${stats.cpu.overall.usage.toStringAsFixed(1)}%, '
-        'Memory: ${stats.memory.physicalMemoryUsagePercent.toStringAsFixed(1)}%',
-      );
-    }
+    _log.debug(
+      'Received stats - CPU: ${stats.cpu.overall.usage.toStringAsFixed(1)}%, '
+      'Memory: ${stats.memory.physicalMemoryUsagePercent.toStringAsFixed(1)}%',
+    );
   }
 
   void _onStatsError(dynamic error) {
     _setError('System stats stream error: ${error.toString()}');
     _setLoading(false);
-    if (kDebugMode) {
-      print('SystemStatsProvider: Stream error: $error');
-    }
+    _log.error('Stream error', error: error);
   }
 
   void _onStatsStreamDone() {
     _isSubscribed = false;
     _setLoading(false);
-    if (kDebugMode) {
-      print('SystemStatsProvider: Stats stream done');
-    }
+    _log.debug('Stats stream done');
     notifyListeners();
   }
 
@@ -293,9 +278,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
 
   @override
   void dispose() {
-    if (kDebugMode) {
-      print('SystemStatsProvider: Disposing');
-    }
+    _log.info('Disposing');
     // Note: We can't await in dispose(). Unlike `unsubscribeFromStats()`,
     // this cleanup deliberately never calls notifyListeners() - doing so
     // from a callback that resolves after `super.dispose()` below would hit

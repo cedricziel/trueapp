@@ -8,6 +8,9 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('providers.fleet_status');
 
 /// Fetches a bounded, one-shot health snapshot for every saved server so
 /// the Home screen can show which one needs attention without the user
@@ -121,12 +124,6 @@ class FleetStatusProvider extends ChangeNotifier {
         // Alerts are a bonus signal for this snapshot - a server that
         // answers system health but not alert.list (permissions, an older
         // middleware version) still counts as online.
-        if (kDebugMode) {
-          print(
-            'FleetStatusProvider: Failed to load alerts for '
-            '${server.id}: $e',
-          );
-        }
         _telemetryService?.recordError(
           e,
           stackTrace,
@@ -150,9 +147,7 @@ class FleetStatusProvider extends ChangeNotifier {
           connectivity: FleetServerConnectivity.offline,
         );
       }
-      if (kDebugMode) {
-        print('FleetStatusProvider: Failed to refresh ${server.id}: $e');
-      }
+      _log.error('Failed to refresh ${server.id}', error: e);
       _telemetryService?.recordError(
         e,
         stackTrace,

@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_lookup.dart';
+import 'package:truehub/services/app_logger.dart';
+
+final _log = appLogger('navigation.route_resolver');
 
 /// The state of resolving a server id to a [NasServer], as reported by
 /// [ServerRouteResolver.resolve].
@@ -78,7 +81,11 @@ class LookupServerRouteResolver implements ServerRouteResolver {
       } catch (e) {
         if (kDebugMode) {
           // ignore: avoid_print
-          print('LookupServerRouteResolver: getServer($serverId) failed: $e');
+          _log.error(
+            'getServer failed',
+            error: e,
+            attributes: {'server.id': serverId},
+          );
         }
         current = null;
       }
