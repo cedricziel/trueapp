@@ -47,8 +47,14 @@ public class CloudKitPlugin: NSObject, FlutterPlugin {
             task,
             "com.apple.developer.icloud-services" as CFString,
             nil
-        )
-        return services != nil
+        ) as? [String]
+        let containers = SecTaskCopyValueForEntitlement(
+            task,
+            "com.apple.developer.icloud-container-identifiers" as CFString,
+            nil
+        ) as? [String]
+        return services?.contains("CloudKit") == true
+            && containers?.contains(containerIdentifier) == true
         #else
         return true
         #endif
