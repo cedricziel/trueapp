@@ -119,6 +119,8 @@ class AppProvider extends ChangeNotifier
   @override
   Future<void> setServer(NasServer? server) async {
     _loadGeneration++;
+    unawaited(_stats.unsubscribe(_apiClient));
+    _stats.clear();
     _currentServer = server;
     _appConfigs = [];
     _categories = [];
