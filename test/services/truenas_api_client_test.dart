@@ -768,7 +768,10 @@ void main() {
             {'name': 'plex', 'title': 'Plex'},
           ];
         });
-      client.setKeepaliveInterval(const Duration(milliseconds: 20));
+      // A tick that finds the previous ping unanswered reconnects, so the
+      // interval is how late a pong may be. 20ms was too tight for a busy CI
+      // runner and failed the connectionCount check below.
+      client.setKeepaliveInterval(const Duration(milliseconds: 100));
 
       // Connect and authenticate first (keepalive starts on login), so the
       // request below is the only thing that can hold the socket busy.
@@ -794,7 +797,7 @@ void main() {
       expect(apps.single.name, 'plex');
 
       // Once the socket is idle again, keepalive resumes.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(pingCount, greaterThan(pingsBefore));
       expect(server.connectionCount, 1);
     });
