@@ -3,6 +3,8 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/native_keychain_service.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show KeychainServiceInterface;
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/server_lookup.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -15,8 +17,7 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
   static UnifiedServerService? _instance;
 
   final ServerRepositoryInterface _repository;
-  final dynamic
-  _keychain; // Generic to support both production and mock keychains
+  final KeychainServiceInterface _keychain;
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
@@ -27,7 +28,7 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
   /// Primary constructor - both production and testing use this
   UnifiedServerService({
     required ServerRepositoryInterface repository,
-    required dynamic keychain,
+    required KeychainServiceInterface keychain,
     bool isSingleton = false,
   }) : _repository = repository,
        _keychain = keychain,
