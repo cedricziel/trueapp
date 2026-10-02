@@ -191,9 +191,17 @@ void main() {
       await tester.tap(
         find.widgetWithText(CupertinoDialogAction, 'Clear Database'),
       );
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 200)),
-      );
+      final result = find.text('Database Recreated');
+      final failure = find.text('Error');
+      for (var i = 0; i < 100; i++) {
+        if (result.evaluate().isNotEmpty || failure.evaluate().isNotEmpty) {
+          break;
+        }
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+      }
       await tester.pumpAndSettle();
       return opened;
     }
