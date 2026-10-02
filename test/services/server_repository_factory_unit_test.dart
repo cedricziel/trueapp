@@ -79,10 +79,31 @@ void main() {
 
       expect(repo, isA<SqliteServerRepository>());
     });
+
+    test('disposes the CloudKit service it fell back from', () async {
+      final service = _UnavailableCloudKitService();
+      final factory = ServerRepositoryFactory(
+        serversDaoSource: createTestDatabase(),
+        cloudKitServiceBuilder: () => service,
+        isApplePlatform: true,
+      );
+
+      await factory.create();
+
+      expect(service.disposed, isTrue);
+    });
   });
 }
 
 class _UnavailableCloudKitService extends MockCloudKitServiceAdapter {
+  bool disposed = false;
+
   @override
   Future<bool> initialize() async => false;
+
+  @override
+  void dispose() {
+    disposed = true;
+    super.dispose();
+  }
 }

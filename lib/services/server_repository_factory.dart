@@ -31,11 +31,11 @@ class ServerRepositoryFactory {
     final useCloudKit = (_isApplePlatform && !forceSqlite) || forceCloudKit;
 
     final ServerRepositoryInterface repository;
+    CloudKitServiceInterface? cloudKitService;
     if (useCloudKit) {
       _log.info('Using CloudKit repository');
-      repository = CloudKitServerRepository(
-        cloudKitService: _cloudKitServiceBuilder(),
-      );
+      cloudKitService = _cloudKitServiceBuilder();
+      repository = CloudKitServerRepository(cloudKitService: cloudKitService);
     } else {
       _log.info('Using SQLite repository');
       repository = _sqliteRepository();
@@ -45,6 +45,8 @@ class ServerRepositoryFactory {
     if (!initialized && useCloudKit) {
       // Fallback to SQLite if CloudKit fails
       _log.warn('CloudKit failed, falling back to SQLite');
+      await repository.dispose();
+      cloudKitService?.dispose();
       final fallback = _sqliteRepository();
       await fallback.initialize();
       return fallback;
