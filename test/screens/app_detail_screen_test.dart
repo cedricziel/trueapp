@@ -8,6 +8,8 @@ import 'package:truehub/screens/app_configuration_screen.dart';
 import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'package:truehub/screens/app_detail/app_sources_section.dart';
+import '../helpers/fake_url_opener.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
 import '../helpers/pump_helpers.dart';
@@ -138,7 +140,11 @@ void main() {
     );
   });
 
-  Widget wrap(App app, {_FakeAppProvider? appProvider}) {
+  Widget wrap(
+    App app, {
+    _FakeAppProvider? appProvider,
+    FakeUrlOpener? urlOpener,
+  }) {
     final fakeAppProvider =
         appProvider ??
         _FakeAppProvider(
@@ -151,7 +157,12 @@ void main() {
       service: unifiedServerService,
       serverProvider: serverProvider,
       appProvider: fakeAppProvider,
-      child: CupertinoApp(home: AppDetailScreen(app: app)),
+      child: CupertinoApp(
+        home: AppDetailScreen(
+          app: app,
+          urlOpener: urlOpener ?? FakeUrlOpener(),
+        ),
+      ),
     );
   }
 
@@ -637,6 +648,51 @@ void main() {
       await tester.tap(find.text('View Homepage').last);
       await settleRouteTransition(tester);
       expectNoLayoutOverflow(tester);
+    });
+
+    testWidgets('View Homepage action opens the home URL', (
+      WidgetTester tester,
+    ) async {
+      final opener = FakeUrlOpener();
+      await tester.pumpWidget(
+        wrap(_buildApp(home: 'https://plex.tv'), urlOpener: opener),
+      );
+      await _openActionSheet(tester);
+      await tester.tap(find.text('View Homepage').last);
+      await settleRouteTransition(tester);
+
+      expect(opener.opened, ['https://plex.tv']);
+    });
+
+    testWidgets('View Sources action scrolls the sources into view', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        wrap(
+          _buildApp(
+            description: List.filled(80, 'Media server.').join('\n'),
+            sources: const ['https://github.com/example'],
+          ),
+        ),
+      );
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      expect(position.pixels, 0);
+
+      await _openActionSheet(tester);
+      await tester.tap(find.text('View Sources'));
+      await settleRouteTransition(tester);
+      await tester.pumpAndSettle();
+
+      expect(position.pixels, greaterThan(0));
+      expect(
+        tester.getTopLeft(find.byType(AppSourcesSection)).dy,
+        lessThan(1000),
+      );
     });
 
     testWidgets('shows View Sources action only when sources exist', (
