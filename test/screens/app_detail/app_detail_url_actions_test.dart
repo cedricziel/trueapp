@@ -78,4 +78,57 @@ void main() {
     expect(find.text('Install App'), findsNothing);
     expect(find.text('Manage App'), findsNothing);
   });
+
+  testWidgets('a source that is not a URL is plain text, not a link', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: AppSourcesSection(
+          sources: const ['https://b.test', 'not a url'],
+          urlOpener: opener,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('not a url'), warnIfMissed: false);
+
+    expect(opener.opened, isEmpty);
+    expect(find.byIcon(CupertinoIcons.arrow_up_right), findsOneWidget);
+  });
+
+  testWidgets('a source that fails to open shows an alert', (tester) async {
+    opener.succeeds = false;
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: AppSourcesSection(
+          sources: const ['https://b.test'],
+          urlOpener: opener,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('https://b.test'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't Open Link"), findsOneWidget);
+    expect(find.textContaining('https://b.test'), findsNWidgets(2));
+  });
+
+  testWidgets('a homepage that fails to open shows an alert', (tester) async {
+    opener.succeeds = false;
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: AppDetailActions(
+          app: _app(installed: true, home: 'https://plex.tv'),
+          urlOpener: opener,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('View Homepage'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't Open Link"), findsOneWidget);
+  });
 }

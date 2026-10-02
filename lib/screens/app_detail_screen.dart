@@ -11,6 +11,7 @@ import 'package:truehub/screens/app_detail/app_maintainers_section.dart';
 import 'package:truehub/screens/app_detail/app_metadata_section.dart';
 import 'package:truehub/screens/app_detail/app_screenshots_section.dart';
 import 'package:truehub/screens/app_detail/app_sources_section.dart';
+import 'package:truehub/screens/app_detail/open_link.dart';
 import 'package:truehub/services/url_opener.dart';
 
 class AppDetailScreen extends StatefulWidget {
@@ -127,7 +128,11 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               child: const Text('View Homepage'),
               onPressed: () {
                 Navigator.pop(context);
-                widget.urlOpener.open(widget.app.home!);
+                openLinkOrAlert(
+                  this.context,
+                  widget.urlOpener,
+                  widget.app.home!,
+                );
               },
             ),
           if (widget.app.sources.isNotEmpty)

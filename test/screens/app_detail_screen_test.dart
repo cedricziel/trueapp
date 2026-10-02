@@ -665,6 +665,21 @@ void main() {
       expect(opener.opened, ['https://plex.tv']);
     });
 
+    testWidgets('View Homepage action shows an alert when the URL fails', (
+      WidgetTester tester,
+    ) async {
+      final opener = FakeUrlOpener()..succeeds = false;
+      await tester.pumpWidget(
+        wrap(_buildApp(home: 'https://plex.tv'), urlOpener: opener),
+      );
+      await _openActionSheet(tester);
+      await tester.tap(find.text('View Homepage').last);
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+      expect(find.text("Couldn't Open Link"), findsOneWidget);
+    });
+
     testWidgets('View Sources action scrolls the sources into view', (
       WidgetTester tester,
     ) async {
