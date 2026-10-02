@@ -41,7 +41,6 @@ The app follows a clean architecture pattern with:
 
 - Flutter SDK 3.47.2 or newer (bundles Dart 3.13.2; `pubspec.yaml` requires Dart 3.9.0+)
 - Xcode (for iOS/macOS development)
-- CocoaPods
 
 ### Installation
 
