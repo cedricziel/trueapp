@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.12.0](https://github.com/cedricziel/trueapp/compare/v0.11.0...v0.12.0) (2026-10-02)
+
+
+### Features
+
+* add native splash screen for iOS ([#224](https://github.com/cedricziel/trueapp/issues/224)) ([66bd428](https://github.com/cedricziel/trueapp/commit/66bd428357d2caacd357444adc2083d73a4b03e3))
+* **design:** sync the app's UI to Claude Design ([#205](https://github.com/cedricziel/trueapp/issues/205)) ([ae7927b](https://github.com/cedricziel/trueapp/commit/ae7927b84745492fd5fea4ab4002a648bb245cf5))
+* **fastlane:** distribute release builds to the Public Beta TestFlight group ([#200](https://github.com/cedricziel/trueapp/issues/200)) ([af8c8dd](https://github.com/cedricziel/trueapp/commit/af8c8dd9563af297e592d0e5f765045e95819ef9))
+
+
+### Bug Fixes
+
+* address bugs found while reviewing the refactor stack ([#220](https://github.com/cedricziel/trueapp/issues/220)) ([5d5dd83](https://github.com/cedricziel/trueapp/commit/5d5dd833b10e27a77eb6de827e04bdc690b09957))
+* clean up leftovers and wire the dead app detail actions ([#221](https://github.com/cedricziel/trueapp/issues/221)) ([5968ae5](https://github.com/cedricziel/trueapp/commit/5968ae578914ef80e2eb85035d95922a8441ed96))
+* **ios:** migrate to UIScene lifecycle ([#198](https://github.com/cedricziel/trueapp/issues/198)) ([df93047](https://github.com/cedricziel/trueapp/commit/df93047db9d9c92eeac6adb52cdcc332b86b60c1))
+* migrate the tray to the tray_manager 0.7 native API ([#212](https://github.com/cedricziel/trueapp/issues/212)) ([6a09725](https://github.com/cedricziel/trueapp/commit/6a09725d22718e9fdbdfaaf7f30ed519852e70a0))
+* redact secrets from telemetry before export ([#217](https://github.com/cedricziel/trueapp/issues/217)) ([7e372d7](https://github.com/cedricziel/trueapp/commit/7e372d7e5bfa663d29447a0bfb331eaa1161970f))
+* remove the session lock that never guarded credentials ([#208](https://github.com/cedricziel/trueapp/issues/208)) ([784669c](https://github.com/cedricziel/trueapp/commit/784669c404116ebdc60b310d3fb9bcc37e48c40d))
+* show the real connected-server count in the menu bar ([#209](https://github.com/cedricziel/trueapp/issues/209)) ([5d11a87](https://github.com/cedricziel/trueapp/commit/5d11a876ee402909069a4356ea325311a35b43be))
+
+
+### Performance Improvements
+
+* speed up CI tests and code generation ([#222](https://github.com/cedricziel/trueapp/issues/222)) ([6f234b4](https://github.com/cedricziel/trueapp/commit/6f234b4d330a1f9768dfbb356dd7988f2eda1b6f))
+
 ## [0.11.0](https://github.com/cedricziel/trueapp/compare/v0.10.0...v0.11.0) (2026-09-20)
 
 
