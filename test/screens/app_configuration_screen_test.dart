@@ -50,6 +50,7 @@ void main() {
       unifiedServerService,
     );
     appProvider = AppProvider(
+      clientManager: TestProviders.mockApiClientManager,
       database: database,
       serverService: unifiedServerService,
     );

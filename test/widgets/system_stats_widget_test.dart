@@ -136,7 +136,10 @@ Future<_Harness> _buildHarness() async {
   final serverService = await TestProviders.createMockUnifiedServerService(
     database: database,
   );
-  final provider = SystemStatsProvider(serverService);
+  final provider = SystemStatsProvider(
+    clientManager: TestProviders.mockApiClientManager,
+    serverService,
+  );
   final fakeClient = FakeApiClient();
 
   final server = NasServer.create(
@@ -205,7 +208,10 @@ void main() {
       final serverService = await TestProviders.createMockUnifiedServerService(
         database: database,
       );
-      final provider = SystemStatsProvider(serverService);
+      final provider = SystemStatsProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       final slowClient = _SlowFakeApiClient();
       final server = NasServer.create(
         name: 'Test Server',

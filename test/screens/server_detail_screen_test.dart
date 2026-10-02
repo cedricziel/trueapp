@@ -385,7 +385,8 @@ void main() {
 /// [unsubscribeFromStats] is called, so tests can assert the subscription
 /// is torn down on screen disposal without a live API client.
 class _RecordingSystemStatsProvider extends SystemStatsProvider {
-  _RecordingSystemStatsProvider(super.service);
+  _RecordingSystemStatsProvider(super.service)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   int unsubscribeCallCount = 0;
 
@@ -400,7 +401,8 @@ class _RecordingSystemStatsProvider extends SystemStatsProvider {
 /// network and credential flow so a widget test can render the dashboard's
 /// alert banner and quick-action badge without a live API client.
 class _FakeHealthProvider extends HealthProvider {
-  _FakeHealthProvider(super.service, this._seedAlerts);
+  _FakeHealthProvider(super.service, this._seedAlerts)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Alert> _seedAlerts;
 
@@ -426,7 +428,8 @@ class _FakeAppProvider extends AppProvider {
     required List<App> seedApps,
     required List<AppConfig> seedFavorites,
   }) : _seedApps = seedApps,
-       _seedFavorites = seedFavorites;
+       _seedFavorites = seedFavorites,
+       super(clientManager: TestProviders.mockApiClientManager);
 
   final List<App> _seedApps;
   final List<AppConfig> _seedFavorites;
@@ -448,7 +451,8 @@ class _FakeAppProvider extends AppProvider {
 /// and credential flow so a widget test can render `PoolCardWidget` with
 /// realistic data without a live API client.
 class _FakePoolProvider extends PoolProvider {
-  _FakePoolProvider(super.service, this._seedPools);
+  _FakePoolProvider(super.service, this._seedPools)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Pool> _seedPools;
 

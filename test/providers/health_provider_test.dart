@@ -28,6 +28,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     provider = HealthProvider(
+      clientManager: TestProviders.mockApiClientManager,
       serverService,
       telemetryService: telemetryService,
     );
@@ -286,7 +287,10 @@ void main() {
 
   group('HealthProvider - dispose', () {
     test('releases the active client', () async {
-      final scoped = HealthProvider(serverService);
+      final scoped = HealthProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       await scoped.setApiClient(testServer);
 
       scoped.dispose();

@@ -32,8 +32,14 @@ void main() {
     serverService = await TestProviders.createMockUnifiedServerService(
       database: database,
     );
-    datasetProvider = DatasetProvider(serverService);
-    jobsProvider = JobsProvider(serverService);
+    datasetProvider = DatasetProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      serverService,
+    );
+    jobsProvider = JobsProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      serverService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(

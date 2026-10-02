@@ -4,7 +4,7 @@ import 'package:truehub/models/job.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -14,6 +14,7 @@ const kJobFailureAttentionWindow = Duration(hours: 24);
 
 class JobsProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -25,8 +26,10 @@ class JobsProvider extends ChangeNotifier {
 
   JobsProvider(
     this._serverService, {
+    required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _telemetryService = telemetryService;
+  }) : _clientManager = clientManager,
+       _telemetryService = telemetryService;
 
   List<Job> get jobs => _jobs;
   String? get error => _error;
@@ -66,7 +69,7 @@ class JobsProvider extends ChangeNotifier {
     }
 
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     // Cleared up front so a missing-credentials or getClient() failure below
@@ -83,7 +86,7 @@ class JobsProvider extends ChangeNotifier {
       );
 
       if (serverWithCredentials != null) {
-        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        _apiClient = await _clientManager.getClient(serverWithCredentials);
       } else {
         if (kDebugMode) {
           print(
@@ -312,7 +315,7 @@ class JobsProvider extends ChangeNotifier {
     _isSubscribed = false;
 
     if (_currentServerId != null) {
-      ApiClientManager.releaseClient(_currentServerId!);
+      _clientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

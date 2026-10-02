@@ -18,7 +18,8 @@ import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/database.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_impl.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
@@ -34,9 +35,10 @@ void main() async {
   final connectionStatusProvider = ConnectionStatusProvider();
   final unifiedServerService = await UnifiedServerService.createForProduction();
 
-  // Initialize services
-  ApiClientManager.setConnectionStatusProvider(connectionStatusProvider);
-  ApiClientManager.setTelemetryService(telemetryService);
+  final ApiClientManagerInterface clientManager = ApiClientManagerImpl(
+    connectionStatusProvider: connectionStatusProvider,
+    telemetry: telemetryService,
+  );
 
   runApp(
     MultiProvider(
@@ -44,41 +46,48 @@ void main() async {
         Provider<TelemetryServiceInterface>.value(value: telemetryService),
         Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
+        Provider<ApiClientManagerInterface>.value(value: clientManager),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
         ChangeNotifierProvider(
           create: (context) => ServerProvider(
             unifiedServerService,
             databaseRef: () => AppDatabase.instance,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => PoolProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => DatasetProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => FileProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => HealthProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => FleetStatusProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
@@ -86,18 +95,21 @@ void main() async {
           create: (context) => AppProvider(
             databaseRef: () => AppDatabase.instance,
             serverService: unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => SystemStatsProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),
         ChangeNotifierProvider(
           create: (context) => JobsProvider(
             unifiedServerService,
+            clientManager: clientManager,
             telemetryService: telemetryService,
           ),
         ),

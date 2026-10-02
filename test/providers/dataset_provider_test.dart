@@ -27,6 +27,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     datasetProvider = DatasetProvider(
+      clientManager: TestProviders.mockApiClientManager,
       serverService,
       telemetryService: telemetryService,
     );
@@ -263,7 +264,10 @@ void main() {
 
   group('DatasetProvider - dispose', () {
     test('releases the active client', () async {
-      final scopedProvider = DatasetProvider(serverService);
+      final scopedProvider = DatasetProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       await scopedProvider.setServer(testServer);
       scopedProvider.dispose();
 

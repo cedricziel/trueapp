@@ -6,12 +6,13 @@ import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/service_status.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
 class HealthProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -29,8 +30,10 @@ class HealthProvider extends ChangeNotifier {
 
   HealthProvider(
     this._serverService, {
+    required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _telemetryService = telemetryService;
+  }) : _clientManager = clientManager,
+       _telemetryService = telemetryService;
 
   List<Alert> get alerts => _alerts;
 
@@ -50,7 +53,7 @@ class HealthProvider extends ChangeNotifier {
 
     // Release previous client if any
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     if (generation != _generation) {
@@ -74,13 +77,13 @@ class HealthProvider extends ChangeNotifier {
       );
 
       if (serverWithCredentials != null) {
-        final client = await ApiClientManager.getClient(serverWithCredentials);
+        final client = await _clientManager.getClient(serverWithCredentials);
         if (generation != _generation) {
           // A later setApiClient() call already superseded this one while
           // we awaited - release what we just checked out rather than
           // installing a client for a server the caller has moved on from.
           if (client != null) {
-            await ApiClientManager.releaseClient(server.id);
+            await _clientManager.releaseClient(server.id);
           }
           return;
         }
@@ -155,7 +158,7 @@ class HealthProvider extends ChangeNotifier {
   void dispose() {
     if (_currentServerId != null) {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      ApiClientManager.releaseClient(_currentServerId!);
+      _clientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

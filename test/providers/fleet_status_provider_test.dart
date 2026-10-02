@@ -26,7 +26,11 @@ void main() {
       database: database,
     );
     telemetryService = FakeTelemetryService();
-    provider = FleetStatusProvider(service, telemetryService: telemetryService);
+    provider = FleetStatusProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      service,
+      telemetryService: telemetryService,
+    );
   });
 
   tearDown(() async {

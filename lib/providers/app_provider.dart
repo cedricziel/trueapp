@@ -7,7 +7,7 @@ import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -35,6 +35,7 @@ typedef _CatalogRequests = ({
 class AppProvider extends ChangeNotifier {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -63,6 +64,7 @@ class AppProvider extends ChangeNotifier {
     AppDatabase Function()? databaseRef,
     AppDatabase? database,
     required UnifiedServerService serverService,
+    required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
   }) : assert(
          databaseRef != null || database != null,
@@ -70,6 +72,7 @@ class AppProvider extends ChangeNotifier {
        ),
        _databaseRef = databaseRef ?? (() => database!),
        _serverService = serverService,
+       _clientManager = clientManager,
        _telemetryService = telemetryService;
 
   AppDatabase get _database => _databaseRef();
@@ -112,7 +115,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> setServer(NasServer? server) async {
     // Release previous client if any
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     _loadGeneration++;
@@ -132,7 +135,7 @@ class AppProvider extends ChangeNotifier {
             await ServerProvider.loadServerCredentials(server, _serverService);
 
         if (serverWithCredentials != null) {
-          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+          _apiClient = await _clientManager.getClient(serverWithCredentials);
         } else {
           if (kDebugMode) {
             print(
@@ -161,7 +164,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     _loadGeneration++;
@@ -181,7 +184,7 @@ class AppProvider extends ChangeNotifier {
       );
 
       if (serverWithCredentials != null) {
-        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        _apiClient = await _clientManager.getClient(serverWithCredentials);
       } else {
         if (kDebugMode) {
           print(
@@ -860,7 +863,7 @@ class AppProvider extends ChangeNotifier {
 
     if (_currentServerId != null) {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      ApiClientManager.releaseClient(_currentServerId!);
+      _clientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

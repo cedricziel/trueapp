@@ -6,7 +6,7 @@ import 'package:truehub/models/fleet_server_status.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -22,6 +22,7 @@ class FleetStatusProvider extends ChangeNotifier {
   static const Duration defaultTimeout = Duration(seconds: 6);
 
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
   final Map<String, FleetServerStatus> _statuses = {};
 
@@ -34,8 +35,10 @@ class FleetStatusProvider extends ChangeNotifier {
 
   FleetStatusProvider(
     this._serverService, {
+    required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _telemetryService = telemetryService;
+  }) : _clientManager = clientManager,
+       _telemetryService = telemetryService;
 
   FleetServerStatus statusFor(String serverId) =>
       _statuses[serverId] ?? FleetServerStatus(serverId: serverId);
@@ -79,7 +82,7 @@ class FleetStatusProvider extends ChangeNotifier {
         return;
       }
 
-      final clientFuture = ApiClientManager.getClient(serverWithCredentials);
+      final clientFuture = _clientManager.getClient(serverWithCredentials);
       final ApiClientInterface? client;
       try {
         client = await clientFuture.timeout(timeout);
@@ -91,7 +94,7 @@ class FleetStatusProvider extends ChangeNotifier {
           clientFuture
               .then((lateClient) async {
                 if (lateClient != null) {
-                  await ApiClientManager.releaseClient(server.id);
+                  await _clientManager.releaseClient(server.id);
                 }
               })
               .catchError((_) {}),
@@ -161,7 +164,7 @@ class FleetStatusProvider extends ChangeNotifier {
       );
     } finally {
       if (checkedOutServerId != null) {
-        await ApiClientManager.releaseClient(checkedOutServerId);
+        await _clientManager.releaseClient(checkedOutServerId);
       }
       notifyListeners();
     }

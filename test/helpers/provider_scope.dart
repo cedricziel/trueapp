@@ -13,6 +13,7 @@ import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'test_providers.dart';
 
 /// Wraps [child] with the provider stack the app's shell and pushed detail
 /// screens (`HomeScreen`, `SettingsScreen`, `ServerDetailScreen`,
@@ -59,42 +60,63 @@ Widget provideAppProviders({
       poolProvider != null
           ? ChangeNotifierProvider<PoolProvider>.value(value: poolProvider)
           : ChangeNotifierProvider<PoolProvider>(
-              create: (_) => PoolProvider(service),
+              create: (_) => PoolProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       fileProvider != null
           ? ChangeNotifierProvider<FileProvider>.value(value: fileProvider)
           : ChangeNotifierProvider<FileProvider>(
-              create: (_) => FileProvider(service),
+              create: (_) => FileProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       healthProvider != null
           ? ChangeNotifierProvider<HealthProvider>.value(value: healthProvider)
           : ChangeNotifierProvider<HealthProvider>(
-              create: (_) => HealthProvider(service),
+              create: (_) => HealthProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       fleetStatusProvider != null
           ? ChangeNotifierProvider<FleetStatusProvider>.value(
               value: fleetStatusProvider,
             )
           : ChangeNotifierProvider<FleetStatusProvider>(
-              create: (_) => FleetStatusProvider(service),
+              create: (_) => FleetStatusProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       appProvider != null
           ? ChangeNotifierProvider<AppProvider>.value(value: appProvider)
           : ChangeNotifierProvider<AppProvider>(
-              create: (_) =>
-                  AppProvider(database: database, serverService: service),
+              create: (_) => AppProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                database: database,
+                serverService: service,
+              ),
             ),
       systemStatsProvider != null
           ? ChangeNotifierProvider<SystemStatsProvider>.value(
               value: systemStatsProvider,
             )
           : ChangeNotifierProvider<SystemStatsProvider>(
-              create: (_) => SystemStatsProvider(service),
+              create: (_) => SystemStatsProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       jobsProvider != null
           ? ChangeNotifierProvider<JobsProvider>.value(value: jobsProvider)
           : ChangeNotifierProvider<JobsProvider>(
-              create: (_) => JobsProvider(service),
+              create: (_) => JobsProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
       connectionStatusProvider != null
           ? ChangeNotifierProvider<ConnectionStatusProvider>.value(
@@ -111,7 +133,10 @@ Widget provideAppProviders({
               value: datasetProvider,
             )
           : ChangeNotifierProvider<DatasetProvider>(
-              create: (_) => DatasetProvider(service),
+              create: (_) => DatasetProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
             ),
     ],
     child: child,

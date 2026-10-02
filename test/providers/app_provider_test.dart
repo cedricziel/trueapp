@@ -96,6 +96,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     appProvider = AppProvider(
+      clientManager: TestProviders.mockApiClientManager,
       database: database,
       serverService: serverService,
       telemetryService: telemetryService,
@@ -509,6 +510,7 @@ void main() {
         expect(await database.getServer(testServer.id), isNull);
 
         final cloudKitAppProvider = AppProvider(
+          clientManager: TestProviders.mockApiClientManager,
           database: database,
           serverService: cloudKitService,
         );
@@ -889,6 +891,7 @@ void main() {
     test('recordError is optional: a failure without a telemetryService '
         'still resolves instead of throwing', () async {
       final scopedProvider = AppProvider(
+        clientManager: TestProviders.mockApiClientManager,
         database: database,
         serverService: serverService,
       );
@@ -905,6 +908,7 @@ void main() {
   group('AppProvider - dispose', () {
     test('releases the active client', () async {
       final scopedProvider = AppProvider(
+        clientManager: TestProviders.mockApiClientManager,
         database: database,
         serverService: serverService,
       );

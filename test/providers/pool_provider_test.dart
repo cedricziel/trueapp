@@ -44,6 +44,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     poolProvider = PoolProvider(
+      clientManager: TestProviders.mockApiClientManager,
       serverService,
       telemetryService: telemetryService,
     );
@@ -308,7 +309,10 @@ void main() {
       // Use a provider scoped to this test (rather than the shared
       // `poolProvider`) so this explicit dispose() doesn't collide with the
       // one `tearDown` issues for every test.
-      final scopedProvider = PoolProvider(serverService);
+      final scopedProvider = PoolProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       await scopedProvider.setServer(testServer);
       scopedProvider.dispose();
 
