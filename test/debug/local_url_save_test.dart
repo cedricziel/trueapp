@@ -21,7 +21,7 @@ void main() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
 
     // Create real service with SQLite repository and mock keychain
-    final sqliteRepository = SqliteServerRepository(database.serversDao);
+    final sqliteRepository = SqliteServerRepository(database);
     final mockKeychain = MockKeychainService();
     unifiedServerService = UnifiedServerService(
       repository: sqliteRepository,

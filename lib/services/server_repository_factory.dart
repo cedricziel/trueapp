@@ -54,7 +54,7 @@ class ServerRepositoryFactory {
   }
 
   SqliteServerRepository _sqliteRepository() =>
-      SqliteServerRepository(_serversDaoSource.serversDao);
+      SqliteServerRepository(_serversDaoSource);
 
   /// Check if the current platform supports CloudKit
   static bool get supportsCloudKit => Platform.isIOS || Platform.isMacOS;
