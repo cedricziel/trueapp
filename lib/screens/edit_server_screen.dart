@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/screens/edit_server/connection_test_section.dart';
+import 'package:truehub/screens/edit_server/trusted_wifi_section.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -423,79 +425,16 @@ class _EditServerScreenState extends State<EditServerScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              CupertinoFormSection(
-                header: const Text('TRUSTED WI-FI NETWORKS'),
-                children: [
-                  // Current Wi-Fi suggestion
-                  if (_currentWifiSsid != null &&
-                      !_trustedWifiSsids.contains(_currentWifiSsid!))
-                    CupertinoFormRow(
-                      prefix: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Current Network'),
-                          Text(
-                            _currentWifiSsid!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: CupertinoColors.systemGrey.resolveFrom(
-                                context,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: _addCurrentWifiSsid,
-                        child: const Text('Add Current'),
-                      ),
-                    ),
-                  if (_currentWifiSsid == null && !_isLoadingCurrentSsid)
-                    CupertinoFormRow(
-                      prefix: const Text('Current Network'),
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: _loadCurrentWifiSsid,
-                        child: const Text('Detect'),
-                      ),
-                    ),
-                  if (_isLoadingCurrentSsid)
-                    const CupertinoFormRow(
-                      prefix: Text('Current Network'),
-                      child: CupertinoActivityIndicator(),
-                    ),
-                  CupertinoFormRow(
-                    prefix: const Text('Add SSID'),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: CupertinoTextField(
-                            controller: _wifiSsidController,
-                            placeholder: 'Wi-Fi network name',
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: _addWifiSsid,
-                          child: const Text('Add'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ..._trustedWifiSsids.map(
-                    (ssid) => CupertinoFormRow(
-                      prefix: Text(ssid),
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () => _removeWifiSsid(ssid),
-                        child: const Text('Remove'),
-                      ),
-                    ),
-                  ),
-                ],
+              TrustedWifiSection(
+                currentSsid: _currentWifiSsid,
+                isLoadingCurrentSsid: _isLoadingCurrentSsid,
+                trustedSsids: _trustedWifiSsids,
+                ssidController: _wifiSsidController,
+                onSsidChanged: () => setState(() {}),
+                onAddSsid: _addWifiSsid,
+                onAddCurrent: _addCurrentWifiSsid,
+                onDetect: _loadCurrentWifiSsid,
+                onRemove: _removeWifiSsid,
               ),
               const SizedBox(height: 16),
               CupertinoFormSection(
@@ -566,35 +505,10 @@ class _EditServerScreenState extends State<EditServerScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              CupertinoFormSection(
-                header: const Text('CONNECTION TEST'),
-                children: [
-                  CupertinoFormRow(
-                    prefix: const Text('Test Connection'),
-                    child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      onPressed: !_isTestingConnection ? _testConnection : null,
-                      child: _isTestingConnection
-                          ? const CupertinoActivityIndicator()
-                          : const Text('Test'),
-                    ),
-                  ),
-                  if (_connectionTestResult != null)
-                    CupertinoFormRow(
-                      prefix: const Text('Result'),
-                      child: Text(
-                        _connectionTestResult!,
-                        style: TextStyle(
-                          color:
-                              _connectionTestResult!.startsWith(
-                                'Connection successful',
-                              )
-                              ? CupertinoColors.systemGreen
-                              : CupertinoColors.systemRed,
-                        ),
-                      ),
-                    ),
-                ],
+              ConnectionTestSection(
+                isTesting: _isTestingConnection,
+                result: _connectionTestResult,
+                onTest: _testConnection,
               ),
             ],
           ),
