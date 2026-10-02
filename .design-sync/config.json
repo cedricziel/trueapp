@@ -1,0 +1,284 @@
+{
+  "projectId": "111bfca2-f810-4337-933e-931f1c817b66",
+  "shape": "package",
+  "pkg": "@truenas-manager/ui",
+  "globalName": "TrueNASManagerUI",
+  "buildCmd": "cd design/react && npm ci && npm run build",
+  "componentSrcMap": {
+    "CupertinoColors": null
+  },
+  "docsMap": {
+    "CupertinoApp": "../../.design-sync/groups/Primitives.md",
+    "CupertinoIcon": "../../.design-sync/groups/Primitives.md",
+    "CupertinoButton": "../../.design-sync/groups/Primitives.md",
+    "CupertinoActivityIndicator": "../../.design-sync/groups/Primitives.md",
+    "CupertinoAlertDialog": "../../.design-sync/groups/Primitives.md",
+    "CupertinoDialogAction": "../../.design-sync/groups/Primitives.md",
+    "AppLogo": "../../.design-sync/groups/Primitives.md",
+    "AdaptiveNavigationScaffold": "../../.design-sync/groups/Navigation.md",
+    "CupertinoTabBar": "../../.design-sync/groups/Navigation.md",
+    "CupertinoSidebar": "../../.design-sync/groups/Navigation.md",
+    "CupertinoNavigationBar": "../../.design-sync/groups/Navigation.md",
+    "ShellBackButton": "../../.design-sync/groups/Navigation.md",
+    "DeviceFrame": "../../.design-sync/groups/Navigation.md",
+    "SectionCard": "../../.design-sync/groups/Layout.md",
+    "InfoRow": "../../.design-sync/groups/Layout.md",
+    "SectionHeader": "../../.design-sync/groups/Layout.md",
+    "FormRowLabel": "../../.design-sync/groups/Layout.md",
+    "ResponsiveRow": "../../.design-sync/groups/Layout.md",
+    "StatusPill": "../../.design-sync/groups/Data.md",
+    "UsageBar": "../../.design-sync/groups/Data.md",
+    "StorageMetricWidget": "../../.design-sync/groups/Data.md",
+    "TrendSparkline": "../../.design-sync/groups/Data.md",
+    "MemorySegmentedBar": "../../.design-sync/groups/Data.md",
+    "LoadingStateWidget": "../../.design-sync/groups/States.md",
+    "EmptyStateWidget": "../../.design-sync/groups/States.md",
+    "ErrorStateWidget": "../../.design-sync/groups/States.md",
+    "ConnectionErrorWidget": "../../.design-sync/groups/States.md",
+    "CompactConnectionErrorWidget": "../../.design-sync/groups/States.md",
+    "AuthenticationStateWidget": "../../.design-sync/groups/States.md",
+    "ConnectionStatusWidget": "../../.design-sync/groups/Status.md",
+    "ConnectionStatusTitleWidget": "../../.design-sync/groups/Status.md",
+    "JobsBellButton": "../../.design-sync/groups/Status.md",
+    "SessionIndicatorWidget": "../../.design-sync/groups/Status.md",
+    "ServerListTile": "../../.design-sync/groups/Cards.md",
+    "PoolCardWidget": "../../.design-sync/groups/Cards.md",
+    "AppIcon": "../../.design-sync/groups/Cards.md",
+    "AppCardWidget": "../../.design-sync/groups/Cards.md",
+    "JobCardWidget": "../../.design-sync/groups/Cards.md",
+    "SystemStatsWidget": "../../.design-sync/groups/Dashboard.md",
+    "CpuStatsCard": "../../.design-sync/groups/Dashboard.md",
+    "MemoryStatsCard": "../../.design-sync/groups/Dashboard.md",
+    "DiskStatsCard": "../../.design-sync/groups/Dashboard.md",
+    "NetworkStatsCard": "../../.design-sync/groups/Dashboard.md",
+    "HomeScreen": "../../.design-sync/groups/Screens.md",
+    "SettingsScreen": "../../.design-sync/groups/Screens.md",
+    "AddServerScreen": "../../.design-sync/groups/Screens.md",
+    "EditServerScreen": "../../.design-sync/groups/Screens.md",
+    "ServerDetailScreen": "../../.design-sync/groups/Screens.md",
+    "ServerHealthScreen": "../../.design-sync/groups/Screens.md",
+    "UserProfileScreen": "../../.design-sync/groups/Screens.md",
+    "ServerPoolsScreen": "../../.design-sync/groups/Screens.md",
+    "PoolDetailScreen": "../../.design-sync/groups/Screens.md",
+    "DatasetDetailScreen": "../../.design-sync/groups/Screens.md",
+    "ServerFilesScreen": "../../.design-sync/groups/Screens.md",
+    "ServerAppsScreen": "../../.design-sync/groups/Screens.md",
+    "AppDetailScreen": "../../.design-sync/groups/Screens.md",
+    "AppConfigurationScreen": "../../.design-sync/groups/Screens.md",
+    "ServerJobsScreen": "../../.design-sync/groups/Screens.md",
+    "CupertinoActionSheet": "../../.design-sync/groups/Forms.md",
+    "CupertinoActionSheetAction": "../../.design-sync/groups/Forms.md",
+    "CupertinoFormRow": "../../.design-sync/groups/Forms.md",
+    "CupertinoFormSection": "../../.design-sync/groups/Forms.md",
+    "CupertinoPageScaffold": "../../.design-sync/groups/Forms.md",
+    "CupertinoSearchTextField": "../../.design-sync/groups/Forms.md",
+    "CupertinoSwitch": "../../.design-sync/groups/Forms.md",
+    "CupertinoTextField": "../../.design-sync/groups/Forms.md",
+    "CupertinoTextFormFieldRow": "../../.design-sync/groups/Forms.md"
+  },
+  "libOverrides": {
+    "dts.mjs": "inline the package-own types a props body references (Pool, ColorValue, CupertinoIconName) as .d.ts preludes"
+  },
+  "runtimeFontPrefixes": [
+    "SF Pro",
+    "SF Mono"
+  ],
+  "overrides": {
+    "AdaptiveNavigationScaffold": {
+      "cardMode": "column"
+    },
+    "DeviceFrame": {
+      "cardMode": "column"
+    },
+    "SystemStatsWidget": {
+      "cardMode": "column"
+    },
+    "CupertinoNavigationBar": {
+      "cardMode": "column"
+    },
+    "HomeScreen": {
+      "cardMode": "column"
+    },
+    "SettingsScreen": {
+      "cardMode": "column"
+    },
+    "AddServerScreen": {
+      "cardMode": "column"
+    },
+    "EditServerScreen": {
+      "cardMode": "column"
+    },
+    "ServerDetailScreen": {
+      "cardMode": "column"
+    },
+    "ServerHealthScreen": {
+      "cardMode": "column"
+    },
+    "UserProfileScreen": {
+      "cardMode": "column"
+    },
+    "ServerPoolsScreen": {
+      "cardMode": "column"
+    },
+    "PoolDetailScreen": {
+      "cardMode": "column"
+    },
+    "DatasetDetailScreen": {
+      "cardMode": "column"
+    },
+    "ServerFilesScreen": {
+      "cardMode": "column"
+    },
+    "ServerAppsScreen": {
+      "cardMode": "column"
+    },
+    "AppDetailScreen": {
+      "cardMode": "column"
+    },
+    "AppConfigurationScreen": {
+      "cardMode": "column"
+    },
+    "ServerJobsScreen": {
+      "cardMode": "column"
+    },
+    "AppCardWidget": {
+      "cardMode": "column"
+    },
+    "JobCardWidget": {
+      "cardMode": "column"
+    },
+    "PoolCardWidget": {
+      "cardMode": "column"
+    },
+    "ServerListTile": {
+      "cardMode": "column"
+    },
+    "CpuStatsCard": {
+      "cardMode": "column"
+    },
+    "DiskStatsCard": {
+      "cardMode": "column"
+    },
+    "MemoryStatsCard": {
+      "cardMode": "column"
+    },
+    "NetworkStatsCard": {
+      "cardMode": "column"
+    },
+    "MemorySegmentedBar": {
+      "cardMode": "column"
+    },
+    "StatusPill": {
+      "cardMode": "column"
+    },
+    "StorageMetricWidget": {
+      "cardMode": "column"
+    },
+    "TrendSparkline": {
+      "cardMode": "column"
+    },
+    "UsageBar": {
+      "cardMode": "column"
+    },
+    "FormRowLabel": {
+      "cardMode": "column"
+    },
+    "InfoRow": {
+      "cardMode": "column"
+    },
+    "ResponsiveRow": {
+      "cardMode": "column"
+    },
+    "SectionCard": {
+      "cardMode": "column"
+    },
+    "SectionHeader": {
+      "cardMode": "column"
+    },
+    "CupertinoSidebar": {
+      "cardMode": "column"
+    },
+    "CupertinoTabBar": {
+      "cardMode": "column"
+    },
+    "ShellBackButton": {
+      "cardMode": "column"
+    },
+    "AppLogo": {
+      "cardMode": "column"
+    },
+    "CupertinoActivityIndicator": {
+      "cardMode": "column"
+    },
+    "CupertinoAlertDialog": {
+      "cardMode": "column"
+    },
+    "CupertinoApp": {
+      "cardMode": "column"
+    },
+    "CupertinoButton": {
+      "cardMode": "column"
+    },
+    "CupertinoDialogAction": {
+      "cardMode": "column"
+    },
+    "CupertinoIcon": {
+      "cardMode": "column"
+    },
+    "AuthenticationStateWidget": {
+      "cardMode": "column"
+    },
+    "CompactConnectionErrorWidget": {
+      "cardMode": "column"
+    },
+    "ConnectionErrorWidget": {
+      "cardMode": "column"
+    },
+    "EmptyStateWidget": {
+      "cardMode": "column"
+    },
+    "ErrorStateWidget": {
+      "cardMode": "column"
+    },
+    "LoadingStateWidget": {
+      "cardMode": "column"
+    },
+    "ConnectionStatusTitleWidget": {
+      "cardMode": "column"
+    },
+    "JobsBellButton": {
+      "cardMode": "column"
+    },
+    "SessionIndicatorWidget": {
+      "cardMode": "column"
+    },
+    "CupertinoActionSheet": {
+      "cardMode": "column"
+    },
+    "CupertinoActionSheetAction": {
+      "cardMode": "column"
+    },
+    "CupertinoFormRow": {
+      "cardMode": "column"
+    },
+    "CupertinoFormSection": {
+      "cardMode": "column"
+    },
+    "CupertinoPageScaffold": {
+      "cardMode": "column"
+    },
+    "CupertinoSearchTextField": {
+      "cardMode": "column"
+    },
+    "CupertinoSwitch": {
+      "cardMode": "column"
+    },
+    "CupertinoTextField": {
+      "cardMode": "column"
+    },
+    "CupertinoTextFormFieldRow": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
