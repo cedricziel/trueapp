@@ -1,3 +1,4 @@
+import 'package:truehub/services/tray_status_ports.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -36,7 +37,9 @@ typedef _CatalogRequests = ({
   Future<_Outcome<List<String>>> categories,
 });
 
-class AppProvider extends ChangeNotifier with ActiveServerFollower {
+class AppProvider extends ChangeNotifier
+    with ActiveServerFollower
+    implements TrayAppsSource {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
   final ServerClientSession _session;
@@ -775,6 +778,7 @@ class AppProvider extends ChangeNotifier with ActiveServerFollower {
     return config?.isFavorite ?? false;
   }
 
+  @override
   List<AppConfig> getAppsWithPortals() {
     return _appConfigs.where((config) {
       return config.ports.isNotEmpty &&

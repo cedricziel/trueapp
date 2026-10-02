@@ -1,3 +1,4 @@
+import 'package:truehub/services/tray_status_ports.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
@@ -34,7 +35,7 @@ class AuthenticationStatus {
   bool get hasFailed => state == AuthenticationState.failed;
 }
 
-class ServerProvider extends ChangeNotifier {
+class ServerProvider extends ChangeNotifier implements TrayServerSource {
   final UnifiedServerService _serverService;
   final ApiClientManagerInterface _clientManager;
   final AppDatabase Function()? _databaseRef;
@@ -94,6 +95,7 @@ class ServerProvider extends ChangeNotifier {
     _loadServers();
   }
 
+  @override
   List<models.NasServer> get servers => _servers;
   bool get isLoadingServers => _isLoadingServers;
   models.NasServer? get selectedServer => _selectedServer;
@@ -119,6 +121,7 @@ class ServerProvider extends ChangeNotifier {
 
   ServerHealth? get serverHealth => _serverHealth;
   bool get isLoadingHealth => _isLoadingHealth;
+  @override
   String? get healthError => _healthError;
   UserInfo? get currentUser => _currentUser;
   bool get isLoadingUser => _isLoadingUser;
@@ -396,6 +399,7 @@ class ServerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   Future<void> refreshSelectedServer() async {
     if (_selectedServer != null) {
       final updated = await _serverService.getServer(_selectedServer!.id);

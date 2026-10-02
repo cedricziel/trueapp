@@ -3,8 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:truehub/services/tray_service.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
-class TrayProvider with ChangeNotifier {
+class TrayProvider with ChangeNotifier implements TrayStatusSink {
   final TrayService _trayService = TrayService();
 
   bool _minimizeToTray = true;
@@ -19,6 +20,7 @@ class TrayProvider with ChangeNotifier {
   Function()? _onQuitApp;
   Function()? _onRefresh;
 
+  @override
   void setCallbacks({
     Function()? onShowWindow,
     Function()? onQuitApp,
@@ -29,6 +31,7 @@ class TrayProvider with ChangeNotifier {
     _onRefresh = onRefresh;
   }
 
+  @override
   Future<void> initializeTray() async {
     // Only initialize on desktop platforms that support system tray
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
@@ -63,6 +66,7 @@ class TrayProvider with ChangeNotifier {
     WindowManager.setDockVisibility(showInDock);
   }
 
+  @override
   Future<void> updateServerStatus({
     required int connectedServers,
     required int totalServers,
