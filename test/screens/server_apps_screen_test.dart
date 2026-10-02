@@ -157,29 +157,41 @@ void main() {
     );
   }
 
-  /// Waits for the screen's `initState` post-frame callback to finish
-  /// `setServer` + `loadApps` - both cross real drift/keychain I/O, so
-  /// this must use [pumpUntilAsync] rather than a plain `pump` (see
-  /// pump_helpers.dart's doc comment).
+  /// Runs [trigger] and waits for the `loadApps` it starts to finish - it
+  /// crosses real drift/keychain I/O, so this must use [pumpUntilAsync]
+  /// rather than a plain `pump` (see pump_helpers.dart's doc comment).
   ///
   /// `!appProvider.isLoading` alone is not a safe condition to poll: it is
-  /// also true before the load has even started (`setServer` awaits real
-  /// I/O before `loadApps` ever flips `isLoading`), so a naive wait can
-  /// resolve immediately and race the real load. This instead waits for an
-  /// observed true -> false transition of `isLoading`, proving a full load
-  /// cycle actually ran.
-  Future<void> settleInitialLoad(WidgetTester tester) async {
-    // A tap that triggers a reload has already flipped isLoading by the time
-    // this runs, so an in-flight load counts as started.
-    var loadStarted = appProvider.isLoading;
+  /// also true before the load has even started, so a naive wait can resolve
+  /// immediately and race the real load. This instead waits for an observed
+  /// true -> false transition of `isLoading`, proving a full load cycle ran.
+  /// The listener is attached before [trigger] runs: a fast fake client can
+  /// finish the whole cycle inside `pumpWidget`, and a listener attached
+  /// afterwards would miss it and wait out the full timeout.
+  Future<void> settleLoad(
+    WidgetTester tester,
+    Future<void> Function() trigger,
+  ) async {
+    var loadStarted = false;
     void listener() {
       if (appProvider.isLoading) loadStarted = true;
     }
 
     appProvider.addListener(listener);
-    await pumpUntilAsync(tester, () => loadStarted && !appProvider.isLoading);
-    appProvider.removeListener(listener);
+    try {
+      await trigger();
+      final settled = await pumpUntilAsync(
+        tester,
+        () => loadStarted && !appProvider.isLoading,
+      );
+      expect(settled, isTrue, reason: 'loadApps did not complete');
+    } finally {
+      appProvider.removeListener(listener);
+    }
   }
+
+  Future<void> pumpAndSettleInitialLoad(WidgetTester tester) =>
+      settleLoad(tester, () => tester.pumpWidget(createTestApp()));
 
   group('ServerAppsScreen - populated list', () {
     testWidgets('renders installed apps on the default Installed tab', (
@@ -194,8 +206,7 @@ void main() {
       ];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       expect(find.byType(AppCardWidget), findsNWidgets(2));
@@ -218,8 +229,7 @@ void main() {
       ];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.tap(find.text('Available'));
@@ -241,8 +251,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       // `setAppFavorite` writes through drift, which never completes inside
@@ -279,8 +288,7 @@ void main() {
         fakeClient.availableApps = [];
         fakeClient.appCategories = [];
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         await tester.tap(find.text('Updates'));
@@ -301,8 +309,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       fakeClient.installedApps = [
@@ -310,8 +317,10 @@ void main() {
         _app(name: 'sonarr', title: 'Sonarr', installed: true),
       ];
 
-      await tester.tap(find.byIcon(CupertinoIcons.refresh));
-      await settleInitialLoad(tester);
+      await settleLoad(
+        tester,
+        () => tester.tap(find.byIcon(CupertinoIcons.refresh)),
+      );
       await tester.pump();
 
       expect(find.byType(AppCardWidget), findsNWidgets(2));
@@ -327,8 +336,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.tap(find.byType(AppCardWidget));
@@ -366,8 +374,7 @@ void main() {
       ];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.tap(find.text('Available'));
@@ -424,8 +431,7 @@ void main() {
         fakeClient.availableApps = [];
         fakeClient.appCategories = [];
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         List<String> renderedTitles() => tester
@@ -457,8 +463,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       expect(find.byType(AppCardWidget), findsNothing);
@@ -476,8 +481,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.tap(find.text('Available'));
@@ -502,8 +506,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.enterText(
@@ -565,8 +568,7 @@ void main() {
         await useClient(tester, gatedClient);
         addTearDown(gatedClient.dispose);
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         // Installed apps are already usable while the catalog is pending.
@@ -653,8 +655,7 @@ void main() {
         ];
         fakeClient.appCategories = [];
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         expect(find.text('Failed to load apps'), findsNothing);
@@ -673,8 +674,7 @@ void main() {
       ];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       await tester.tap(find.text('Available'));
@@ -701,8 +701,7 @@ void main() {
         ];
         fakeClient.appCategories = [];
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         fakeClient.failingMethods.add('getAvailableApps');
@@ -733,8 +732,7 @@ void main() {
         ];
         fakeClient.appCategories = [];
 
-        await tester.pumpWidget(createTestApp());
-        await settleInitialLoad(tester);
+        await pumpAndSettleInitialLoad(tester);
         await tester.pump();
 
         fakeClient.failingMethods.add('getAvailableApps');
@@ -779,8 +777,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await pumpUntilFound(tester, find.byType(AppCardWidget));
 
       expectNoLayoutOverflow(tester);
@@ -795,8 +792,7 @@ void main() {
       fakeClient.availableApps = [];
       fakeClient.appCategories = [];
 
-      await tester.pumpWidget(createTestApp());
-      await settleInitialLoad(tester);
+      await pumpAndSettleInitialLoad(tester);
       await tester.pump();
 
       expectNoLayoutOverflow(tester);
