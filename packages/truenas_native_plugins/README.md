@@ -283,10 +283,6 @@ app. After it:
 - Tests bridge this package's `MockCloudKitService` to the app's own
   `CloudKitServiceInterface` via
   `test/helpers/mock_cloudkit_service_adapter.dart` in the app's test suite.
-- `NativeKeychainService.debugGetPasswordWithOldPattern` on the app-side
-  facade is a stub that always returns `null` — it existed to check for
-  passwords under the pre-extraction `flutter_secure_storage` key pattern,
-  and that lookup did not survive the extraction.
 
 ## License
 

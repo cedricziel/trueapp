@@ -39,7 +39,6 @@ const officeHealthy: HomeServerEntry = {
 
 const fleet: HomeScreenProps = {
   servers: [basement, backup, office],
-  session: { minutesRemaining: 24 },
 };
 
 function Shell({
@@ -101,7 +100,7 @@ export const SingleNeedsAttentionLight = () => (
     props={{ servers: [basement, backup, officeHealthy] }}
   />
 );
-export const AllHealthySessionExpiringDark = () => (
+export const AllHealthyDark = () => (
   <Shell
     device="phone"
     dark
@@ -115,7 +114,6 @@ export const AllHealthySessionExpiringDark = () => (
         },
         officeHealthy,
       ],
-      session: { minutesRemaining: 3 },
     }}
   />
 );

@@ -119,8 +119,8 @@ void main() {
   Widget createTestApp({NasServer? server}) {
     final shown = server ?? testServer;
     return provideAppProviders(
-      userProfileProvider: createUserProfileProvider(shown),
       database: database,
+      userProfileProvider: createUserProfileProvider(shown),
       service: serverService,
       serverProvider: serverProvider,
       child: CupertinoApp(
@@ -404,8 +404,8 @@ void main() {
 
       await tester.pumpWidget(
         provideAppProviders(
-          userProfileProvider: createUserProfileProvider(testServer),
           database: database,
+          userProfileProvider: createUserProfileProvider(testServer),
           service: serverService,
           serverProvider: serverProvider,
           child: CupertinoApp(

@@ -56,7 +56,6 @@ void main() {
       Widget createTestApp() {
         return MultiProvider(
           providers: [
-            Provider<AppDatabase>.value(value: database),
             Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
@@ -230,7 +229,6 @@ void main() {
       Widget createTestApp() {
         return MultiProvider(
           providers: [
-            Provider<AppDatabase>.value(value: database),
             Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],
@@ -333,7 +331,6 @@ void main() {
       Widget createTestApp() {
         return MultiProvider(
           providers: [
-            Provider<AppDatabase>.value(value: database),
             Provider<UnifiedServerService>.value(value: unifiedServerService),
             ChangeNotifierProvider.value(value: serverProvider),
           ],

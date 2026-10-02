@@ -11,17 +11,25 @@ import 'package:truehub/screens/app_detail/app_maintainers_section.dart';
 import 'package:truehub/screens/app_detail/app_metadata_section.dart';
 import 'package:truehub/screens/app_detail/app_screenshots_section.dart';
 import 'package:truehub/screens/app_detail/app_sources_section.dart';
+import 'package:truehub/services/url_opener.dart';
 
 class AppDetailScreen extends StatefulWidget {
   final App app;
+  final UrlOpener urlOpener;
 
-  const AppDetailScreen({super.key, required this.app});
+  const AppDetailScreen({
+    super.key,
+    required this.app,
+    this.urlOpener = const UrlLauncherOpener(),
+  });
 
   @override
   State<AppDetailScreen> createState() => _AppDetailScreenState();
 }
 
 class _AppDetailScreenState extends State<AppDetailScreen> {
+  final _sourcesKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -39,32 +47,48 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
         ),
       ),
       child: SafeArea(
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
-            AppDetailHeader(app: widget.app),
-            const SizedBox(height: 24),
-            if (widget.app.screenshots.isNotEmpty) ...[
-              AppScreenshotsSection(screenshots: widget.app.screenshots),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppDetailHeader(app: widget.app),
               const SizedBox(height: 24),
-            ],
-            AppDescriptionSection(app: widget.app),
-            const SizedBox(height: 24),
-            AppMetadataSection(app: widget.app),
-            const SizedBox(height: 24),
-            if (widget.app.maintainers.isNotEmpty) ...[
-              AppMaintainersSection(maintainers: widget.app.maintainers),
+              if (widget.app.screenshots.isNotEmpty) ...[
+                AppScreenshotsSection(screenshots: widget.app.screenshots),
+                const SizedBox(height: 24),
+              ],
+              AppDescriptionSection(app: widget.app),
               const SizedBox(height: 24),
-            ],
-            if (widget.app.sources.isNotEmpty) ...[
-              AppSourcesSection(sources: widget.app.sources),
+              AppMetadataSection(app: widget.app),
               const SizedBox(height: 24),
+              if (widget.app.maintainers.isNotEmpty) ...[
+                AppMaintainersSection(maintainers: widget.app.maintainers),
+                const SizedBox(height: 24),
+              ],
+              if (widget.app.sources.isNotEmpty) ...[
+                AppSourcesSection(
+                  key: _sourcesKey,
+                  sources: widget.app.sources,
+                  urlOpener: widget.urlOpener,
+                ),
+                const SizedBox(height: 24),
+              ],
+              AppDetailActions(app: widget.app, urlOpener: widget.urlOpener),
+              const SizedBox(height: 32),
             ],
-            AppDetailActions(app: widget.app),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  void _scrollToSources() {
+    final sourcesContext = _sourcesKey.currentContext;
+    if (sourcesContext == null) return;
+    Scrollable.ensureVisible(
+      sourcesContext,
+      duration: const Duration(milliseconds: 300),
     );
   }
 
@@ -98,17 +122,12 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               _toggleFavorite(appProvider);
             },
           ),
-          CupertinoActionSheetAction(
-            child: Text(widget.app.installed ? 'Manage App' : 'Install App'),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
           if (widget.app.home != null && widget.app.home!.isNotEmpty)
             CupertinoActionSheetAction(
               child: const Text('View Homepage'),
               onPressed: () {
                 Navigator.pop(context);
+                widget.urlOpener.open(widget.app.home!);
               },
             ),
           if (widget.app.sources.isNotEmpty)
@@ -116,7 +135,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               child: const Text('View Sources'),
               onPressed: () {
                 Navigator.pop(context);
-                // Scroll to sources section
+                _scrollToSources();
               },
             ),
         ],

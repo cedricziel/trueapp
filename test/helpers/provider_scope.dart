@@ -57,7 +57,6 @@ Widget provideAppProviders({
 }) {
   return MultiProvider(
     providers: [
-      Provider<AppDatabase>.value(value: database),
       Provider<UnifiedServerService>.value(value: service),
       ChangeNotifierProvider.value(value: serverProvider),
       poolProvider != null

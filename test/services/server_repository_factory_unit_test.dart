@@ -1,11 +1,18 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
+import 'package:truehub/services/database.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 
 import '../helpers/mock_cloudkit_service_adapter.dart';
 import '../helpers/test_database.dart';
+
+AppDatabase closingTestDatabase() {
+  final database = createTestDatabase();
+  addTearDown(database.close);
+  return database;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +30,7 @@ void main() {
     ServerRepositoryFactory buildFactory({required bool isApplePlatform}) {
       cloudKitBuilt = 0;
       return ServerRepositoryFactory(
-        serversDaoSource: createTestDatabase(),
+        serversDaoSource: closingTestDatabase(),
         cloudKitServiceBuilder: () {
           cloudKitBuilt++;
           return MockCloudKitServiceAdapter();
@@ -70,7 +77,7 @@ void main() {
 
     test('falls back to SQLite once CloudKit fails to initialize', () async {
       final factory = ServerRepositoryFactory(
-        serversDaoSource: createTestDatabase(),
+        serversDaoSource: closingTestDatabase(),
         cloudKitServiceBuilder: () => _UnavailableCloudKitService(),
         isApplePlatform: true,
       );
@@ -83,7 +90,7 @@ void main() {
     test('disposes the CloudKit service it fell back from', () async {
       final service = _UnavailableCloudKitService();
       final factory = ServerRepositoryFactory(
-        serversDaoSource: createTestDatabase(),
+        serversDaoSource: closingTestDatabase(),
         cloudKitServiceBuilder: () => service,
         isApplePlatform: true,
       );

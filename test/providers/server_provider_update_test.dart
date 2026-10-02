@@ -12,7 +12,7 @@ import 'package:drift/native.dart';
 import '../helpers/test_providers.dart';
 
 void main() {
-  group('Server Provider Refresh Test', () {
+  group('ServerProvider.updateServer', () {
     late AppDatabase database;
     late ServerProvider serverProvider;
     late UnifiedServerService unifiedServerService;

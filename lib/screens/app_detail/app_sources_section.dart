@@ -1,9 +1,15 @@
 import 'package:flutter/cupertino.dart';
+import 'package:truehub/services/url_opener.dart';
 
 class AppSourcesSection extends StatelessWidget {
   final List<String> sources;
+  final UrlOpener urlOpener;
 
-  const AppSourcesSection({super.key, required this.sources});
+  const AppSourcesSection({
+    super.key,
+    required this.sources,
+    this.urlOpener = const UrlLauncherOpener(),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +25,7 @@ class AppSourcesSection extends StatelessWidget {
           (source) => Container(
             margin: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
-              onTap: () {
-                // TODO: Open URL in browser
-              },
+              onTap: () => urlOpener.open(source),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
