@@ -86,7 +86,7 @@ dependencies:
     path: packages/truenas_native_plugins
 
   # OpenTelemetry SDK (logs signal).
-  flutter_otel: ^0.1.4
+  flutter_otel: ^0.1.5
 
 dev_dependencies:
   flutter_test:

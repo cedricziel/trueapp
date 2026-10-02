@@ -16,10 +16,11 @@ TrueHub (TrueNAS Manager) does not sell, share or advertise with your data.
 - Builds distributed through TestFlight and the App Store send diagnostic
   telemetry to a monitoring service operated by the developer: error messages
   and stack traces, and the timing and outcome of requests the app makes to
-  your servers. Error messages are sent as the app or your server produced
-  them, so they can include details such as a server's address or a message
-  your server returned. The app never adds your passwords, API keys or file
-  contents to telemetry. Telemetry is used only to find and fix bugs.
+  your servers. Before anything is sent, the app removes passwords, API
+  keys, access tokens and credentials embedded in addresses. Error messages
+  can still include details such as a server's address or a message your
+  server returned. File contents are never sent. Telemetry is used only to
+  find and fix bugs.
 
 If you have questions, open an issue at
 https://github.com/cedricziel/trueapp/issues or write to
