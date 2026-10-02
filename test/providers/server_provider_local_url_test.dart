@@ -58,7 +58,7 @@ void main() {
     await TestProviders.cleanupTestEnvironment();
   });
 
-  group('Local URL Save Test', () {
+  group('ServerProvider local URL persistence', () {
     test('should handle single character local URL "s"', () async {
       // Verify initial state
       expect(testServer.localUrl, 's');
