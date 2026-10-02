@@ -5,11 +5,7 @@ import {
   type NasServer,
 } from "../components/ServerListTile";
 import { EmptyStateWidget, LoadingStateWidget } from "../components/States";
-import {
-  AppLogo,
-  SessionIndicatorWidget,
-  type SessionIndicatorWidgetProps,
-} from "../components/Status";
+import { AppLogo } from "../components/Status";
 import { CupertinoButton } from "../primitives/CupertinoButton";
 import { CupertinoIcon } from "../primitives/CupertinoIcon";
 import { CupertinoNavigationBar } from "../primitives/CupertinoNavigationBar";
@@ -27,8 +23,6 @@ export interface HomeScreenProps {
   servers: HomeServerEntry[];
   /** Shows "Loading servers..." instead of the list. */
   isLoading?: boolean;
-  /** The unlocked biometric session shown next to the title; omit when the session is locked. */
-  session?: SessionIndicatorWidgetProps;
   onAddServer?: () => void;
   onServerSelected?: (id: string) => void;
 }
@@ -92,7 +86,6 @@ function FleetBanner({
 export function HomeScreen({
   servers,
   isLoading = false,
-  session,
   onAddServer,
   onServerSelected,
 }: HomeScreenProps) {
@@ -139,14 +132,7 @@ export function HomeScreen({
       navigationBar={
         <CupertinoNavigationBar
           middle={
-            <span style={{ display: "inline-flex", alignItems: "center" }}>
-              Servers
-              {session && (
-                <span style={{ marginLeft: 8, display: "inline-flex" }}>
-                  <SessionIndicatorWidget {...session} />
-                </span>
-              )}
-            </span>
+            <span>Servers</span>
           }
           trailing={
             <CupertinoButton padding={0} minSize={0} onClick={onAddServer}>

@@ -79,7 +79,6 @@ export {
   ConnectionStatusWidget,
   ConnectionStatusTitleWidget,
   JobsBellButton,
-  SessionIndicatorWidget,
 } from "./components/Status";
 export type {
   AppLogoProps,
@@ -87,7 +86,6 @@ export type {
   ConnectionStatusWidgetProps,
   ConnectionStatusTitleWidgetProps,
   JobsBellButtonProps,
-  SessionIndicatorWidgetProps,
 } from "./components/Status";
 export { PoolCardWidget } from "./components/PoolCardWidget";
 export type { Pool, PoolCardWidgetProps } from "./components/PoolCardWidget";

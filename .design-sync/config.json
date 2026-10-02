@@ -40,7 +40,6 @@
     "ConnectionStatusWidget": "../../.design-sync/groups/Status.md",
     "ConnectionStatusTitleWidget": "../../.design-sync/groups/Status.md",
     "JobsBellButton": "../../.design-sync/groups/Status.md",
-    "SessionIndicatorWidget": "../../.design-sync/groups/Status.md",
     "ServerListTile": "../../.design-sync/groups/Cards.md",
     "PoolCardWidget": "../../.design-sync/groups/Cards.md",
     "AppIcon": "../../.design-sync/groups/Cards.md",
@@ -247,9 +246,6 @@
       "cardMode": "column"
     },
     "JobsBellButton": {
-      "cardMode": "column"
-    },
-    "SessionIndicatorWidget": {
       "cardMode": "column"
     },
     "CupertinoActionSheet": {
