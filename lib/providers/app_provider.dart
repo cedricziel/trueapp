@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:drift/drift.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
@@ -32,7 +33,7 @@ typedef _CatalogRequests = ({
   Future<_Outcome<List<String>>> categories,
 });
 
-class AppProvider extends ChangeNotifier {
+class AppProvider extends ChangeNotifier with ActiveServerFollower {
   final AppDatabase Function() _databaseRef;
   final UnifiedServerService _serverService;
   final ServerClientSession _session;
@@ -64,6 +65,7 @@ class AppProvider extends ChangeNotifier {
     required UnifiedServerService serverService,
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : assert(
          databaseRef != null || database != null,
          'AppProvider requires either databaseRef or database',
@@ -76,7 +78,9 @@ class AppProvider extends ChangeNotifier {
          clientManager: clientManager,
          credentials: serverService,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   AppDatabase get _database => _databaseRef();
   ApiClientInterface? get _apiClient => _session.client;
@@ -117,6 +121,7 @@ class AppProvider extends ChangeNotifier {
   // Legacy getter for backward compatibility - converts AppConfig to App-like interface
   List<App> get apps => _appConfigs.map(_appConfigToApp).toList();
 
+  @override
   Future<void> setServer(NasServer? server) async {
     _loadGeneration++;
     _currentServer = server;
@@ -143,9 +148,9 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setApiClient(NasServer server) => setServer(server);
-
   Future<void> loadApps() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     if (_currentServerId == null) return;
     final generation = ++_loadGeneration;
 

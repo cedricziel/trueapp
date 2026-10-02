@@ -123,11 +123,11 @@ void main() {
     });
   });
 
-  group('FileProvider - setApiClient', () {
+  group('FileProvider - setServer', () {
     test('swallows a getClient failure and reports it to telemetry', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       expect(provider.files, isEmpty);
       expect(telemetryService.recordedErrors, hasLength(1));
@@ -143,7 +143,7 @@ void main() {
         'reported to telemetry', () async {
       final client = _ClassifiedFailureClient();
       TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       await provider.loadFiles('/mnt/tank');
 
@@ -165,7 +165,7 @@ void main() {
         final client = FakeApiClient();
         client.failingMethods.add('getDirectoryListing');
         TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-        await provider.setApiClient(testServer);
+        await provider.setServer(testServer);
 
         await provider.loadFiles('/mnt/tank');
 

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -10,7 +11,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 
-class HealthProvider extends ChangeNotifier {
+class HealthProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Alert> _alerts = [];
@@ -19,7 +20,7 @@ class HealthProvider extends ChangeNotifier {
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
-  /// Bumped by every [setApiClient] call, so a [loadHealth] call for a
+  /// Bumped by every [setServer] call, so a [loadHealth] call for a
   /// server the caller has already switched away from can tell its own
   /// result is stale and discard it instead of overwriting the newer
   /// selection's alerts or services.
@@ -29,13 +30,16 @@ class HealthProvider extends ChangeNotifier {
     ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'HealthProvider',
          clientManager: clientManager,
          credentials: credentials,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   ApiClientInterface? get _apiClient => _session.client;
 
@@ -52,7 +56,8 @@ class HealthProvider extends ChangeNotifier {
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
-  Future<void> setApiClient(NasServer server) async {
+  @override
+  Future<void> setServer(NasServer server) async {
     _generation++;
     _alerts = [];
     _services = [];
@@ -64,6 +69,8 @@ class HealthProvider extends ChangeNotifier {
   }
 
   Future<void> loadHealth() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     final generation = _generation;
     final client = _apiClient;
     if (client == null) return;

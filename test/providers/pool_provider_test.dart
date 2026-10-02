@@ -184,9 +184,9 @@ void main() {
     });
   });
 
-  group('PoolProvider - setApiClient', () {
+  group('PoolProvider - setServer', () {
     test('loads a client directly from a server', () async {
-      await poolProvider.setApiClient(testServer);
+      await poolProvider.setServer(testServer);
 
       fakeClient.pools = [
         {'id': 1, 'name': 'tank'},
@@ -204,7 +204,7 @@ void main() {
         password: 'password',
       );
 
-      await poolProvider.setApiClient(orphanServer);
+      await poolProvider.setServer(orphanServer);
       await poolProvider.loadPools();
 
       expect(poolProvider.pools, isEmpty);
@@ -213,7 +213,7 @@ void main() {
     test('a getClient failure is reported to telemetry', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await poolProvider.setApiClient(testServer);
+      await poolProvider.setServer(testServer);
 
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(

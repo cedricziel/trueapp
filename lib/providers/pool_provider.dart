@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/pool.dart';
@@ -8,7 +9,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 
-class PoolProvider extends ChangeNotifier {
+class PoolProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Pool> _pools = [];
@@ -19,13 +20,16 @@ class PoolProvider extends ChangeNotifier {
     ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'PoolProvider',
          clientManager: clientManager,
          credentials: credentials,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   ApiClientInterface? get _apiClient => _session.client;
 
@@ -34,6 +38,7 @@ class PoolProvider extends ChangeNotifier {
   ConnectionError? get connectionError => _connectionError;
   String? get error => _connectionError?.shortMessage;
 
+  @override
   Future<void> setServer(NasServer? server) async {
     _pools = [];
     _connectionError = null;
@@ -46,9 +51,9 @@ class PoolProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setApiClient(NasServer server) => setServer(server);
-
   Future<void> loadPools() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     if (_apiClient == null) return;
 
     _isLoading = true;

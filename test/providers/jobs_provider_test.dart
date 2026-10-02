@@ -94,9 +94,9 @@ void main() {
     });
   });
 
-  group('JobsProvider - setApiClient', () {
+  group('JobsProvider - setServer', () {
     test('with a known server obtains an API client', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
       expect(provider.isSubscribed, isTrue);
       expect(provider.error, isNull);
@@ -110,7 +110,7 @@ void main() {
         password: 'password',
       );
 
-      await provider.setApiClient(orphanServer);
+      await provider.setServer(orphanServer);
       await provider.subscribeToJobs();
 
       expect(provider.isSubscribed, isFalse);
@@ -119,11 +119,11 @@ void main() {
 
     test('switching from a configured server to one without credentials '
         'clears the previous client rather than keeping it live', () async {
-      // Regression test: setApiClient used to leave `_apiClient` pointed at
+      // Regression test: setServer used to leave `_apiClient` pointed at
       // the previous server whenever the new server had no credentials (or
       // client creation failed), so abortJob/rerunJob/subscribeToJobs could
       // silently keep acting on the old server after switching.
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
       expect(provider.isSubscribed, isTrue);
 
@@ -133,9 +133,9 @@ void main() {
         username: 'admin',
         password: 'password',
       );
-      await provider.setApiClient(orphanServer);
+      await provider.setServer(orphanServer);
 
-      // The old client's subscription was torn down by setApiClient...
+      // The old client's subscription was torn down by setServer...
       expect(provider.isSubscribed, isFalse);
       // ...and nothing new is configured, so every action fails closed
       // instead of quietly reaching the previous (Test Server) client.
@@ -148,7 +148,7 @@ void main() {
     test('a getClient failure is reported to telemetry', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       expect(telemetryService.recordedErrors, hasLength(1));
       expect(
@@ -161,7 +161,7 @@ void main() {
   group('JobsProvider - subscribeToJobs', () {
     test('seeds jobs from getJobs before listening to the stream', () async {
       fakeClient.jobs = [_job(id: 1), _job(id: 2, state: 'WAITING')];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       await provider.subscribeToJobs();
 
@@ -174,7 +174,7 @@ void main() {
     });
 
     test('receives further updates through the jobs stream', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       var notifications = 0;
       provider.addListener(() => notifications++);
@@ -190,7 +190,7 @@ void main() {
     });
 
     test('is idempotent when already subscribed', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
       final callsAfterFirst = fakeClient.calls
           .where((c) => c == 'subscribeToJobs')
@@ -211,7 +211,7 @@ void main() {
     });
 
     test('a subscribeToJobs failure sets an error', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       fakeClient.failingMethods.add('subscribeToJobs');
 
       await provider.subscribeToJobs();
@@ -236,7 +236,7 @@ void main() {
         _job(id: 4, state: 'SUCCESS', timeFinished: DateTime.now()),
         _job(id: 5, state: 'FAILED', timeFinished: DateTime.now()),
       ];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
 
       expect(provider.runningJobs.map((j) => j.id), [1]);
@@ -251,7 +251,7 @@ void main() {
         _job(id: 1, state: 'SUCCESS', timeFinished: older),
         _job(id: 2, state: 'SUCCESS', timeFinished: newer),
       ];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
 
       expect(provider.historyJobs.map((j) => j.id).toList(), [2, 1]);
@@ -272,7 +272,7 @@ void main() {
             timeFinished: DateTime.now().subtract(const Duration(hours: 30)),
           ),
         ];
-        await provider.setApiClient(testServer);
+        await provider.setServer(testServer);
         await provider.subscribeToJobs();
 
         expect(provider.recentFailures.map((j) => j.id).toList(), [1]);
@@ -285,7 +285,7 @@ void main() {
         fakeClient.jobs = [
           _job(id: 1, state: 'FAILED', timeFinished: DateTime.now()),
         ];
-        await provider.setApiClient(testServer);
+        await provider.setServer(testServer);
         await provider.subscribeToJobs();
         expect(provider.needsAttention, isTrue);
 
@@ -301,14 +301,14 @@ void main() {
 
   group('JobsProvider - abortJob / rerunJob', () {
     test('abortJob delegates to the API client and returns true', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       final result = await provider.abortJob(42);
       expect(result, isTrue);
       expect(fakeClient.lastAbortedJobId, 42);
     });
 
     test('abortJob surfaces a failure', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       fakeClient.failingMethods.add('abortJob');
 
       final result = await provider.abortJob(42);
@@ -329,7 +329,7 @@ void main() {
     });
 
     test('rerunJob delegates to the API client and returns true', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       final job = _job(id: 9, state: 'FAILED');
 
       final result = await provider.rerunJob(job);
@@ -339,7 +339,7 @@ void main() {
     });
 
     test('rerunJob surfaces a failure', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       fakeClient.failingMethods.add('rerunJob');
 
       final result = await provider.rerunJob(_job(id: 9, state: 'FAILED'));
@@ -356,7 +356,7 @@ void main() {
 
   group('JobsProvider - refreshJobs', () {
     test('starts a subscription when not yet subscribed', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       await provider.refreshJobs();
 
@@ -365,7 +365,7 @@ void main() {
 
     test('re-fetches jobs without touching the subscription', () async {
       fakeClient.jobs = [_job(id: 1)];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
 
       fakeClient.jobs = [_job(id: 1), _job(id: 2)];
@@ -386,7 +386,7 @@ void main() {
     test(
       'a getJobs failure while subscribed is reported to telemetry',
       () async {
-        await provider.setApiClient(testServer);
+        await provider.setServer(testServer);
         await provider.subscribeToJobs();
         fakeClient.failingMethods.add('getJobs');
 
@@ -405,7 +405,7 @@ void main() {
   group('JobsProvider - unsubscribeFromJobs', () {
     test('clears jobs and subscription state', () async {
       fakeClient.jobs = [_job(id: 1)];
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
       expect(provider.hasData, isTrue);
 
@@ -423,7 +423,7 @@ void main() {
     });
 
     test('an unsubscribeFromJobs failure is reported to telemetry', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.subscribeToJobs();
       fakeClient.failingMethods.add('unsubscribeFromJobs');
 
@@ -443,7 +443,7 @@ void main() {
         clientManager: TestProviders.mockApiClientManager,
         serverService,
       );
-      await scoped.setApiClient(testServer);
+      await scoped.setServer(testServer);
       await scoped.subscribeToJobs();
 
       scoped.dispose();

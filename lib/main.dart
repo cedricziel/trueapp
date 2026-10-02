@@ -19,6 +19,7 @@ import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/api_client_manager_impl.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -39,6 +40,7 @@ void main() async {
     connectionStatusProvider: connectionStatusProvider,
     telemetry: telemetryService,
   );
+  final activeServer = ActiveServer();
 
   runApp(
     MultiProvider(
@@ -47,6 +49,7 @@ void main() async {
         Provider<AppDatabase>.value(value: database),
         Provider<UnifiedServerService>.value(value: unifiedServerService),
         Provider<ApiClientManagerInterface>.value(value: clientManager),
+        Provider<ActiveServer>.value(value: activeServer),
         ChangeNotifierProvider.value(value: connectionStatusProvider),
         ChangeNotifierProvider(
           create: (context) => ServerProvider(
@@ -61,6 +64,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -68,6 +72,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -75,6 +80,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -82,6 +88,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -97,6 +104,7 @@ void main() async {
             serverService: unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -104,6 +112,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(
@@ -111,6 +120,7 @@ void main() async {
             unifiedServerService,
             clientManager: clientManager,
             telemetryService: telemetryService,
+            activeServer: activeServer.listenable,
           ),
         ),
         ChangeNotifierProvider(create: (context) => TrayProvider()),

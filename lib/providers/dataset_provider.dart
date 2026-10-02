@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
@@ -6,7 +7,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 
-class DatasetProvider extends ChangeNotifier {
+class DatasetProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Map<String, dynamic>> _datasets = [];
@@ -17,13 +18,16 @@ class DatasetProvider extends ChangeNotifier {
     ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'DatasetProvider',
          clientManager: clientManager,
          credentials: credentials,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   ApiClientInterface? get _apiClient => _session.client;
 
@@ -31,6 +35,7 @@ class DatasetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  @override
   Future<void> setServer(NasServer? server) async {
     _datasets = [];
     _error = null;
@@ -43,9 +48,9 @@ class DatasetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setApiClient(NasServer server) => setServer(server);
-
   Future<void> loadDatasets() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     if (_apiClient == null) return;
 
     _isLoading = true;

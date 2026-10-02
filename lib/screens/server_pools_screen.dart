@@ -23,12 +23,11 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadPools();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPools());
   }
 
   Future<void> _loadPools() async {
     final poolProvider = context.read<PoolProvider>();
-    await poolProvider.setApiClient(widget.server);
     await poolProvider.loadPools();
   }
 

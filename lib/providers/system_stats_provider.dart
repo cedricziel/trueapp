@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
+import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/services/api_client_interface.dart';
@@ -9,7 +10,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 
-class SystemStatsProvider extends ChangeNotifier {
+class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
   final ServerClientSession _session;
 
   /// How many samples the CPU/memory trend history keeps - enough for a
@@ -30,13 +31,16 @@ class SystemStatsProvider extends ChangeNotifier {
     ServerCredentialsLookup credentials, {
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
+    ValueListenable<NasServer?>? activeServer,
   }) : _telemetryService = telemetryService,
        _session = ServerClientSession(
          owner: 'SystemStatsProvider',
          clientManager: clientManager,
          credentials: credentials,
          telemetry: telemetryService,
-       );
+       ) {
+    followActiveServer(activeServer);
+  }
 
   ApiClientInterface? get _apiClient => _session.client;
 
@@ -54,7 +58,8 @@ class SystemStatsProvider extends ChangeNotifier {
   /// first), for a trend sparkline.
   List<double> get memoryHistory => List.unmodifiable(_memoryHistory);
 
-  Future<void> setApiClient(NasServer server) async {
+  @override
+  Future<void> setServer(NasServer server) async {
     if (_apiClient != null) {
       await unsubscribeFromStats();
     }
@@ -73,6 +78,8 @@ class SystemStatsProvider extends ChangeNotifier {
   }
 
   Future<void> subscribeToStats() async {
+    final pendingSwitch = pendingServerSwitch;
+    if (pendingSwitch != null) await pendingSwitch;
     if (_apiClient == null) {
       _setError('No API client configured');
       return;

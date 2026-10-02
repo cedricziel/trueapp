@@ -67,9 +67,9 @@ void main() {
     });
   });
 
-  group('HealthProvider - setApiClient', () {
+  group('HealthProvider - setServer', () {
     test('with a known server obtains an API client', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.loadHealth();
 
       expect(provider.connectionError, isNull);
@@ -83,7 +83,7 @@ void main() {
         password: 'password',
       );
 
-      await provider.setApiClient(orphanServer);
+      await provider.setServer(orphanServer);
       await provider.loadHealth();
 
       // loadHealth is a no-op without a client.
@@ -94,7 +94,7 @@ void main() {
     test('swallows a getClient failure', () async {
       TestProviders.mockApiClientManager.shouldFailConnection = true;
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.loadHealth();
 
       expect(provider.alerts, isEmpty);
@@ -106,7 +106,7 @@ void main() {
     });
 
     test('releases the previous client before switching', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       final secondServer = NasServer.create(
         name: 'Second Server',
@@ -123,7 +123,7 @@ void main() {
         FakeApiClient(),
       );
 
-      await provider.setApiClient(secondServer);
+      await provider.setServer(secondServer);
 
       expect(
         TestProviders.mockApiClientManager.wasMethodCalled(
@@ -134,13 +134,13 @@ void main() {
     });
 
     test(
-      'a superseded setApiClient call does not overwrite the newer one',
+      'a superseded setServer call does not overwrite the newer one',
       () async {
-        // Regression coverage: two setApiClient() calls in flight for the
+        // Regression coverage: two setServer() calls in flight for the
         // same provider must settle on the second one's client rather than
         // racing to install whichever resolves last.
-        final first = provider.setApiClient(testServer);
-        final second = provider.setApiClient(testServer);
+        final first = provider.setServer(testServer);
+        final second = provider.setServer(testServer);
         await Future.wait([first, second]);
 
         await provider.loadHealth();
@@ -156,7 +156,7 @@ void main() {
       // both calls through the same releaseClient() await for that
       // shared previous server - the older one must recognize it has
       // been superseded there and never touch _currentServerId again.
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
 
       final secondServer = NasServer.create(
         name: 'Second Server',
@@ -221,8 +221,8 @@ void main() {
         newerClient,
       );
 
-      final older = provider.setApiClient(secondServer);
-      final newer = provider.setApiClient(thirdServer);
+      final older = provider.setServer(secondServer);
+      final newer = provider.setServer(thirdServer);
       await Future.wait([older, newer]);
 
       await provider.loadHealth();
@@ -244,7 +244,7 @@ void main() {
         {'service': 'cifs', 'state': 'RUNNING'},
       ];
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.loadHealth();
 
       expect(provider.alerts, hasLength(1));
@@ -264,7 +264,7 @@ void main() {
     test('a getAlerts failure surfaces a connection error', () async {
       fakeClient.failingMethods.add('getAlerts');
 
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.loadHealth();
 
       expect(provider.isLoading, isFalse);
@@ -277,7 +277,7 @@ void main() {
     });
 
     test('refreshHealth re-runs loadHealth', () async {
-      await provider.setApiClient(testServer);
+      await provider.setServer(testServer);
       await provider.refreshHealth();
 
       expect(provider.connectionError, isNull);
@@ -291,7 +291,7 @@ void main() {
         clientManager: TestProviders.mockApiClientManager,
         serverService,
       );
-      await scoped.setApiClient(testServer);
+      await scoped.setServer(testServer);
 
       scoped.dispose();
       await Future<void>.delayed(Duration.zero);

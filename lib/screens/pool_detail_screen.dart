@@ -24,12 +24,11 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDatasets();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDatasets());
   }
 
   Future<void> _loadDatasets() async {
     final datasetProvider = context.read<DatasetProvider>();
-    await datasetProvider.setApiClient(widget.server);
     await datasetProvider.loadDatasets();
   }
 
