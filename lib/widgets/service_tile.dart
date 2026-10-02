@@ -22,7 +22,7 @@ class ServiceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = service.isRunning
         ? CupertinoColors.systemGreen
-        : CupertinoColors.systemGrey;
+        : CupertinoColors.systemGrey.resolveFrom(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
