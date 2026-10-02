@@ -4,11 +4,12 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/native_keychain_service.dart';
+import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/server_lookup.dart';
 
 /// Unified server service that combines server metadata management with secure credential storage
 /// Uses platform-appropriate repository (CloudKit on Apple, SQLite elsewhere) + Keychain for passwords
-class UnifiedServerService implements ServerLookup {
+class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
   static UnifiedServerService? _instance;
 
   final ServerRepositoryInterface _repository;
@@ -187,7 +188,7 @@ class UnifiedServerService implements ServerLookup {
     }
   }
 
-  /// Get password for a server
+  @override
   Future<String?> getPassword(String serverId) async {
     return await _keychain.getPassword(serverId: serverId);
   }
