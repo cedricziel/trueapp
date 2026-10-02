@@ -8,10 +8,17 @@ import Flutter
 import FlutterMacOS
 #endif
 import CloudKit
+import Security
 
 public class CloudKitPlugin: NSObject, FlutterPlugin {
-    private let container = CKContainer(identifier: "iCloud.com.cedricziel.truehub")
-    private lazy var privateDatabase = container.privateCloudDatabase
+    private static let containerIdentifier = "iCloud.com.cedricziel.truehub"
+
+    // CKContainer traps the process when the app lacks the iCloud entitlement,
+    // so it is only created once the entitlement is known to be present.
+    private lazy var optionalContainer: CKContainer? =
+        Self.hasCloudKitEntitlement() ? CKContainer(identifier: Self.containerIdentifier) : nil
+    private var container: CKContainer { optionalContainer! }
+    private var privateDatabase: CKDatabase { container.privateCloudDatabase }
     private var eventSink: FlutterEventSink?
     private var subscriptionID: String?
     
@@ -32,8 +39,36 @@ public class CloudKitPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
         eventChannel.setStreamHandler(instance)
     }
+
+    private static func hasCloudKitEntitlement() -> Bool {
+        #if os(macOS)
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        let services = SecTaskCopyValueForEntitlement(
+            task,
+            "com.apple.developer.icloud-services" as CFString,
+            nil
+        )
+        return services != nil
+        #else
+        return true
+        #endif
+    }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard optionalContainer != nil else {
+            switch call.method {
+            case "initialize", "isAvailable":
+                result(false)
+            default:
+                result(FlutterError(
+                    code: "CLOUDKIT_UNAVAILABLE",
+                    message: "The app is not signed with the iCloud entitlement",
+                    details: nil
+                ))
+            }
+            return
+        }
+
         switch call.method {
         case "initialize":
             initialize(result: result)
