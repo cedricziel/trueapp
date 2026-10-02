@@ -1,10 +1,13 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/edit_server/connection_test_section.dart';
 import 'package:truehub/screens/edit_server/trusted_wifi_section.dart';
+import 'package:truehub/screens/server_form/authentication_section.dart';
+import 'package:truehub/screens/server_form/local_network_section.dart';
+import 'package:truehub/screens/server_form/server_details_section.dart';
+import 'package:truehub/screens/server_form/wifi_detection_dialogs.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -191,45 +194,12 @@ class _EditServerScreenState extends State<EditServerScreen> {
       // Show feedback if no Wi-Fi was detected
       if (mounted && ssid == null) {
         if (context.mounted) {
-          showCupertinoDialog(
-            context: context,
-            builder: (context) => CupertinoAlertDialog(
-              title: const Text('No Wi-Fi Detected'),
-              content: const Text(
-                'Unable to detect current Wi-Fi network. This could be due to:\n\n'
-                '• Not connected to Wi-Fi\n'
-                '• Location permission not granted\n'
-                '• Platform restrictions (macOS/iOS)\n\n'
-                'You can still manually enter network names.',
-              ),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text('OK'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          );
+          showNoWifiDetectedDialog(context);
         }
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Wi-Fi Detection Error'),
-            content: Text(
-              'Failed to detect Wi-Fi network: ${e.toString()}\n\n'
-              'You can still manually enter network names.',
-            ),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        );
+        showWifiDetectionErrorDialog(context, e);
       }
     } finally {
       if (mounted) {
@@ -384,45 +354,16 @@ class _EditServerScreenState extends State<EditServerScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              CupertinoFormSection(
-                header: const Text('SERVER DETAILS'),
-                children: [
-                  CupertinoTextFormFieldRow(
-                    controller: _nameController,
-                    placeholder: 'My TrueNAS Server',
-                    prefix: const Text('Name'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  CupertinoTextFormFieldRow(
-                    controller: _hostController,
-                    placeholder: '192.168.1.100',
-                    prefix: const Text('Host'),
-                    keyboardType: TextInputType.url,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  CupertinoTextFormFieldRow(
-                    controller: _portController,
-                    placeholder: 'Default port (443 for HTTPS, 80 for HTTP)',
-                    prefix: const Text('Port'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
+              ServerDetailsSection(
+                nameController: _nameController,
+                hostController: _hostController,
+                portController: _portController,
+                onChanged: () => setState(() {}),
               ),
               const SizedBox(height: 16),
-              CupertinoFormSection(
-                header: const Text('LOCAL NETWORK (OPTIONAL)'),
-                children: [
-                  CupertinoTextFormFieldRow(
-                    controller: _localUrlController,
-                    placeholder: 'http://192.168.1.100:80',
-                    prefix: const Text('Local URL'),
-                    keyboardType: TextInputType.url,
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                  ),
-                ],
+              LocalNetworkSection(
+                localUrlController: _localUrlController,
+                onChanged: () => setState(() {}),
               ),
               const SizedBox(height: 16),
               TrustedWifiSection(
@@ -437,32 +378,13 @@ class _EditServerScreenState extends State<EditServerScreen> {
                 onRemove: _removeWifiSsid,
               ),
               const SizedBox(height: 16),
-              CupertinoFormSection(
-                header: const Text('AUTHENTICATION'),
-                children: [
-                  CupertinoTextFormFieldRow(
-                    controller: _usernameController,
-                    placeholder: 'admin',
-                    prefix: const Text('Username'),
-                    keyboardType: TextInputType.text,
-                    autofillHints: const [AutofillHints.username],
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  CupertinoTextFormFieldRow(
-                    controller: _passwordController,
-                    placeholder: _isLoadingCredentials
-                        ? 'Loading...'
-                        : 'Password',
-                    prefix: const Text('Password'),
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.password],
-                    onChanged: (_) => setState(() {}),
-                    onEditingComplete: () {
-                      // Trigger save password prompt on iOS
-                      TextInput.finishAutofillContext();
-                    },
-                  ),
-                ],
+              AuthenticationSection(
+                usernameController: _usernameController,
+                passwordController: _passwordController,
+                passwordPlaceholder: _isLoadingCredentials
+                    ? 'Loading...'
+                    : 'Password',
+                onChanged: () => setState(() {}),
               ),
               const SizedBox(height: 16),
               CupertinoFormSection(
