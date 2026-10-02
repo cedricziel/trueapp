@@ -1,0 +1,10 @@
+# drift is the only code generator, and it only reads the database layer.
+# Without this, build_runner feeds every file in lib/ and test/ through it.
+# Add new paths here if code generation is used anywhere else.
+targets:
+  $default:
+    sources:
+      - lib/services/database.dart
+      - lib/services/database/**
+      - pubspec.yaml
+      - $package$
