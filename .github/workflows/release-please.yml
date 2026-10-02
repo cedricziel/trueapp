@@ -123,6 +123,7 @@ jobs:
         run: |
           bundle exec fastlane beta \
             allow_dirty:true \
+            groups:"Public Beta" \
             changelog:"Release ${{ needs.release-please.outputs.tag_name }}"
 
       - name: Upload IPA artifact
@@ -148,6 +149,7 @@ jobs:
         run: |
           bundle exec fastlane beta_mac \
             allow_dirty:true \
+            groups:"Public Beta" \
             changelog:"Release ${{ needs.release-please.outputs.tag_name }}"
 
       - name: Upload macOS pkg artifact

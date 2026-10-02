@@ -158,7 +158,9 @@ from conventional commits on `main`:
    `version:` in `pubspec.yaml` and `CHANGELOG.md`.
 2. Merging the release PR tags `vX.Y.Z`, publishes a GitHub prerelease, and
    the `Upload to TestFlight` job builds a signed iOS IPA with
-   [fastlane](https://fastlane.tools) and uploads it to TestFlight.
+   [fastlane](https://fastlane.tools) and uploads it to TestFlight,
+   then submits it to Beta App Review for the external `Public Beta` group,
+   whose public link is <https://testflight.apple.com/join/YJVPFkKU>.
 
 The build number is the commit count at the tag; the marketing version comes
 from `pubspec.yaml`. Signing assets live in a private fastlane `match`
@@ -169,6 +171,7 @@ bundle install
 cp fastlane/.env.default fastlane/.env   # fill in from 1Password
 bundle exec fastlane build               # signed IPA in build/, no upload
 bundle exec fastlane beta                # build + upload to TestFlight
+bundle exec fastlane beta groups:"Public Beta"   # ...and distribute to external groups
 ```
 
 Setting up CI secrets for a fresh fork is a one-time run of

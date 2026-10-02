@@ -3,6 +3,7 @@ opt_out_usage
 default_platform(:ios)
 
 require_relative "lib/pubspec_version"
+require_relative "lib/testflight_distribution"
 
 # Path constants (relative to the repo root; fastlane runs from fastlane/).
 WORKSPACE       = "ios/Runner.xcworkspace"
@@ -52,7 +53,7 @@ lane :build do
   build_ios
 end
 
-desc "Build and push a new beta build to TestFlight"
+desc "Build and push a new beta build to TestFlight; groups:\"A, B\" also distributes it to those external groups"
 lane :beta do |options|
   ensure_git_status_clean unless options[:allow_dirty]
   api_key = build_ios
@@ -60,8 +61,8 @@ lane :beta do |options|
   upload_to_testflight(
     api_key: api_key,
     app_identifier: APP_IDENTIFIER,
-    skip_waiting_for_build_processing: true,
-    changelog: options[:changelog] || "Beta build #{Time.now.strftime('%Y-%m-%d %H:%M')}"
+    changelog: options[:changelog] || "Beta build #{Time.now.strftime('%Y-%m-%d %H:%M')}",
+    **TestflightDistribution.upload_options(options[:groups])
   )
   # dSYMs are bundled in the IPA via build_app's include_symbols:true and
   # App Store Connect extracts them automatically — no separate upload step.
@@ -78,7 +79,7 @@ lane :build_pkg do
   build_mac
 end
 
-desc "Build and push a new beta build to TestFlight (macOS)"
+desc "Build and push a new beta build to TestFlight (macOS); groups:\"A, B\" also distributes it to those external groups"
 lane :beta_mac do |options|
   ensure_git_status_clean unless options[:allow_dirty]
   api_key = build_mac
@@ -88,8 +89,8 @@ lane :beta_mac do |options|
     app_identifier: APP_IDENTIFIER,
     app_platform: "osx",
     pkg: File.join(MAC_OUTPUT_DIR, "#{PKG_NAME}.pkg"),
-    skip_waiting_for_build_processing: true,
-    changelog: options[:changelog] || "Beta build #{Time.now.strftime('%Y-%m-%d %H:%M')}"
+    changelog: options[:changelog] || "Beta build #{Time.now.strftime('%Y-%m-%d %H:%M')}",
+    **TestflightDistribution.upload_options(options[:groups])
   )
 end
 
