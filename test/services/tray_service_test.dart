@@ -143,6 +143,16 @@ void main() {
       expect(host.menus, hasLength(1));
     });
 
+    test('disposes a half-built tray so a retry starts clean', () async {
+      host.setIconError = ArgumentError('cannot be loaded');
+
+      await service.initSystemTray();
+
+      expect(host.disposed, isTrue);
+      await service.updateServerStatus(connectedServers: 1, totalServers: 1);
+      expect(host.menus, isEmpty);
+    });
+
     test('stays uninitialized when no tray can be created', () async {
       final service = TrayService(createHost: () => null);
 

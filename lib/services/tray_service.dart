@@ -33,8 +33,9 @@ class TrayService {
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
     if (_host != null) return;
 
+    TrayHost? host;
     try {
-      final host = _createHost();
+      host = _createHost();
       if (host == null) {
         _log.warn('System tray is not available on this platform');
         return;
@@ -58,6 +59,7 @@ class TrayService {
       _host = host;
       _log.info('System tray initialized successfully');
     } catch (e) {
+      if (_host == null) host?.dispose();
       _log.error('Failed to initialize system tray', error: e);
     }
   }

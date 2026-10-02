@@ -8,6 +8,10 @@ class FakeTrayHost implements TrayHost {
   final tooltips = <String>[];
   final menus = <List<TrayMenuEntry>>[];
   bool disposed = false;
+
+  /// Thrown from [setIcon] when set, the way an unloadable asset fails.
+  Object? setIconError;
+
   void Function(String key)? _onSelected;
 
   List<TrayMenuEntry> get lastMenu => menus.last;
@@ -27,7 +31,10 @@ class FakeTrayHost implements TrayHost {
   void select(String key) => _onSelected!(key);
 
   @override
-  void setIcon(String assetPath) => icons.add(assetPath);
+  void setIcon(String assetPath) {
+    if (setIconError case final error?) throw error;
+    icons.add(assetPath);
+  }
 
   @override
   void setTooltip(String tooltip) => tooltips.add(tooltip);
