@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/job.dart';
+import 'package:truehub/models/pool.dart';
+import 'package:truehub/models/service_status.dart';
 import 'package:truehub/models/system_stats.dart';
 
 /// Interface for TrueNAS API clients to enable dependency injection and testing
@@ -26,7 +29,7 @@ abstract class ApiClientInterface {
   Future<UserInfo> getCurrentUser();
 
   // Pool management methods
-  Future<List<Map<String, dynamic>>> getPools();
+  Future<List<Pool>> getPools();
 
   // Dataset management methods
   Future<List<Map<String, dynamic>>> getDatasets();
@@ -38,8 +41,8 @@ abstract class ApiClientInterface {
   Future<ServerHealth> getServerHealth();
 
   // Health center methods
-  Future<List<Map<String, dynamic>>> getAlerts();
-  Future<List<Map<String, dynamic>>> getServices();
+  Future<List<Alert>> getAlerts();
+  Future<List<ServiceStatus>> getServices();
 
   // App management methods
   Future<List<App>> getAvailableApps();

@@ -80,14 +80,14 @@ class HealthProvider extends ChangeNotifier with ActiveServerFollower {
     notifyListeners();
 
     try {
-      final rawAlerts = await client.getAlerts();
-      final rawServices = await client.getServices();
+      final alerts = await client.getAlerts();
+      final services = await client.getServices();
       final serverHealth = await client.getServerHealth();
 
       if (generation != _generation) return;
 
-      _alerts = rawAlerts.map(Alert.fromJson).toList();
-      _services = rawServices.map(ServiceStatus.fromJson).toList();
+      _alerts = alerts;
+      _services = services;
       _serverHealth = serverHealth;
       _connectionError = null;
     } on ConnectionException catch (e, stackTrace) {

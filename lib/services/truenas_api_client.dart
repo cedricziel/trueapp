@@ -6,10 +6,13 @@ import 'package:flutter_otel/flutter_otel.dart';
 import 'package:json_rpc_2/json_rpc_2.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
+import 'package:truehub/models/service_status.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/models/connection_error.dart';
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/job.dart';
 import 'package:truehub/models/system_stats.dart';
@@ -947,22 +950,26 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAlerts() async {
+  Future<List<Alert>> getAlerts() async {
     try {
       await _ensureAuthenticated();
       final result = await _request('alert.list');
-      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+      return (result as List<dynamic>)
+          .map((json) => Alert.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       throw _handleError(e);
     }
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getServices() async {
+  Future<List<ServiceStatus>> getServices() async {
     try {
       await _ensureAuthenticated();
       final result = await _request('service.query');
-      return (result as List<dynamic>).cast<Map<String, dynamic>>();
+      return (result as List<dynamic>)
+          .map((json) => ServiceStatus.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       throw _handleError(e);
     }
@@ -979,9 +986,9 @@ class TrueNasApiClient implements ApiClientInterface {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getPools() async {
+  Future<List<Pool>> getPools() async {
     try {
-      return await _queryPools();
+      return (await _queryPools()).map(Pool.fromJson).toList();
     } catch (e) {
       throw _handleError(e);
     }

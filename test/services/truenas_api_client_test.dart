@@ -272,7 +272,37 @@ void main() {
       final pools = await client.getPools();
 
       expect(pools, hasLength(2));
-      expect(pools.first['name'], 'tank');
+      expect(pools.first.name, 'tank');
+    });
+
+    test('getAlerts parses the alert list into models', () async {
+      server.onMethod(
+        'alert.list',
+        (_) => [
+          {'id': '1', 'level': 'CRITICAL', 'formatted': 'Pool degraded'},
+        ],
+      );
+
+      final alerts = await client.getAlerts();
+
+      expect(alerts, hasLength(1));
+      expect(alerts.first.message, 'Pool degraded');
+    });
+
+    test('getServices parses the service list into models', () async {
+      server.onMethod(
+        'service.query',
+        (_) => [
+          {'service': 'cifs', 'state': 'RUNNING', 'enable': true},
+        ],
+      );
+
+      final services = await client.getServices();
+
+      expect(services, hasLength(1));
+      expect(services.first.id, 'cifs');
+      expect(services.first.isRunning, isTrue);
+      expect(services.first.isEnabled, isTrue);
     });
 
     test('getDatasets returns the dataset list', () async {

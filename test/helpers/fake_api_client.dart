@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/job.dart';
+import 'package:truehub/models/pool.dart';
+import 'package:truehub/models/service_status.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/system_stats.dart';
 import 'package:truehub/models/user_info.dart';
@@ -95,9 +98,9 @@ class FakeApiClient implements ApiClientInterface {
   List<Map<String, dynamic>> pools = [];
 
   @override
-  Future<List<Map<String, dynamic>>> getPools() async {
+  Future<List<Pool>> getPools() async {
     _recordAndMaybeThrow('getPools');
-    return pools;
+    return pools.map(Pool.fromJson).toList();
   }
 
   List<Map<String, dynamic>> datasets = [];
@@ -117,17 +120,17 @@ class FakeApiClient implements ApiClientInterface {
   List<FileItem> directoryListing = [];
 
   @override
-  Future<List<Map<String, dynamic>>> getAlerts() async {
+  Future<List<Alert>> getAlerts() async {
     _recordAndMaybeThrow('getAlerts');
-    return alerts;
+    return alerts.map(Alert.fromJson).toList();
   }
 
   List<Map<String, dynamic>> alerts = [];
 
   @override
-  Future<List<Map<String, dynamic>>> getServices() async {
+  Future<List<ServiceStatus>> getServices() async {
     _recordAndMaybeThrow('getServices');
-    return services;
+    return services.map(ServiceStatus.fromJson).toList();
   }
 
   List<Map<String, dynamic>> services = [];

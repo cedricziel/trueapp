@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -20,7 +21,7 @@ class _ClassifiedFailureClient extends FakeApiClient {
   );
 
   @override
-  Future<List<Map<String, dynamic>>> getPools() async {
+  Future<List<Pool>> getPools() async {
     calls.add('getPools');
     throw ConnectionException(failure);
   }

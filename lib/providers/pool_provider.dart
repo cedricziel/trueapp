@@ -61,8 +61,7 @@ class PoolProvider extends ChangeNotifier with ActiveServerFollower {
     notifyListeners();
 
     try {
-      final rawPools = await _apiClient!.getPools();
-      _pools = rawPools.map(Pool.fromJson).toList();
+      _pools = await _apiClient!.getPools();
       // Clear any previous errors on successful load
       _connectionError = null;
     } on ConnectionException catch (e, stackTrace) {
