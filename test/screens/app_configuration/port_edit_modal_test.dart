@@ -90,4 +90,14 @@ void main() {
 
     expect(deleted, isTrue);
   });
+
+  testWidgets('builds an existing port with no actions available', (
+    tester,
+  ) async {
+    await pumpModal(tester, onSave: (_) {});
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Set as Primary'), findsNothing);
+    expect(find.text('Delete Port'), findsNothing);
+  });
 }

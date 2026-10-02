@@ -125,7 +125,8 @@ class PortEditModalState extends State<PortEditModal> {
                 ),
               ],
             ),
-            if (!widget.isNewPort) ...[
+            if (!widget.isNewPort &&
+                (widget.onSetPrimary != null || widget.onDelete != null)) ...[
               const SizedBox(height: 24),
               CupertinoFormSection(
                 children: [
