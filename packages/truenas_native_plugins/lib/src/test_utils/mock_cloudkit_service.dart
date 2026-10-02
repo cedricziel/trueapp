@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import '../interfaces/cloudkit_service_interface.dart';
 import '../models/server_config_dto.dart';
 
@@ -31,9 +30,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     if (_shouldFailOperations) return false;
 
     _isInitialized = true;
-    if (kDebugMode) {
-      print('MockCloudKitService: Initialized');
-    }
     return true;
   }
 
@@ -61,10 +57,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     // Emit update event
     _serverConfigsController.add(List.from(_mockConfigs));
 
-    if (kDebugMode) {
-      print('MockCloudKitService: Saved config ${config.id}');
-    }
-
     return true;
   }
 
@@ -84,10 +76,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     // Emit update event
     _serverConfigsController.add(List.from(_mockConfigs));
 
-    if (kDebugMode) {
-      print('MockCloudKitService: Updated config ${config.id}');
-    }
-
     return true;
   }
 
@@ -98,10 +86,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     }
 
     if (!_isInitialized || _shouldFailOperations) return [];
-
-    if (kDebugMode) {
-      print('MockCloudKitService: Fetched ${_mockConfigs.length} configs');
-    }
 
     return List.from(_mockConfigs);
   }
@@ -121,10 +105,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     if (removed) {
       // Emit update event
       _serverConfigsController.add(List.from(_mockConfigs));
-
-      if (kDebugMode) {
-        print('MockCloudKitService: Deleted config $serverId');
-      }
     }
 
     return removed;
@@ -137,10 +117,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     }
 
     _isMonitoring = true;
-
-    if (kDebugMode) {
-      print('MockCloudKitService: Started monitoring');
-    }
   }
 
   @override
@@ -150,10 +126,6 @@ class MockCloudKitService implements CloudKitServiceInterface {
     }
 
     _isMonitoring = false;
-
-    if (kDebugMode) {
-      print('MockCloudKitService: Stopped monitoring');
-    }
   }
 
   @override

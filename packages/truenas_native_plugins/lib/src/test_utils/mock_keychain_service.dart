@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../interfaces/keychain_service_interface.dart';
 
 /// Mock implementation of KeychainService for testing
@@ -20,10 +19,6 @@ class MockKeychainService implements KeychainServiceInterface {
 
     _passwords[serverId] = password;
 
-    if (kDebugMode) {
-      print('MockKeychainService: Stored password for $serverId');
-    }
-
     return true;
   }
 
@@ -37,11 +32,6 @@ class MockKeychainService implements KeychainServiceInterface {
 
     final password = _passwords[serverId];
 
-    if (kDebugMode) {
-      print(
-          'MockKeychainService: Retrieved password for $serverId: ${password != null ? 'found' : 'not found'}');
-    }
-
     return password;
   }
 
@@ -54,11 +44,6 @@ class MockKeychainService implements KeychainServiceInterface {
     if (_shouldFailOperations) return false;
 
     final removed = _passwords.remove(serverId) != null;
-
-    if (kDebugMode) {
-      print(
-          'MockKeychainService: Delete password for $serverId: ${removed ? 'success' : 'not found'}');
-    }
 
     return removed;
   }
@@ -84,10 +69,6 @@ class MockKeychainService implements KeychainServiceInterface {
 
     final serverIds = _passwords.keys.toList();
 
-    if (kDebugMode) {
-      print('MockKeychainService: Found ${serverIds.length} server IDs');
-    }
-
     return serverIds;
   }
 
@@ -101,10 +82,6 @@ class MockKeychainService implements KeychainServiceInterface {
 
     final hadPasswords = _passwords.isNotEmpty;
     _passwords.clear();
-
-    if (kDebugMode) {
-      print('MockKeychainService: Deleted all passwords');
-    }
 
     return hadPasswords;
   }
