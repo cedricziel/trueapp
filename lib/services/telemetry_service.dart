@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:truehub/services/telemetry_config.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
@@ -36,6 +37,8 @@ class TelemetryService implements TelemetryServiceInterface {
         enabled: config.enabled && endpoint != null,
         otlpEndpoint: endpoint,
         otlpHeaders: config.otlpHeaders,
+        consoleLogging: kDebugMode,
+        consoleLogSeverity: LogSeverity.debug,
       ),
     );
     return TelemetryService._(sdk);
