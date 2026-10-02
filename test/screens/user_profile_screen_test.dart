@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/user_profile_provider.dart';
 import 'package:truehub/screens/user_profile_screen.dart';
+import 'package:truehub/services/active_server.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
@@ -23,6 +25,7 @@ void main() {
   late ServerProvider serverProvider;
   late FakeApiClient fakeClient;
   late NasServer testServer;
+  late List<UserProfileProvider> userProfileProviders;
 
   setUp(() async {
     await TestProviders.cleanupTestEnvironment();
@@ -36,6 +39,7 @@ void main() {
       serverService,
     );
     fakeClient = FakeApiClient();
+    userProfileProviders = [];
 
     testServer = NasServer.create(
       name: 'Test Server',
@@ -55,20 +59,17 @@ void main() {
     // server as soon as its stream listener observes it - a background
     // process saveServerConfig does not await (see
     // server_route_deep_link_test.dart for the same concern). Draining it
-    // here, in real time, stops it from racing UserProfileScreen's own
-    // explicit selectServer call: without this, both calls' selectServer()
-    // run concurrently, and the later one's _clearAuthState() can wipe out
-    // the currentUser the earlier one just loaded.
+    // here, in real time, keeps its database work from outliving setUp.
     var attempts = 0;
     while ((serverProvider.selectedServer == null ||
-            serverProvider.isAuthenticating) &&
+            serverProvider.currentAuthStatus.isAuthenticating) &&
         attempts < 100) {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       attempts++;
     }
     expect(
       serverProvider.selectedServer?.id == testServer.id &&
-          !serverProvider.isAuthenticating,
+          !serverProvider.currentAuthStatus.isAuthenticating,
       isTrue,
       reason:
           'ServerProvider did not finish auto-selecting and authenticating '
@@ -78,7 +79,7 @@ void main() {
 
   tearDown(() async {
     await TestProviders.disposeTestStack(
-      providers: [serverProvider],
+      providers: [serverProvider, ...userProfileProviders],
       service: serverService,
       database: database,
     );
@@ -89,7 +90,7 @@ void main() {
   /// progress between pumps.
   ///
   /// `UserProfileScreen`'s post-frame `_loadUserInfo` crosses real I/O
-  /// (`ServerProvider.selectServer` reads the password from the keychain and
+  /// (`UserProfileProvider.setServer` reads the password from the keychain and
   /// the server row from drift before `ApiClientManager.getClient` even
   /// runs), which never completes under a plain [pumpUntilFound] - see
   /// pump_helpers.dart's doc comment on [pumpUntilAsync].
@@ -105,8 +106,20 @@ void main() {
     );
   }
 
+  UserProfileProvider createUserProfileProvider(NasServer server) {
+    final provider = UserProfileProvider(
+      serverService,
+      clientManager: TestProviders.mockApiClientManager,
+      activeServer: ActiveServer(server).listenable,
+    );
+    userProfileProviders.add(provider);
+    return provider;
+  }
+
   Widget createTestApp({NasServer? server}) {
+    final shown = server ?? testServer;
     return provideAppProviders(
+      userProfileProvider: createUserProfileProvider(shown),
       database: database,
       service: serverService,
       serverProvider: serverProvider,
@@ -307,27 +320,22 @@ void main() {
       (WidgetTester tester) async {
         useCompactSurface(tester);
 
-        // setUp already resolved provider._apiClient to fakeClient via the
-        // auto-select settle, so swapping the manager's mapping alone would
-        // not be picked up - force a fresh selectServer so the provider
-        // re-fetches the client and gets the slow one instead.
         final completer = Completer<UserInfo>();
         final slowClient = _SlowApiClient(completer);
-        await serverProvider.clearSelectedServer();
         TestProviders.mockApiClientManager.addMockClient(
           testServer.id,
           slowClient,
         );
 
         await tester.pumpWidget(createTestApp());
-        // The post-frame-scheduled selectServer() crosses real drift/keychain
-        // I/O before loadCurrentUser() ever runs, so this needs
-        // pumpUntilAsync rather than a plain pump - see pump_helpers.dart.
-        // isLoadingUser only flips true once loadCurrentUser() is blocked on
-        // the still-uncompleted getCurrentUser() call.
+        // Connecting the provider's client crosses real keychain I/O before
+        // loadCurrentUser() ever runs, so this needs pumpUntilAsync rather
+        // than a plain pump - see pump_helpers.dart. isLoading only flips
+        // true once loadCurrentUser() is blocked on the still-uncompleted
+        // getCurrentUser() call.
         final startedLoading = await pumpUntilAsync(
           tester,
-          () => serverProvider.isLoadingUser,
+          () => userProfileProviders.single.isLoading,
         );
         expect(startedLoading, isTrue);
         // pumpUntilAsync can return as soon as the provider flag flips,
@@ -396,6 +404,7 @@ void main() {
 
       await tester.pumpWidget(
         provideAppProviders(
+          userProfileProvider: createUserProfileProvider(testServer),
           database: database,
           service: serverService,
           serverProvider: serverProvider,

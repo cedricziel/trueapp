@@ -11,6 +11,7 @@ import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
+import 'package:truehub/providers/user_profile_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'fake_tray_host.dart';
@@ -18,7 +19,7 @@ import 'test_providers.dart';
 
 /// Wraps [child] with the provider stack the app's shell and pushed detail
 /// screens (`HomeScreen`, `SettingsScreen`, `ServerDetailScreen`,
-/// `ServerFilesScreen`) read from context.
+/// `ServerFilesScreen`, `UserProfileScreen`) read from context.
 ///
 /// it is required. [PoolProvider], [AppProvider], [SystemStatsProvider],
 /// [JobsProvider] and [ConnectionStatusProvider] are only read by
@@ -52,6 +53,7 @@ Widget provideAppProviders({
   HealthProvider? healthProvider,
   FleetStatusProvider? fleetStatusProvider,
   DatasetProvider? datasetProvider,
+  UserProfileProvider? userProfileProvider,
 }) {
   return MultiProvider(
     providers: [
@@ -137,6 +139,16 @@ Widget provideAppProviders({
             )
           : ChangeNotifierProvider<DatasetProvider>(
               create: (_) => DatasetProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
+            ),
+      userProfileProvider != null
+          ? ChangeNotifierProvider<UserProfileProvider>.value(
+              value: userProfileProvider,
+            )
+          : ChangeNotifierProvider<UserProfileProvider>(
+              create: (_) => UserProfileProvider(
                 clientManager: TestProviders.mockApiClientManager,
                 service,
               ),

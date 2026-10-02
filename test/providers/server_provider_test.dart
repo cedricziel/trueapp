@@ -453,14 +453,11 @@ void main() {
       expect(serverProvider.isAuthenticating, isA<bool>());
     });
 
-    test('should handle server health and user info', () async {
+    test('should handle server health', () async {
       // Test initial state
       expect(serverProvider.serverHealth, isNull);
       expect(serverProvider.isLoadingHealth, isFalse);
       expect(serverProvider.healthError, isNull);
-      expect(serverProvider.currentUser, isNull);
-      expect(serverProvider.isLoadingUser, isFalse);
-      expect(serverProvider.userError, isNull);
     });
 
     test('should handle server list operations', () async {
@@ -681,36 +678,6 @@ void main() {
         'ServerProvider.loadServerHealth',
       );
     });
-
-    test(
-      'a failure loading the current user is reported to telemetry',
-      () async {
-        // See the comment in the loadServerHealth test above for why this
-        // uses a dedicated, freshly-selected provider.
-        final client = FakeApiClient();
-        client.failingMethods.add('getCurrentUser');
-        TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
-
-        final provider = ServerProvider(
-          clientManager: TestProviders.mockApiClientManager,
-          mockServerService,
-          serversDaoSource: database,
-          telemetryService: telemetryService,
-        );
-        addTearDown(provider.dispose);
-        telemetryService.recordedErrors.clear();
-
-        await provider.selectServer(testServer);
-        await provider.loadCurrentUser();
-
-        expect(provider.userError, isNotNull);
-        expect(telemetryService.recordedErrors, hasLength(1));
-        expect(
-          telemetryService.recordedErrors.single.context,
-          'ServerProvider.loadCurrentUser',
-        );
-      },
-    );
 
     test(
       'a failure loading the server list is reported to telemetry',

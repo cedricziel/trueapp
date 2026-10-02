@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/models/server_health.dart';
-import 'package:truehub/models/user_info.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
@@ -54,9 +53,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   ServerHealth? _serverHealth;
   bool _isLoadingHealth = false;
   String? _healthError;
-  UserInfo? _currentUser;
-  bool _isLoadingUser = false;
-  String? _userError;
 
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
   bool _disposed = false;
@@ -119,9 +115,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   bool get isLoadingHealth => _isLoadingHealth;
   @override
   String? get healthError => _healthError;
-  UserInfo? get currentUser => _currentUser;
-  bool get isLoadingUser => _isLoadingUser;
-  String? get userError => _userError;
 
   Future<void> _loadServers() async {
     try {
@@ -295,8 +288,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
     _authError = null;
     _serverHealth = null;
     _healthError = null;
-    _currentUser = null;
-    _userError = null;
   }
 
   void _emitAuthStatus() {
@@ -461,28 +452,6 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
       );
     } finally {
       _isLoadingHealth = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadCurrentUser() async {
-    if (_apiClient == null) return;
-
-    _isLoadingUser = true;
-    _userError = null;
-    notifyListeners();
-
-    try {
-      _currentUser = await _apiClient!.getCurrentUser();
-    } catch (e, stackTrace) {
-      _userError = e.toString();
-      _telemetryService?.recordError(
-        e,
-        stackTrace,
-        context: 'ServerProvider.loadCurrentUser',
-      );
-    } finally {
-      _isLoadingUser = false;
       notifyListeners();
     }
   }
