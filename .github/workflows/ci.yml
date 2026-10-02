@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 # Cancel in-progress runs when a new commit is pushed to the same PR or branch
 concurrency:
@@ -14,7 +14,7 @@ concurrency:
 env:
   # Single source of truth: the SDK the job installs and the key its cache is
   # scoped to must never drift apart.
-  FLUTTER_VERSION: '3.47.2'
+  FLUTTER_VERSION: "3.47.2"
 
 jobs:
   test:
@@ -26,118 +26,121 @@ jobs:
     timeout-minutes: 45
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        channel: 'stable'
-        cache: true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: "stable"
+          cache: true
 
-    - name: Cache dependencies
-      uses: actions/cache@v5
-      with:
-        # build/ is deliberately not cached. It holds Xcode's precompiled Swift
-        # modules, which are bound to the exact FlutterMacOS.framework headers
-        # they were built against. Restoring them across a toolchain change
-        # fails the macOS build with "has been modified since the module file
-        # was built" - and the runner's Xcode can move without any key of ours
-        # changing, so scoping alone would not be enough.
-        path: |
-          ~/.pub-cache
-          **/.dart_tool
-        # .dart_tool is SDK-specific too, so the key and the fallback both carry
-        # the Flutter version.
-        key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          # build/ is deliberately not cached. It holds Xcode's precompiled Swift
+          # modules, which are bound to the exact FlutterMacOS.framework headers
+          # they were built against. Restoring them across a toolchain change
+          # fails the macOS build with "has been modified since the module file
+          # was built" - and the runner's Xcode can move without any key of ours
+          # changing, so scoping alone would not be enough.
+          path: |
+            ~/.pub-cache
+            **/.dart_tool
+          # .dart_tool is SDK-specific too, so the key and the fallback both carry
+          # the Flutter version.
+          key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
 
-    - name: Get dependencies
-      run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-    - name: Generate code
-      run: dart run build_runner build --delete-conflicting-outputs
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
 
-    - name: Run static analysis
-      run: flutter analyze
+      - name: Run static analysis
+        run: flutter analyze
 
-    - name: Check formatting
-      run: dart format --set-exit-if-changed .
+      - name: Check formatting
+        run: dart format --set-exit-if-changed .
 
-    - name: Run tests
-      run: |
-        # Run all tests with expanded reporter for better CI output.
-        # --coverage feeds the coverage-floor check below.
-        flutter test --reporter=expanded \
-          --timeout=30s \
-          --no-pub \
-          --coverage
+      - name: Run tests
+        run: |
+          # Run all tests with expanded reporter for better CI output.
+          # --coverage feeds the coverage-floor check below.
+          # --concurrency: the default is half the CPU count, which is 1 on the
+          # 3-core macOS runner and runs every test file one after another.
+          flutter test --reporter=expanded \
+            --timeout=30s \
+            --no-pub \
+            --coverage \
+            --concurrency="$(sysctl -n hw.ncpu)"
 
-    - name: Run truenas_native_plugins package tests
-      working-directory: packages/truenas_native_plugins
-      run: flutter test --reporter=expanded --timeout=30s
+      - name: Run truenas_native_plugins package tests
+        working-directory: packages/truenas_native_plugins
+        run: flutter test --reporter=expanded --timeout=30s
 
-    - name: Enforce coverage floor
-      run: dart run tool/check_coverage.dart
+      - name: Enforce coverage floor
+        run: dart run tool/check_coverage.dart
 
-    - name: Upload coverage report
-      # always(): the report is most useful precisely when the floor check
-      # above failed, so the upload must not be skipped by that failure.
-      if: always()
-      uses: actions/upload-artifact@v5
-      with:
-        name: lcov-report
-        path: coverage/lcov.info
+      - name: Upload coverage report
+        # always(): the report is most useful precisely when the floor check
+        # above failed, so the upload must not be skipped by that failure.
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: lcov-report
+          path: coverage/lcov.info
 
-    - name: Run fastlane helper tests
-      run: |
-        ruby fastlane/test/pubspec_version_test.rb
-        ruby fastlane/test/testflight_distribution_test.rb
+      - name: Run fastlane helper tests
+        run: |
+          ruby fastlane/test/pubspec_version_test.rb
+          ruby fastlane/test/testflight_distribution_test.rb
 
-    - name: Build iOS (no codesign)
-      # OTLP_INGEST_URL/OTLP_INGEST_KEY may not be set as repo secrets yet -
-      # GitHub Actions substitutes an empty string for a missing secret. Both
-      # must be non-blank for telemetry to turn on: an endpoint with no key
-      # would otherwise compose an empty bearer token, which is worse than
-      # just leaving OTEL_EXPORTER_OTLP_ENDPOINT unset and telemetry disabled
-      # for this build (TelemetryConfig.enabled), not the build failing.
-      env:
-        OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
-        OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
-      run: |
-        DART_DEFINES=()
-        if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
-          DART_DEFINES+=(
-            --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
-            --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
-            --dart-define=OTEL_SERVICE_NAME=truehub
-            --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
-          )
-        fi
-        flutter build ios --no-codesign "${DART_DEFINES[@]}"
+      - name: Build iOS (no codesign)
+        # OTLP_INGEST_URL/OTLP_INGEST_KEY may not be set as repo secrets yet -
+        # GitHub Actions substitutes an empty string for a missing secret. Both
+        # must be non-blank for telemetry to turn on: an endpoint with no key
+        # would otherwise compose an empty bearer token, which is worse than
+        # just leaving OTEL_EXPORTER_OTLP_ENDPOINT unset and telemetry disabled
+        # for this build (TelemetryConfig.enabled), not the build failing.
+        env:
+          OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
+          OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
+        run: |
+          DART_DEFINES=()
+          if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
+            DART_DEFINES+=(
+              --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
+              --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
+              --dart-define=OTEL_SERVICE_NAME=truehub
+              --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
+            )
+          fi
+          flutter build ios --no-codesign "${DART_DEFINES[@]}"
 
-    # `flutter build macos` has no --no-codesign flag, and the runner has no
-    # signing identity, so the Release configuration's Manual signing fails
-    # with "No profiles for 'com.cedricziel.trueapp' were found". Flutter
-    # forwards FLUTTER_XCODE_<setting> to xcodebuild, which lets CI compile
-    # without signing - the same intent as --no-codesign on the iOS step.
-    - name: Build macOS (no codesign)
-      env:
-        FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
-        FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
-        FLUTTER_XCODE_CODE_SIGN_IDENTITY: ""
-        OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
-        OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
-      run: |
-        DART_DEFINES=()
-        if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
-          DART_DEFINES+=(
-            --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
-            --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
-            --dart-define=OTEL_SERVICE_NAME=truehub
-            --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
-          )
-        fi
-        flutter build macos "${DART_DEFINES[@]}"
+      # `flutter build macos` has no --no-codesign flag, and the runner has no
+      # signing identity, so the Release configuration's Manual signing fails
+      # with "No profiles for 'com.cedricziel.trueapp' were found". Flutter
+      # forwards FLUTTER_XCODE_<setting> to xcodebuild, which lets CI compile
+      # without signing - the same intent as --no-codesign on the iOS step.
+      - name: Build macOS (no codesign)
+        env:
+          FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
+          FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
+          FLUTTER_XCODE_CODE_SIGN_IDENTITY: ""
+          OTLP_INGEST_URL: ${{ secrets.OTLP_INGEST_URL }}
+          OTLP_INGEST_KEY: ${{ secrets.OTLP_INGEST_KEY }}
+        run: |
+          DART_DEFINES=()
+          if [ -n "$OTLP_INGEST_URL" ] && [ -n "$OTLP_INGEST_KEY" ]; then
+            DART_DEFINES+=(
+              --dart-define=OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP_INGEST_URL"
+              --dart-define=OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer $OTLP_INGEST_KEY,x-tenant-id=homelab,x-dataset-id=apps"
+              --dart-define=OTEL_SERVICE_NAME=truehub
+              --dart-define=OTEL_DEPLOYMENT_ENVIRONMENT=production
+            )
+          fi
+          flutter build macos "${DART_DEFINES[@]}"
