@@ -55,7 +55,7 @@ class AppUpgradeBanner extends StatelessWidget {
   static void _showUpgradeDialog(BuildContext context, App app) {
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: Text('Upgrade ${app.title}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -89,12 +89,15 @@ class AppUpgradeBanner extends StatelessWidget {
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () => _performUpgrade(context, app),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _performUpgrade(context, app);
+            },
             child: const Text('Upgrade'),
           ),
         ],
@@ -103,10 +106,6 @@ class AppUpgradeBanner extends StatelessWidget {
   }
 
   static void _performUpgrade(BuildContext context, App app) async {
-    Navigator.of(context).pop();
-
-    if (!context.mounted) return;
-
     showCupertinoDialog(
       context: context,
       barrierDismissible: false,
