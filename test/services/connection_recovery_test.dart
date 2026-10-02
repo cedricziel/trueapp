@@ -282,4 +282,27 @@ void main() {
       );
     },
   );
+
+  test(
+    'a failed app stats re-subscribe leaves the stream for recovery to restore',
+    () async {
+      await client.subscribeToAppStats();
+      expect(server.subscribeCount, 1);
+
+      await server.dropConnections();
+      server.failSubscribes = true;
+      await expectLater(client.subscribeToAppStats(), throwsA(anything));
+
+      server.failSubscribes = false;
+      await client.ensureConnectionAlive();
+
+      expect(
+        server.subscribeCount,
+        2,
+        reason:
+            'the dead socket\'s subscription must not count as live, so '
+            'recovery re-establishes the app stats stream',
+      );
+    },
+  );
 }

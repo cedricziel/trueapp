@@ -19,6 +19,9 @@ mixin _AppStatsOps on _ClientTransport implements AppStatsApi {
       return;
     }
 
+    _isSubscribedToAppStats = false;
+    _appStatsSubscriptionId = null;
+
     try {
       await _ensureAuthenticated();
 
