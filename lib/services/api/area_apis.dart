@@ -37,6 +37,12 @@ abstract interface class HealthApi {
   Future<List<ServiceStatus>> getServices();
 }
 
+abstract interface class ServicesApi {
+  Future<void> startService(String serviceId);
+  Future<void> stopService(String serviceId);
+  Future<void> restartService(String serviceId);
+}
+
 abstract interface class PoolsApi {
   Future<List<Pool>> getPools();
 }

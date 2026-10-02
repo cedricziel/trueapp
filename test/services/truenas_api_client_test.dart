@@ -305,6 +305,40 @@ void main() {
       expect(services.first.isEnabled, isTrue);
     });
 
+    for (final (name, method, call)
+        in <(String, String, Future<void> Function(TrueNasApiClient))>[
+          ('startService', 'service.start', (c) => c.startService('ssh')),
+          ('stopService', 'service.stop', (c) => c.stopService('ssh')),
+          ('restartService', 'service.restart', (c) => c.restartService('ssh')),
+        ]) {
+      test(
+        '$name calls $method with the service and silent disabled',
+        () async {
+          List<Object?>? received;
+          server.onMethod(method, (params) {
+            received = params.asList;
+            return true;
+          });
+
+          await call(client);
+
+          expect(received, [
+            'ssh',
+            {'silent': false},
+          ]);
+        },
+      );
+
+      test('$name throws when the server errors', () async {
+        server.onMethod(
+          method,
+          (_) => throw json_rpc.RpcException(500, 'unit failed'),
+        );
+
+        await expectLater(call(client), throwsA(isA<ConnectionException>()));
+      });
+    }
+
     test('getDatasets returns the dataset list', () async {
       server.onMethod(
         'pool.dataset.query',
