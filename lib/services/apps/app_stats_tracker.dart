@@ -14,6 +14,7 @@ class AppStatsTracker {
   final void Function() _onChanged;
   StreamSubscription<Map<String, AppResourceUsage>>? _subscription;
   final Map<String, AppResourceUsage> _lastKnown = {};
+  int _epoch = 0;
 
   AppStatsTracker({
     required void Function() onChanged,
@@ -24,10 +25,12 @@ class AppStatsTracker {
   AppResourceUsage? usageFor(String appName) => _lastKnown[appName];
 
   Future<void> subscribe(ApiClientInterface client) async {
+    final epoch = ++_epoch;
     await _subscription?.cancel();
 
     try {
       await client.subscribeToAppStats();
+      if (epoch != _epoch) return;
 
       _subscription = client.appStatsStream.listen(
         (appStatsMap) {
@@ -55,6 +58,7 @@ class AppStatsTracker {
   }
 
   Future<void> unsubscribe(ApiClientInterface? client) async {
+    _epoch++;
     await _subscription?.cancel();
     _subscription = null;
 

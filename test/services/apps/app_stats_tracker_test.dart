@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/services/apps/app_stats_tracker.dart';
@@ -17,6 +19,16 @@ AppResourceUsage _usage({
   networkRxBytes: rx,
   networkTxBytes: tx,
 );
+
+class _SlowSubscribeClient extends FakeApiClient {
+  final subscribeGate = Completer<void>();
+
+  @override
+  Future<void> subscribeToAppStats() async {
+    await super.subscribeToAppStats();
+    await subscribeGate.future;
+  }
+}
 
 void main() {
   late int changes;
@@ -69,4 +81,22 @@ void main() {
 
     await client.dispose();
   });
+
+  test(
+    'does not start listening when unsubscribed while subscribing',
+    () async {
+      final client = _SlowSubscribeClient();
+      final subscribing = tracker.subscribe(client);
+
+      await tracker.unsubscribe(null);
+      client.subscribeGate.complete();
+      await subscribing;
+
+      client.emitAppStats({'plex': _usage(cpu: 4)});
+      await Future<void>.delayed(Duration.zero);
+      expect(changes, 0);
+
+      await client.dispose();
+    },
+  );
 }
