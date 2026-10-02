@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/providers/tray_provider.dart';
 
+import '../helpers/fake_tray_host.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -26,7 +28,7 @@ void main() {
 
   group('TrayProvider - initial state', () {
     test('starts with tray/dock enabled and not initialized', () {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
 
       expect(provider.minimizeToTray, isTrue);
       expect(provider.showInDock, isTrue);
@@ -36,7 +38,7 @@ void main() {
 
   group('TrayProvider - setMinimizeToTray', () {
     test('updates the flag and notifies', () {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       var notifications = 0;
       provider.addListener(() => notifications++);
 
@@ -53,7 +55,7 @@ void main() {
 
   group('TrayProvider - setShowInDock', () {
     test('updates the flag, notifies, and does not throw', () {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       var notifications = 0;
       provider.addListener(() => notifications++);
 
@@ -66,7 +68,7 @@ void main() {
 
   group('TrayProvider - setCallbacks', () {
     test('stores callbacks without throwing', () {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       var showCalled = false;
       var quitCalled = false;
       var refreshCalled = false;
@@ -89,14 +91,14 @@ void main() {
     });
 
     test('accepts being called with no callbacks', () {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       expect(() => provider.setCallbacks(), returnsNormally);
     });
   });
 
   group('TrayProvider - initializeTray', () {
     test('marks itself initialized and notifies exactly once', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       var notifications = 0;
       provider.addListener(() => notifications++);
 
@@ -107,7 +109,7 @@ void main() {
     });
 
     test('is idempotent on a second call', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       await provider.initializeTray();
 
       var notifications = 0;
@@ -121,7 +123,7 @@ void main() {
 
   group('TrayProvider - updateServerStatus / updateTheme', () {
     test('updateServerStatus before initialization is a no-op', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
 
       await expectLater(
         provider.updateServerStatus(connectedServers: 1, totalServers: 2),
@@ -130,7 +132,7 @@ void main() {
     });
 
     test('updateServerStatus after initialization does not throw', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       await provider.initializeTray();
 
       await expectLater(
@@ -144,7 +146,7 @@ void main() {
     });
 
     test('updateTheme does not throw regardless of init state', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
 
       await expectLater(provider.updateTheme(isDarkMode: true), completes);
 
@@ -155,7 +157,7 @@ void main() {
 
   group('TrayProvider - dispose', () {
     test('does not throw', () async {
-      final provider = TrayProvider();
+      final provider = TrayProvider(trayService: fakeTrayService());
       await provider.initializeTray();
 
       expect(provider.dispose, returnsNormally);

@@ -13,6 +13,7 @@ import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+import 'fake_tray_host.dart';
 import 'test_providers.dart';
 
 /// Wraps [child] with the provider stack the app's shell and pushed detail
@@ -127,7 +128,9 @@ Widget provideAppProviders({
             ),
       trayProvider != null
           ? ChangeNotifierProvider<TrayProvider>.value(value: trayProvider)
-          : ChangeNotifierProvider<TrayProvider>(create: (_) => TrayProvider()),
+          : ChangeNotifierProvider<TrayProvider>(
+              create: (_) => TrayProvider(trayService: fakeTrayService()),
+            ),
       datasetProvider != null
           ? ChangeNotifierProvider<DatasetProvider>.value(
               value: datasetProvider,

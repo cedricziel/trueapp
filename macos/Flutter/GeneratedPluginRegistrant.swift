@@ -7,14 +7,12 @@ import Foundation
 
 import connectivity_plus
 import network_info_plus
-import tray_manager
 import truenas_native_plugins
 import url_launcher_macos
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   NetworkInfoPlusPlugin.register(with: registry.registrar(forPlugin: "NetworkInfoPlusPlugin"))
-  TrayManagerPlugin.register(with: registry.registrar(forPlugin: "TrayManagerPlugin"))
   TruenasNativePlugins.register(with: registry.registrar(forPlugin: "TruenasNativePlugins"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
 }

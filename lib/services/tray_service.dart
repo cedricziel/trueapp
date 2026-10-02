@@ -1,17 +1,18 @@
 import 'dart:io';
-import 'package:tray_manager/tray_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/tray/native_tray_host.dart';
+import 'package:truehub/services/tray/tray_host.dart';
 
 final _log = appLogger('platform.tray');
 
-class TrayService with TrayListener {
-  static final TrayService _instance = TrayService._internal();
-  factory TrayService() => _instance;
-  TrayService._internal();
+class TrayService {
+  TrayService({TrayHost? Function()? createHost})
+    : _createHost = createHost ?? NativeTrayHost.create;
 
-  bool _isInitialized = false;
+  final TrayHost? Function() _createHost;
+  TrayHost? _host;
   Function()? _onShowWindow;
   Function()? _onQuitApp;
   Function()? _onRefresh;
@@ -30,32 +31,31 @@ class TrayService with TrayListener {
   Future<void> initSystemTray() async {
     // Only initialize on platforms that support system tray (macOS, Windows, Linux)
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
-    if (_isInitialized) return;
+    if (_host != null) return;
 
     try {
+      final host = _createHost();
+      if (host == null) {
+        _log.warn('System tray is not available on this platform');
+        return;
+      }
+
       // Use the custom NAS icon for macOS (start with light icon for light mode)
-      await trayManager.setIcon(
+      host.setIcon(
         Platform.isMacOS
             ? 'assets/icons/nasTemplate_light.png'
             : 'assets/icons/tray_icon.ico',
       );
+      host.setMenu(const [
+        TrayMenuEntry(key: 'show_window', label: 'Show TrueNAS Manager'),
+        TrayMenuEntry.separator(),
+        TrayMenuEntry(key: 'refresh', label: 'Refresh Servers'),
+        TrayMenuEntry.separator(),
+        TrayMenuEntry(key: 'quit', label: 'Quit'),
+      ], onSelected: _onMenuSelected);
+      host.setTooltip('TrueNAS Manager');
 
-      Menu menu = Menu(
-        items: [
-          MenuItem(key: 'show_window', label: 'Show TrueNAS Manager'),
-          MenuItem.separator(),
-          MenuItem(key: 'refresh', label: 'Refresh Servers'),
-          MenuItem.separator(),
-          MenuItem(key: 'quit', label: 'Quit'),
-        ],
-      );
-
-      await trayManager.setContextMenu(menu);
-      await trayManager.setToolTip('TrueNAS Manager');
-
-      trayManager.addListener(this);
-      _isInitialized = true;
-
+      _host = host;
       _log.info('System tray initialized successfully');
     } catch (e) {
       _log.error('Failed to initialize system tray', error: e);
@@ -68,7 +68,8 @@ class TrayService with TrayListener {
     List<String>? alerts,
     List<AppConfig>? appsWithPortals,
   }) async {
-    if (!_isInitialized) return;
+    final host = _host;
+    if (host == null) return;
 
     try {
       String tooltip =
@@ -84,31 +85,35 @@ class TrayService with TrayListener {
         _appsWithPortals = appsWithPortals; // Store for click handling
       }
 
-      await trayManager.setToolTip(tooltip);
+      host.setTooltip(tooltip);
 
       // Build menu items
-      List<MenuItem> menuItems = [
-        MenuItem(key: 'show_window', label: 'Show TrueNAS Manager'),
-        MenuItem.separator(),
-        MenuItem(
+      final menuItems = <TrayMenuEntry>[
+        const TrayMenuEntry(key: 'show_window', label: 'Show TrueNAS Manager'),
+        const TrayMenuEntry.separator(),
+        TrayMenuEntry(
           key: 'server_status',
           label: 'Servers: $connectedServers/$totalServers',
-          disabled: true,
+          enabled: false,
         ),
         if (alerts != null && alerts.isNotEmpty) ...[
-          MenuItem(
+          TrayMenuEntry(
             key: 'alerts_count',
             label: 'Alerts: ${alerts.length}',
-            disabled: true,
+            enabled: false,
           ),
         ],
       ];
 
       // Add app portals section
       if (appsWithPortals != null && appsWithPortals.isNotEmpty) {
-        menuItems.addAll([
-          MenuItem.separator(),
-          MenuItem(key: 'apps_header', label: 'Quick Access', disabled: true),
+        menuItems.addAll(const [
+          TrayMenuEntry.separator(),
+          TrayMenuEntry(
+            key: 'apps_header',
+            label: 'Quick Access',
+            enabled: false,
+          ),
         ]);
 
         // Add each app with its portal URLs
@@ -121,48 +126,47 @@ class TrayService with TrayListener {
 
             // If app has multiple ports, create a submenu
             if (app.enabledPorts.length > 1) {
-              final subMenuItems = <MenuItem>[];
-              for (final port in app.enabledPorts) {
-                final portKey = 'app_${app.appName}_port_${port.id}';
-                final portLabel = port.serviceName ?? 'Port ${port.portNumber}';
-                subMenuItems.add(MenuItem(key: portKey, label: portLabel));
-              }
-
               menuItems.add(
-                MenuItem(
+                TrayMenuEntry(
                   key: key,
                   label: displayName,
-                  submenu: Menu(items: subMenuItems),
+                  children: [
+                    for (final port in app.enabledPorts)
+                      TrayMenuEntry(
+                        key: 'app_${app.appName}_port_${port.id}',
+                        label: port.serviceName ?? 'Port ${port.portNumber}',
+                      ),
+                  ],
                 ),
               );
             } else {
               // Single port, direct menu item
-              menuItems.add(MenuItem(key: key, label: displayName));
+              menuItems.add(TrayMenuEntry(key: key, label: displayName));
             }
           }
         }
       }
 
       // Add bottom menu items
-      menuItems.addAll([
-        MenuItem.separator(),
-        MenuItem(key: 'refresh', label: 'Refresh Servers'),
-        MenuItem.separator(),
-        MenuItem(key: 'quit', label: 'Quit'),
+      menuItems.addAll(const [
+        TrayMenuEntry.separator(),
+        TrayMenuEntry(key: 'refresh', label: 'Refresh Servers'),
+        TrayMenuEntry.separator(),
+        TrayMenuEntry(key: 'quit', label: 'Quit'),
       ]);
 
-      Menu menu = Menu(items: menuItems);
-      await trayManager.setContextMenu(menu);
+      host.setMenu(menuItems, onSelected: _onMenuSelected);
     } catch (e) {
       _log.error('Failed to update system tray status', error: e);
     }
   }
 
   Future<void> updateTheme({required bool isDarkMode}) async {
-    if (!_isInitialized) return;
+    final host = _host;
+    if (host == null) return;
 
     try {
-      await trayManager.setIcon(
+      host.setIcon(
         Platform.isMacOS
             ? isDarkMode
                   ? 'assets/icons/nasTemplate_dark.png' // Dark icon for dark mode
@@ -177,30 +181,12 @@ class TrayService with TrayListener {
   }
 
   Future<void> dispose() async {
-    if (_isInitialized) {
-      trayManager.removeListener(this);
-      await trayManager.destroy();
-      _isInitialized = false;
-    }
+    _host?.dispose();
+    _host = null;
   }
 
-  @override
-  void onTrayIconMouseDown() {
-    // On macOS, left click should show the context menu
-    if (Platform.isMacOS) {
-      trayManager.popUpContextMenu();
-    }
-  }
-
-  @override
-  void onTrayIconRightMouseDown() {
-    // Right click should also show context menu
-    trayManager.popUpContextMenu();
-  }
-
-  @override
-  void onTrayMenuItemClick(MenuItem menuItem) {
-    switch (menuItem.key) {
+  void _onMenuSelected(String key) {
+    switch (key) {
       case 'show_window':
         _onShowWindow?.call();
         break;
@@ -212,8 +198,8 @@ class TrayService with TrayListener {
         break;
       default:
         // Handle app portal clicks
-        if (menuItem.key?.startsWith('app_') == true) {
-          _handleAppPortalClick(menuItem.key!);
+        if (key.startsWith('app_')) {
+          _handleAppPortalClick(key);
         }
         break;
     }

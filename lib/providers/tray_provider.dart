@@ -6,7 +6,10 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/tray_status_ports.dart';
 
 class TrayProvider with ChangeNotifier implements TrayStatusSink {
-  final TrayService _trayService = TrayService();
+  TrayProvider({TrayService? trayService})
+    : _trayService = trayService ?? TrayService();
+
+  final TrayService _trayService;
 
   bool _minimizeToTray = true;
   bool _showInDock = true;
