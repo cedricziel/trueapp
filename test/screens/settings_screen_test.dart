@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,10 +9,24 @@ import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/screens/settings_screen.dart';
 import 'package:truehub/services/database.dart';
+import 'package:truehub/services/database/database_file_remover.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/test_database.dart';
 import '../helpers/fake_tray_host.dart';
 import '../helpers/test_providers.dart';
+
+class _RecordingDatabaseFileRemover implements DatabaseFileRemover {
+  _RecordingDatabaseFileRemover({this.fail = false});
+
+  final bool fail;
+  int removals = 0;
+
+  @override
+  Future<void> removeDatabaseFiles() async {
+    removals++;
+    if (fail) throw const FileSystemException('cannot delete');
+  }
+}
 
 void main() {
   group('Settings Screen Tests', () {
@@ -145,46 +161,64 @@ void main() {
       );
     }
 
-    testWidgets(
-      'confirming drops the old database and leaves the holder to reopen',
-      (tester) async {
-        var opened = 0;
-        final holder = AppDatabaseHolder(
-          open: () {
-            opened++;
-            return createTestDatabase();
-          },
-        );
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider<ServerProvider>.value(
-                value: serverProvider,
-              ),
-              ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
-              Provider<AppDatabaseHolder>.value(value: holder),
-              Provider<UnifiedServerService>.value(value: unifiedServerService),
-            ],
-            child: const CupertinoApp(home: SettingsScreen()),
+    Future<int> confirmClearDatabase(
+      WidgetTester tester,
+      DatabaseFileRemover databaseFiles,
+    ) async {
+      var opened = 0;
+      final holder = AppDatabaseHolder(
+        open: () {
+          opened++;
+          return createTestDatabase();
+        },
+      );
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ServerProvider>.value(value: serverProvider),
+            ChangeNotifierProvider<TrayProvider>.value(value: trayProvider),
+            Provider<AppDatabaseHolder>.value(value: holder),
+            Provider<UnifiedServerService>.value(value: unifiedServerService),
+          ],
+          child: CupertinoApp(
+            home: SettingsScreen(databaseFiles: databaseFiles),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Clear'));
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.widgetWithText(CupertinoDialogAction, 'Clear Database'),
-        );
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 200)),
-        );
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Clear'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(CupertinoDialogAction, 'Clear Database'),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pumpAndSettle();
+      return opened;
+    }
 
-        expect(find.text('Database Recreated'), findsOneWidget);
-        expect(opened, 1);
-        holder.current;
-        expect(opened, 2);
-      },
-    );
+    testWidgets('confirming removes the database files without the table-drop '
+        'fallback', (tester) async {
+      final databaseFiles = _RecordingDatabaseFileRemover();
+
+      final opened = await confirmClearDatabase(tester, databaseFiles);
+
+      expect(find.text('Database Recreated'), findsOneWidget);
+      expect(databaseFiles.removals, 1);
+      expect(opened, 0);
+    });
+
+    testWidgets('falls back to dropping the table when the files cannot be '
+        'removed', (tester) async {
+      final databaseFiles = _RecordingDatabaseFileRemover(fail: true);
+
+      final opened = await confirmClearDatabase(tester, databaseFiles);
+
+      expect(find.text('Database Recreated'), findsOneWidget);
+      expect(databaseFiles.removals, 1);
+      expect(opened, 1);
+    });
 
     group('tray / system tray section', () {
       // `flutter_test` pins `defaultTargetPlatform` to a fixed default for
