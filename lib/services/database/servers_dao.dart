@@ -75,7 +75,7 @@ class ServersDao extends DatabaseAccessor<AppDatabase> with _$ServersDaoMixin {
   /// On Apple platforms server metadata is owned by CloudKit
   /// (`CloudKitServerRepository`), which never writes to this SQLite
   /// database - but `app_configs.server_id` still enforces a foreign key
-  /// against `nas_servers` here (see the `PRAGMA foreign_keys = ON` above).
+  /// against `nas_servers` here (see the `PRAGMA foreign_keys = ON` in migrations.dart).
   /// Callers that are about to write `app_configs` rows for a server use
   /// this to mirror it in first as a foreign-key anchor, regardless of
   /// which repository is actually authoritative for its metadata.

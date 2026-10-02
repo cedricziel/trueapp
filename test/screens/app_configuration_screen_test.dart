@@ -22,7 +22,7 @@ import '../helpers/test_surfaces.dart';
 /// .updateFullAppConfig` call - when the navigation bar's Save button is
 /// tapped, after which it pops itself.
 ///
-/// `AppDatabase.updateFullAppConfig` requires a non-null `AppConfig.id`, so
+/// `AppConfigsDao.updateFullAppConfig` requires a non-null `AppConfig.id`, so
 /// every fixture here is round-tripped through `insertFullAppConfig` +
 /// `getFullAppConfig` first, the same way the real app would only ever open
 /// this screen on an already-persisted config.

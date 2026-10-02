@@ -476,7 +476,7 @@ void main() {
     // knows about (credentials + API client) can be absent from that table
     // while app_configs.server_id still enforces a foreign key against it.
     // This used to make the very first sync throw SqliteException(787); see
-    // AppDatabase.upsertServerAnchor.
+    // ServersDao.upsertServerAnchor.
     test(
       'syncing apps still succeeds and anchors the server locally',
       () async {
