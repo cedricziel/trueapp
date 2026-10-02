@@ -105,7 +105,11 @@ void main() {
     serverProvider = await TestProviders.createSettledServerProvider(
       serverService,
     );
-    appProvider = AppProvider(database: database, serverService: serverService);
+    appProvider = AppProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      database: database,
+      serverService: serverService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(

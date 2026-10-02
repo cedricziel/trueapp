@@ -49,7 +49,11 @@ void main() {
       database: database,
     );
     telemetryService = FakeTelemetryService();
-    provider = JobsProvider(serverService, telemetryService: telemetryService);
+    provider = JobsProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      serverService,
+      telemetryService: telemetryService,
+    );
     fakeClient = FakeApiClient();
 
     testServer = NasServer.create(
@@ -435,7 +439,10 @@ void main() {
 
   group('JobsProvider - dispose', () {
     test('unsubscribes and releases the active client', () async {
-      final scoped = JobsProvider(serverService);
+      final scoped = JobsProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       await scoped.setApiClient(testServer);
       await scoped.subscribeToJobs();
 

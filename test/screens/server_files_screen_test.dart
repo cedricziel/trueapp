@@ -43,7 +43,10 @@ void main() {
     serverProvider = await TestProviders.createSettledServerProvider(
       unifiedServerService,
     );
-    fileProvider = FileProvider(unifiedServerService);
+    fileProvider = FileProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      unifiedServerService,
+    );
 
     testServer = NasServer.create(
       name: 'Test Server',

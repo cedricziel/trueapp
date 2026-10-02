@@ -28,7 +28,10 @@ void main() {
     );
     addTearDown(database.close);
     return ChangeNotifierProvider<ServerProvider>(
-      create: (_) => ServerProvider(service),
+      create: (_) => ServerProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        service,
+      ),
       child: CupertinoApp(home: Center(child: child)),
     );
   }

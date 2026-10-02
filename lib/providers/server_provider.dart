@@ -5,7 +5,7 @@ import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
@@ -33,6 +33,7 @@ class AuthenticationStatus {
 
 class ServerProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final AppDatabase Function()? _databaseRef;
   final TelemetryServiceInterface? _telemetryService;
   List<models.NasServer> _servers = [];
@@ -66,9 +67,11 @@ class ServerProvider extends ChangeNotifier {
   /// `MissingPluginException` (see test/flutter_test_config.dart).
   ServerProvider(
     this._serverService, {
+    required ApiClientManagerInterface clientManager,
     AppDatabase Function()? databaseRef,
     TelemetryServiceInterface? telemetryService,
-  }) : _databaseRef = databaseRef,
+  }) : _clientManager = clientManager,
+       _databaseRef = databaseRef,
        _telemetryService = telemetryService {
     _initializeProvider();
   }
@@ -212,7 +215,7 @@ class ServerProvider extends ChangeNotifier {
             .getServerWithPassword(server.id);
         if (serverWithCreds != null && password != null) {
           final serverForClient = serverWithCreds.copyWith(password: password);
-          _apiClient = await ApiClientManager.forceRecreateClient(
+          _apiClient = await _clientManager.forceRecreateClient(
             serverForClient,
           );
           _authState = AuthenticationState.authenticated;
@@ -234,7 +237,7 @@ class ServerProvider extends ChangeNotifier {
       notifyListeners();
     } else {
       // For non-selected servers, just close any cached client
-      await ApiClientManager.closeClient(server.id);
+      await _clientManager.closeClient(server.id);
     }
   }
 
@@ -247,7 +250,7 @@ class ServerProvider extends ChangeNotifier {
 
     // The server no longer exists, so its cached client (and any live
     // websocket/keepalive timer it holds) must not survive the deletion.
-    await ApiClientManager.closeClient(id);
+    await _clientManager.closeClient(id);
 
     // Drop the local foreign-key anchor row too (see
     // AppDatabase.upsertServerAnchor) so it doesn't linger forever on
@@ -278,7 +281,7 @@ class ServerProvider extends ChangeNotifier {
   Future<void> selectServer(models.NasServer? server) async {
     // Release previous client if any
     if (_selectedServer != null) {
-      await ApiClientManager.releaseClient(_selectedServer!.id);
+      await _clientManager.releaseClient(_selectedServer!.id);
     }
 
     // Reset state
@@ -329,7 +332,7 @@ class ServerProvider extends ChangeNotifier {
         // Create server with credentials for API client
         final serverForClient = serverWithCreds.copyWith(password: password);
 
-        _apiClient = await ApiClientManager.getClient(serverForClient);
+        _apiClient = await _clientManager.getClient(serverForClient);
         _authState = AuthenticationState.authenticated;
         _authError = null;
 
@@ -411,7 +414,7 @@ class ServerProvider extends ChangeNotifier {
 
   Future<void> clearSelectedServer() async {
     if (_selectedServer != null) {
-      await ApiClientManager.releaseClient(_selectedServer!.id);
+      await _clientManager.releaseClient(_selectedServer!.id);
     }
 
     _selectedServer = null;
@@ -440,7 +443,7 @@ class ServerProvider extends ChangeNotifier {
     // providers hold clients the OS dropped just the same. One round of
     // recovery covers them all and reports per-server failures.
     final client = _apiClient;
-    final failures = await ApiClientManager.ensureAllConnectionsAlive();
+    final failures = await _clientManager.ensureAllConnectionsAlive();
 
     // Recovery is asynchronous: the user may have switched servers (or the
     // client may have been recreated) while it ran. Applying a result for the
@@ -600,7 +603,7 @@ class ServerProvider extends ChangeNotifier {
     _disposed = true;
     if (_selectedServer != null) {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      ApiClientManager.releaseClient(_selectedServer!.id);
+      _clientManager.releaseClient(_selectedServer!.id);
     }
     _serversSubscription.cancel();
     _authController.close();

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
-import 'package:truehub/services/api_client_manager.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_api_client.dart';
@@ -30,6 +29,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     serverProvider = ServerProvider(
+      clientManager: TestProviders.mockApiClientManager,
       mockServerService,
       databaseRef: () => database,
       telemetryService: telemetryService,
@@ -224,13 +224,19 @@ void main() {
           testServer.id,
           FakeApiClient(),
         );
-        expect(ApiClientManager.hasClient(testServer.id), isTrue);
+        expect(
+          TestProviders.mockApiClientManager.hasClient(testServer.id),
+          isTrue,
+        );
 
         // Deleting the server must not leave a stale client (and its
         // websocket/keepalive timer) behind for a server that no longer exists.
         await serverProvider.deleteServer(testServer.id);
 
-        expect(ApiClientManager.hasClient(testServer.id), isFalse);
+        expect(
+          TestProviders.mockApiClientManager.hasClient(testServer.id),
+          isFalse,
+        );
 
         // Restore the test server for other tests relying on setUp state.
         await serverProvider.addServer(testServer, 'password');
@@ -414,6 +420,7 @@ void main() {
       'isLoadingServers flips to false once the initial load completes',
       () async {
         final freshProvider = ServerProvider(
+          clientManager: TestProviders.mockApiClientManager,
           mockServerService,
           databaseRef: () => database,
           telemetryService: telemetryService,
@@ -605,6 +612,7 @@ void main() {
         await brokenDatabase.getServer('warm-up');
         await brokenDatabase.close();
         final provider = ServerProvider(
+          clientManager: TestProviders.mockApiClientManager,
           mockServerService,
           databaseRef: () => brokenDatabase,
           telemetryService: telemetryService,
@@ -655,6 +663,7 @@ void main() {
       TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
 
       final provider = ServerProvider(
+        clientManager: TestProviders.mockApiClientManager,
         mockServerService,
         databaseRef: () => database,
         telemetryService: telemetryService,
@@ -683,6 +692,7 @@ void main() {
         TestProviders.mockApiClientManager.addMockClient(testServer.id, client);
 
         final provider = ServerProvider(
+          clientManager: TestProviders.mockApiClientManager,
           mockServerService,
           databaseRef: () => database,
           telemetryService: telemetryService,
@@ -723,6 +733,7 @@ void main() {
         // caught by the catch block under test. The constructor's own
         // fire-and-forget _loadServers() call is what's exercised here.
         final freshProvider = ServerProvider(
+          clientManager: TestProviders.mockApiClientManager,
           freshService,
           telemetryService: freshTelemetry,
         );

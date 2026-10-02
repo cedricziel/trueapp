@@ -29,7 +29,8 @@ class _FakeAppProvider extends AppProvider {
     AppConfig? config,
     bool favorite = false,
   }) : _config = config,
-       _favorite = favorite;
+       _favorite = favorite,
+       super(clientManager: TestProviders.mockApiClientManager);
 
   final AppConfig? _config;
   bool _favorite;

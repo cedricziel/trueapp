@@ -3,9 +3,6 @@ import 'package:drift/native.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/providers/server_provider.dart';
-import 'package:truehub/providers/pool_provider.dart';
-import 'package:truehub/providers/dataset_provider.dart';
 
 // Mock implementation of UnifiedServerService for testing
 class MockUnifiedServerService implements UnifiedServerService {
@@ -124,23 +121,4 @@ class MockUnifiedServerService implements UnifiedServerService {
 
 class MockAppDatabase extends AppDatabase {
   MockAppDatabase() : super.forTesting(NativeDatabase.memory());
-}
-
-// Helper function to create test providers with mocks
-class TestProviders {
-  static MockUnifiedServerService createMockUnifiedServerService() {
-    return MockUnifiedServerService();
-  }
-
-  static ServerProvider createServerProvider() {
-    return ServerProvider(createMockUnifiedServerService());
-  }
-
-  static PoolProvider createPoolProvider() {
-    return PoolProvider(createMockUnifiedServerService());
-  }
-
-  static DatasetProvider createDatasetProvider() {
-    return DatasetProvider(createMockUnifiedServerService());
-  }
 }

@@ -53,7 +53,11 @@ void main() {
       database: database,
     );
     telemetryService = FakeTelemetryService();
-    provider = FileProvider(service, telemetryService: telemetryService);
+    provider = FileProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      service,
+      telemetryService: telemetryService,
+    );
 
     testServer = NasServer.create(
       name: 'Test Server',

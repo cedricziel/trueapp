@@ -69,7 +69,10 @@ void main() {
       password: 'password',
     );
     TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
-    return PoolProvider(unifiedServerService);
+    return PoolProvider(
+      unifiedServerService,
+      clientManager: TestProviders.mockApiClientManager,
+    );
   }
 
   group('ServerPoolsScreen - loading and empty states', () {
@@ -495,7 +498,8 @@ void main() {
 /// can render `ServerPoolsScreen`'s loading branch deterministically instead
 /// of racing real async setup work.
 class _AlwaysLoadingPoolProvider extends PoolProvider {
-  _AlwaysLoadingPoolProvider(super.service);
+  _AlwaysLoadingPoolProvider(super.service)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   @override
   bool get isLoading => true;
@@ -505,7 +509,8 @@ class _AlwaysLoadingPoolProvider extends PoolProvider {
 /// and credential flow so a widget test can render `ServerPoolsScreen` with
 /// realistic data without a live API client.
 class _FakePoolProvider extends PoolProvider {
-  _FakePoolProvider(super.service, this._seedPools);
+  _FakePoolProvider(super.service, this._seedPools)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Pool> _seedPools;
 

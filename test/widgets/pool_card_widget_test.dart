@@ -286,8 +286,14 @@ void main() {
       unifiedServerService = await TestProviders.createMockUnifiedServerService(
         database: database,
       );
-      datasetProvider = DatasetProvider(unifiedServerService);
-      jobsProvider = JobsProvider(unifiedServerService);
+      datasetProvider = DatasetProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        unifiedServerService,
+      );
+      jobsProvider = JobsProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        unifiedServerService,
+      );
     });
 
     tearDown(() async {

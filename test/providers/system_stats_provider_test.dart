@@ -77,6 +77,7 @@ void main() {
     );
     telemetryService = FakeTelemetryService();
     provider = SystemStatsProvider(
+      clientManager: TestProviders.mockApiClientManager,
       serverService,
       telemetryService: telemetryService,
     );
@@ -455,7 +456,10 @@ void main() {
 
   group('SystemStatsProvider - dispose', () {
     test('unsubscribes and releases the active client', () async {
-      final scoped = SystemStatsProvider(serverService);
+      final scoped = SystemStatsProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
       await scoped.setApiClient(testServer);
       await scoped.subscribeToStats();
 

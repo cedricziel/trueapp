@@ -197,7 +197,8 @@ void main() {
 /// widget test can render `HomeScreen`'s loading branch deterministically
 /// instead of racing the real async server load.
 class _AlwaysLoadingServerProvider extends ServerProvider {
-  _AlwaysLoadingServerProvider(super.service);
+  _AlwaysLoadingServerProvider(super.service)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   @override
   bool get isLoadingServers => true;
@@ -208,7 +209,8 @@ class _AlwaysLoadingServerProvider extends ServerProvider {
 /// `HomeScreen` otherwise kicks off a real (mocked-null) refresh on mount
 /// that would race a test's seeded status.
 class _FakeFleetStatusProvider extends FleetStatusProvider {
-  _FakeFleetStatusProvider(super.service);
+  _FakeFleetStatusProvider(super.service)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   @override
   Future<void> refreshAll(

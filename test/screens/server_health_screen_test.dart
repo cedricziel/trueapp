@@ -143,7 +143,7 @@ class _FakeHealthProvider extends HealthProvider {
     this.alerts = const [],
     this.services = const [],
     this.serverHealth,
-  });
+  }) : super(clientManager: TestProviders.mockApiClientManager);
 
   @override
   final List<Alert> alerts;

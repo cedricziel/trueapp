@@ -63,25 +63,41 @@ void main() {
           Provider<UnifiedServerService>.value(value: unifiedServerService),
           ChangeNotifierProvider.value(value: connectionStatusProvider),
           ChangeNotifierProvider(
-            create: (context) => ServerProvider(unifiedServerService),
+            create: (context) => ServerProvider(
+              clientManager: TestProviders.mockApiClientManager,
+              unifiedServerService,
+            ),
           ),
           ChangeNotifierProvider(
-            create: (context) => PoolProvider(unifiedServerService),
+            create: (context) => PoolProvider(
+              clientManager: TestProviders.mockApiClientManager,
+              unifiedServerService,
+            ),
           ),
           ChangeNotifierProvider(
-            create: (context) => DatasetProvider(unifiedServerService),
+            create: (context) => DatasetProvider(
+              clientManager: TestProviders.mockApiClientManager,
+              unifiedServerService,
+            ),
           ),
           ChangeNotifierProvider(
             create: (context) => AppProvider(
+              clientManager: TestProviders.mockApiClientManager,
               database: database,
               serverService: unifiedServerService,
             ),
           ),
           ChangeNotifierProvider(
-            create: (context) => SystemStatsProvider(unifiedServerService),
+            create: (context) => SystemStatsProvider(
+              clientManager: TestProviders.mockApiClientManager,
+              unifiedServerService,
+            ),
           ),
           ChangeNotifierProvider(
-            create: (context) => JobsProvider(unifiedServerService),
+            create: (context) => JobsProvider(
+              clientManager: TestProviders.mockApiClientManager,
+              unifiedServerService,
+            ),
           ),
           ChangeNotifierProvider(create: (context) => TrayProvider()),
         ],

@@ -54,7 +54,10 @@ void main() {
     serverProvider = await TestProviders.createSettledServerProvider(
       unifiedServerService,
     );
-    poolProvider = PoolProvider(unifiedServerService);
+    poolProvider = PoolProvider(
+      clientManager: TestProviders.mockApiClientManager,
+      unifiedServerService,
+    );
 
     testServer = NasServer.create(
       name: 'Test TrueNAS Server',
@@ -90,24 +93,40 @@ void main() {
         ChangeNotifierProvider.value(value: poolProvider),
         ChangeNotifierProvider(
           create: (_) => AppProvider(
+            clientManager: TestProviders.mockApiClientManager,
             database: database,
             serverService: unifiedServerService,
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) => SystemStatsProvider(unifiedServerService),
+          create: (_) => SystemStatsProvider(
+            clientManager: TestProviders.mockApiClientManager,
+            unifiedServerService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (_) => JobsProvider(unifiedServerService),
+          create: (_) => JobsProvider(
+            clientManager: TestProviders.mockApiClientManager,
+            unifiedServerService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (_) => FileProvider(unifiedServerService),
+          create: (_) => FileProvider(
+            clientManager: TestProviders.mockApiClientManager,
+            unifiedServerService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (_) => HealthProvider(unifiedServerService),
+          create: (_) => HealthProvider(
+            clientManager: TestProviders.mockApiClientManager,
+            unifiedServerService,
+          ),
         ),
         ChangeNotifierProvider(
-          create: (_) => FleetStatusProvider(unifiedServerService),
+          create: (_) => FleetStatusProvider(
+            clientManager: TestProviders.mockApiClientManager,
+            unifiedServerService,
+          ),
         ),
         ChangeNotifierProvider(create: (_) => ConnectionStatusProvider()),
       ],

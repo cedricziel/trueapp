@@ -3,13 +3,14 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/api_client_interface.dart';
-import 'package:truehub/services/api_client_manager.dart';
+import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/providers/server_provider.dart';
 
 class PoolProvider extends ChangeNotifier {
   final UnifiedServerService _serverService;
+  final ApiClientManagerInterface _clientManager;
   final TelemetryServiceInterface? _telemetryService;
   ApiClientInterface? _apiClient;
   String? _currentServerId;
@@ -19,8 +20,10 @@ class PoolProvider extends ChangeNotifier {
 
   PoolProvider(
     this._serverService, {
+    required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
-  }) : _telemetryService = telemetryService;
+  }) : _clientManager = clientManager,
+       _telemetryService = telemetryService;
 
   List<Pool> get pools => _pools;
   bool get isLoading => _isLoading;
@@ -30,7 +33,7 @@ class PoolProvider extends ChangeNotifier {
   Future<void> setServer(NasServer? server) async {
     // Release previous client if any
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     _currentServerId = server?.id;
@@ -45,7 +48,7 @@ class PoolProvider extends ChangeNotifier {
             await ServerProvider.loadServerCredentials(server, _serverService);
 
         if (serverWithCredentials != null) {
-          _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+          _apiClient = await _clientManager.getClient(serverWithCredentials);
         } else {
           if (kDebugMode) {
             print(
@@ -70,7 +73,7 @@ class PoolProvider extends ChangeNotifier {
   Future<void> setApiClient(NasServer server) async {
     // Release previous client if any
     if (_currentServerId != null) {
-      await ApiClientManager.releaseClient(_currentServerId!);
+      await _clientManager.releaseClient(_currentServerId!);
     }
 
     _currentServerId = server.id;
@@ -85,7 +88,7 @@ class PoolProvider extends ChangeNotifier {
       );
 
       if (serverWithCredentials != null) {
-        _apiClient = await ApiClientManager.getClient(serverWithCredentials);
+        _apiClient = await _clientManager.getClient(serverWithCredentials);
       } else {
         if (kDebugMode) {
           print(
@@ -147,7 +150,7 @@ class PoolProvider extends ChangeNotifier {
   void dispose() {
     if (_currentServerId != null) {
       // Note: We can't await in dispose, so we do a fire-and-forget cleanup
-      ApiClientManager.releaseClient(_currentServerId!);
+      _clientManager.releaseClient(_currentServerId!);
     }
     super.dispose();
   }

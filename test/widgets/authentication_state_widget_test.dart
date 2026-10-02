@@ -18,7 +18,8 @@ import '../helpers/test_providers.dart';
 /// `currentAuthStatus` are plain overridable getters, which is what makes
 /// this seam possible without touching production code.
 class _FakeServerProvider extends ServerProvider {
-  _FakeServerProvider(super.service);
+  _FakeServerProvider(super.service)
+    : super(clientManager: TestProviders.mockApiClientManager);
 
   final StreamController<AuthenticationStatus> _controller =
       StreamController<AuthenticationStatus>.broadcast();

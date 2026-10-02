@@ -12,18 +12,14 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   final Map<String, TrueNasApiClient> _clients = {};
   final Map<String, int> _refCounts = {};
   final Map<String, Completer<TrueNasApiClient>?> _connectionCompleters = {};
-  ConnectionStatusProvider? _connectionStatusProvider;
-  TelemetryServiceInterface? _telemetry;
+  final ConnectionStatusProvider? _connectionStatusProvider;
+  final TelemetryServiceInterface? _telemetry;
 
-  @override
-  void setConnectionStatusProvider(ConnectionStatusProvider? provider) {
-    _connectionStatusProvider = provider;
-  }
-
-  @override
-  void setTelemetryService(TelemetryServiceInterface? telemetry) {
-    _telemetry = telemetry;
-  }
+  ApiClientManagerImpl({
+    ConnectionStatusProvider? connectionStatusProvider,
+    TelemetryServiceInterface? telemetry,
+  }) : _connectionStatusProvider = connectionStatusProvider,
+       _telemetry = telemetry;
 
   @override
   Future<ApiClientInterface?> getClient(NasServer server) async {
@@ -267,7 +263,5 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     _clients.clear();
     _refCounts.clear();
     _connectionCompleters.clear();
-    _connectionStatusProvider = null;
-    _telemetry = null;
   }
 }

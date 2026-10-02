@@ -5,7 +5,6 @@ import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:truehub/providers/server_provider.dart';
-import 'package:truehub/services/api_client_manager.dart';
 import 'package:truenas_native_plugins/truenas_native_plugins.dart'
     show MockKeychainService;
 import 'mock_api_client_manager.dart';
@@ -45,7 +44,11 @@ class TestProviders {
     required AppDatabase database,
   }) async {
     final service = await createMockUnifiedServerService(database: database);
-    return ServerProvider(service, databaseRef: () => database);
+    return ServerProvider(
+      clientManager: mockApiClientManager,
+      service,
+      databaseRef: () => database,
+    );
   }
 
   /// Builds a [ServerProvider] and waits, in real time, for its initial
@@ -61,7 +64,10 @@ class TestProviders {
   static Future<ServerProvider> createSettledServerProvider(
     UnifiedServerService service,
   ) async {
-    final provider = ServerProvider(service);
+    final provider = ServerProvider(
+      clientManager: mockApiClientManager,
+      service,
+    );
     await _waitUntil(() => !provider.isLoadingServers, 'initial server load');
     await settlePendingLoads(provider);
     return provider;
@@ -96,10 +102,9 @@ class TestProviders {
     }
   }
 
-  /// Sets up the test environment with mock implementations
+  /// Starts every test with a fresh [mockApiClientManager].
   static void setupTestEnvironment() {
-    // Set the mock API client manager
-    ApiClientManager.setInstance(mockApiClientManager);
+    _mockApiClientManager = MockApiClientManager();
   }
 
   /// Tears down the full test stack in the correct order.
@@ -146,16 +151,8 @@ class TestProviders {
 
   /// Cleans up all static state that might interfere with test isolation
   static Future<void> cleanupTestEnvironment() async {
-    // Clear all cached API clients while mock is still active
-    await ApiClientManager.clearAllForTesting();
-
-    // Reset the mock API client manager
-    if (_mockApiClientManager != null) {
-      _mockApiClientManager!.reset();
-    }
-
-    // Reset to default implementation for next test
-    ApiClientManager.setInstance(null);
+    await _mockApiClientManager?.clearAllForTesting();
+    _mockApiClientManager?.reset();
     _mockApiClientManager = null;
   }
 }
