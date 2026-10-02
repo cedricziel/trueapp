@@ -36,19 +36,26 @@ class SystemStatsWidget extends StatelessWidget {
         }
 
         if (statsProvider.error != null && !statsProvider.hasData) {
-          return _buildErrorView(statsProvider.error!);
+          return _StatsErrorView(error: statsProvider.error!);
         }
 
         if (!statsProvider.hasData) {
-          return _buildEmptyView(context);
+          return const _StatsEmptyView();
         }
 
-        return _buildStatsContent(statsProvider);
+        return _StatsContent(statsProvider: statsProvider);
       },
     );
   }
+}
 
-  Widget _buildErrorView(String error) {
+class _StatsErrorView extends StatelessWidget {
+  final String error;
+
+  const _StatsErrorView({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -79,8 +86,13 @@ class SystemStatsWidget extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildEmptyView(BuildContext context) {
+class _StatsEmptyView extends StatelessWidget {
+  const _StatsEmptyView();
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _cardDecoration(context, bordered: false),
@@ -105,8 +117,15 @@ class SystemStatsWidget extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildStatsContent(SystemStatsProvider statsProvider) {
+class _StatsContent extends StatelessWidget {
+  final SystemStatsProvider statsProvider;
+
+  const _StatsContent({required this.statsProvider});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         // CPU and Memory - responsive layout
@@ -140,6 +159,12 @@ class SystemStatsWidget extends StatelessWidget {
       ],
     );
   }
+}
+
+Color _getCpuUsageColor(double usage) {
+  if (usage > 80) return CupertinoColors.systemRed;
+  if (usage > 60) return CupertinoColors.systemOrange;
+  return CupertinoColors.systemGreen;
 }
 
 class _CpuStatsCard extends StatelessWidget {
@@ -191,14 +216,21 @@ class _CpuStatsCard extends StatelessWidget {
           ),
           if (cores.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildCoresList(context),
+            _CoresList(cores: cores),
           ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildCoresList(BuildContext context) {
+class _CoresList extends StatelessWidget {
+  final List<MapEntry<String, CpuCore>> cores;
+
+  const _CoresList({required this.cores});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -236,12 +268,6 @@ class _CpuStatsCard extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Color _getCpuUsageColor(double usage) {
-    if (usage > 80) return CupertinoColors.systemRed;
-    if (usage > 60) return CupertinoColors.systemOrange;
-    return CupertinoColors.systemGreen;
   }
 }
 
@@ -308,6 +334,12 @@ class _MemoryStatsCard extends StatelessWidget {
   }
 }
 
+Color _getDiskBusyColor(double busy) {
+  if (busy > 80) return CupertinoColors.systemRed;
+  if (busy > 60) return CupertinoColors.systemOrange;
+  return CupertinoColors.systemGreen;
+}
+
 class _DiskStatsCard extends StatelessWidget {
   final DiskStats diskStats;
   final String Function(double) formatRate;
@@ -349,22 +381,20 @@ class _DiskStatsCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildIOMetric(
-                  context,
-                  'Read',
-                  formatRate(diskStats.readBytes),
-                  '${diskStats.readOps.toStringAsFixed(1)} ops/s',
-                  CupertinoColors.systemBlue,
+                child: _IoMetric(
+                  label: 'Read',
+                  rate: formatRate(diskStats.readBytes),
+                  ops: '${diskStats.readOps.toStringAsFixed(1)} ops/s',
+                  color: CupertinoColors.systemBlue,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildIOMetric(
-                  context,
-                  'Write',
-                  formatRate(diskStats.writeBytes),
-                  '${diskStats.writeOps.toStringAsFixed(1)} ops/s',
-                  CupertinoColors.systemOrange,
+                child: _IoMetric(
+                  label: 'Write',
+                  rate: formatRate(diskStats.writeBytes),
+                  ops: '${diskStats.writeOps.toStringAsFixed(1)} ops/s',
+                  color: CupertinoColors.systemOrange,
                 ),
               ),
             ],
@@ -373,14 +403,23 @@ class _DiskStatsCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildIOMetric(
-    BuildContext context,
-    String label,
-    String rate,
-    String ops,
-    Color color,
-  ) {
+class _IoMetric extends StatelessWidget {
+  final String label;
+  final String rate;
+  final String ops;
+  final Color color;
+
+  const _IoMetric({
+    required this.label,
+    required this.rate,
+    required this.ops,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -415,12 +454,6 @@ class _DiskStatsCard extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Color _getDiskBusyColor(double busy) {
-    if (busy > 80) return CupertinoColors.systemRed;
-    if (busy > 60) return CupertinoColors.systemOrange;
-    return CupertinoColors.systemGreen;
   }
 }
 
@@ -464,10 +497,10 @@ class _NetworkStatsCard extends StatelessWidget {
           ...activeInterfaces.map((interface) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _buildNetworkInterface(
-                context,
-                interface.key,
-                interface.value,
+              child: _NetworkInterfaceRow(
+                name: interface.key,
+                stats: interface.value,
+                formatRate: formatRate,
               ),
             );
           }),
@@ -475,12 +508,21 @@ class _NetworkStatsCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildNetworkInterface(
-    BuildContext context,
-    String name,
-    NetworkInterfaceStats stats,
-  ) {
+class _NetworkInterfaceRow extends StatelessWidget {
+  final String name;
+  final NetworkInterfaceStats stats;
+  final String Function(double) formatRate;
+
+  const _NetworkInterfaceRow({
+    required this.name,
+    required this.stats,
+    required this.formatRate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
