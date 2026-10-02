@@ -26,6 +26,27 @@ void main() {
   });
 
   group('TelemetryService (real, disabled config)', () {
+    test('redacts secrets before any sink sees them', () async {
+      // The debug console sink sits behind the same redacting processor as
+      // the OTLP exporter, so what it prints is what would be exported.
+      final printed = <String>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
+      addTearDown(() => debugPrint = originalDebugPrint);
+
+      final service = await TelemetryService.initialize(disabledConfig);
+      service.recordError(
+        Exception('auth.login failed: password=hunter2'),
+        StackTrace.empty,
+        context: 'ServerProvider.connect',
+      );
+      await service.flush();
+
+      final output = printed.join('\n');
+      expect(output, contains('password=[REDACTED]'));
+      expect(output, isNot(contains('hunter2')));
+    });
+
     test(
       'initialize returns a usable service without a network call',
       () async {
