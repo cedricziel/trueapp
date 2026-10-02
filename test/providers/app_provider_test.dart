@@ -97,7 +97,7 @@ void main() {
     telemetryService = FakeTelemetryService();
     appProvider = AppProvider(
       clientManager: TestProviders.mockApiClientManager,
-      database: database,
+      daoSource: database,
       serverService: serverService,
       telemetryService: telemetryService,
     );
@@ -476,7 +476,7 @@ void main() {
     // knows about (credentials + API client) can be absent from that table
     // while app_configs.server_id still enforces a foreign key against it.
     // This used to make the very first sync throw SqliteException(787); see
-    // AppDatabase.upsertServerAnchor.
+    // ServersDao.upsertServerAnchor.
     test(
       'syncing apps still succeeds and anchors the server locally',
       () async {
@@ -511,7 +511,7 @@ void main() {
 
         final cloudKitAppProvider = AppProvider(
           clientManager: TestProviders.mockApiClientManager,
-          database: database,
+          daoSource: database,
           serverService: cloudKitService,
         );
         addTearDown(cloudKitAppProvider.dispose);
@@ -894,7 +894,7 @@ void main() {
         'still resolves instead of throwing', () async {
       final scopedProvider = AppProvider(
         clientManager: TestProviders.mockApiClientManager,
-        database: database,
+        daoSource: database,
         serverService: serverService,
       );
       await scopedProvider.setServer(testServer);
@@ -911,7 +911,7 @@ void main() {
     test('releases the active client', () async {
       final scopedProvider = AppProvider(
         clientManager: TestProviders.mockApiClientManager,
-        database: database,
+        daoSource: database,
         serverService: serverService,
       );
       await scopedProvider.setServer(testServer);

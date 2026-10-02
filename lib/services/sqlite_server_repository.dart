@@ -9,13 +9,13 @@ final _log = appLogger('storage.sqlite');
 /// SQLite-based server repository for non-Apple platforms
 /// Provides local storage without automatic sync
 class SqliteServerRepository implements ServerRepositoryInterface {
-  final ServersDao _database;
+  final ServersDao _dao;
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
   bool _isInitialized = false;
 
-  SqliteServerRepository(this._database);
+  SqliteServerRepository(this._dao);
 
   @override
   Future<bool> initialize() async {
@@ -38,23 +38,23 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
   @override
   Future<List<NasServer>> getAllServers() async {
-    return await _database.getAllServers();
+    return await _dao.getAllServers();
   }
 
   @override
   Future<NasServer?> getServer(String id) async {
-    return await _database.getServer(id);
+    return await _dao.getServer(id);
   }
 
   @override
   Future<bool> saveServer(NasServer server) async {
     try {
-      final existing = await _database.getServer(server.id);
+      final existing = await _dao.getServer(server.id);
 
       if (existing != null) {
-        await _database.updateServer(server);
+        await _dao.updateServer(server);
       } else {
-        await _database.insertServer(server);
+        await _dao.insertServer(server);
       }
 
       // Emit updated servers
@@ -71,7 +71,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
   @override
   Future<bool> deleteServer(String id) async {
     try {
-      await _database.deleteServer(id);
+      await _dao.deleteServer(id);
 
       // Emit updated servers
       final servers = await getAllServers();
@@ -86,13 +86,13 @@ class SqliteServerRepository implements ServerRepositoryInterface {
 
   @override
   Future<NasServer?> getDefaultServer() async {
-    return await _database.getDefaultServer();
+    return await _dao.getDefaultServer();
   }
 
   @override
   Future<bool> setDefaultServer(String id) async {
     try {
-      await _database.setDefaultServer(id);
+      await _dao.setDefaultServer(id);
 
       // Emit updated servers
       final servers = await getAllServers();
@@ -108,7 +108,7 @@ class SqliteServerRepository implements ServerRepositoryInterface {
   @override
   Future<bool> clearDefaultServer() async {
     try {
-      await _database.clearDefaultServer();
+      await _dao.clearDefaultServer();
 
       // Emit updated servers
       final servers = await getAllServers();

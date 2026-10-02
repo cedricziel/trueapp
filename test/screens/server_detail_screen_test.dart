@@ -203,7 +203,7 @@ void main() {
       );
 
       final appProvider = _FakeAppProvider(
-        database: database,
+        daoSource: database,
         serverService: unifiedServerService,
         seedApps: [longApp],
         seedFavorites: [favoriteConfig],
@@ -423,7 +423,7 @@ class _FakeHealthProvider extends HealthProvider {
 /// without a live API client.
 class _FakeAppProvider extends AppProvider {
   _FakeAppProvider({
-    required super.database,
+    required super.daoSource,
     required super.serverService,
     required List<App> seedApps,
     required List<AppConfig> seedFavorites,

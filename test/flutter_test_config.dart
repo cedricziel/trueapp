@@ -7,8 +7,8 @@ import 'package:drift/drift.dart';
 /// QueryExecutor race each other and can corrupt the database. That does
 /// not happen in this suite: every test builds its own [AppDatabase] over
 /// its own `NativeDatabase.memory()` (see test/helpers/test_database.dart),
-/// so no executor is ever shared, and the production singleton
-/// (`AppDatabase.instance`) is never constructed under test. The warning is
+/// so no executor is ever shared, and the production database
+/// (`AppDatabase.production`) is never constructed under test. The warning is
 /// therefore pure noise here - a multi-line stack trace ahead of nearly
 /// every test - so it is opted out of once, for the whole suite, rather
 /// than file by file.

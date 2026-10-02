@@ -123,7 +123,7 @@ void main() {
     TestProviders.mockApiClientManager.addMockClient(testServer.id, fakeClient);
     appProvider = AppProvider(
       clientManager: TestProviders.mockApiClientManager,
-      database: database,
+      daoSource: database,
       serverService: serverService,
       activeServer: ActiveServer(testServer).listenable,
     );

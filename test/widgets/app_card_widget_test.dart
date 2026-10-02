@@ -17,7 +17,7 @@ import '../helpers/test_providers.dart';
 /// `_FakeAppProvider` seam already used in
 /// `test/screens/server_detail_screen_test.dart`.
 class _FakeAppProvider extends AppProvider {
-  _FakeAppProvider({required super.database, required super.serverService})
+  _FakeAppProvider({required super.daoSource, required super.serverService})
     : super(clientManager: TestProviders.mockApiClientManager);
 
   bool _favorite = false;
@@ -216,7 +216,7 @@ void main() {
         database: database,
       );
       appProvider = _FakeAppProvider(
-        database: database,
+        daoSource: database,
         serverService: unifiedServerService,
       );
     });

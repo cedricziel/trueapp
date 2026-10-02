@@ -11,10 +11,7 @@ class CloudKitService implements CloudKitServiceInterface {
   late final StreamSubscription<List<plugins.ServerConfigDTO>>
   _pluginSubscription;
 
-  static CloudKitService? _instance;
-  static CloudKitService get instance => _instance ??= CloudKitService._();
-
-  CloudKitService._() : _cloudKitService = plugins.NativeCloudKitService() {
+  CloudKitService() : _cloudKitService = plugins.NativeCloudKitService() {
     _serverConfigsController =
         StreamController<List<ServerConfigDTO>>.broadcast();
 

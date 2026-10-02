@@ -24,7 +24,7 @@ import '../helpers/test_surfaces.dart';
 /// avoids routing every test through a real drift database write.
 class _FakeAppProvider extends AppProvider {
   _FakeAppProvider({
-    required super.database,
+    required super.daoSource,
     required super.serverService,
     AppConfig? config,
     bool favorite = false,
@@ -142,7 +142,7 @@ void main() {
     final fakeAppProvider =
         appProvider ??
         _FakeAppProvider(
-          database: database,
+          daoSource: database,
           serverService: unifiedServerService,
         );
     addTearDown(fakeAppProvider.dispose);
@@ -606,7 +606,7 @@ void main() {
           wrap(
             _buildApp(name: 'plex'),
             appProvider: _FakeAppProvider(
-              database: database,
+              daoSource: database,
               serverService: unifiedServerService,
               favorite: true,
             ),
@@ -621,7 +621,7 @@ void main() {
       WidgetTester tester,
     ) async {
       final fakeProvider = _FakeAppProvider(
-        database: database,
+        daoSource: database,
         serverService: unifiedServerService,
       );
       await tester.pumpWidget(
@@ -702,7 +702,7 @@ void main() {
         wrap(
           _buildApp(name: 'plex', installed: true),
           appProvider: _FakeAppProvider(
-            database: database,
+            daoSource: database,
             serverService: unifiedServerService,
             config: config,
           ),
@@ -723,7 +723,7 @@ void main() {
           wrap(
             _buildApp(name: 'plex', installed: true),
             appProvider: _FakeAppProvider(
-              database: database,
+              daoSource: database,
               serverService: unifiedServerService,
               config: null,
             ),

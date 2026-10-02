@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_config_dto.dart';
 import 'package:truehub/services/server_repository_interface.dart';
-import 'package:truehub/services/cloudkit_service.dart';
 import 'package:truehub/services/cloudkit_service_interface.dart';
 import 'package:truehub/services/app_logger.dart';
 
@@ -15,10 +14,8 @@ class CloudKitServerRepository implements ServerRepositoryInterface {
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
-  /// Creates a CloudKit server repository
-  /// [cloudKitService] - Optional CloudKit service instance, defaults to CloudKitService.instance
-  CloudKitServerRepository({CloudKitServiceInterface? cloudKitService})
-    : _cloudKit = cloudKitService ?? CloudKitService.instance;
+  CloudKitServerRepository({required CloudKitServiceInterface cloudKitService})
+    : _cloudKit = cloudKitService;
 
   List<NasServer> _cachedServers = [];
   bool _isInitialized = false;

@@ -96,7 +96,7 @@ Widget provideAppProviders({
           : ChangeNotifierProvider<AppProvider>(
               create: (_) => AppProvider(
                 clientManager: TestProviders.mockApiClientManager,
-                database: database,
+                daoSource: database,
                 serverService: service,
               ),
             ),

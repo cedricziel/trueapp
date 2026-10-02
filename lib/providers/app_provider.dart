@@ -40,7 +40,7 @@ typedef _CatalogRequests = ({
 class AppProvider extends ChangeNotifier
     with ActiveServerFollower
     implements TrayAppsSource {
-  final AppDatabase Function() _databaseRef;
+  final DaoSource _daoSource;
   final UnifiedServerService _serverService;
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
@@ -58,25 +58,16 @@ class AppProvider extends ChangeNotifier
   StreamSubscription<Map<String, AppResourceUsage>>? _appStatsSubscription;
   final Map<String, AppResourceUsage> _lastKnownResourceUsage = {};
 
-  /// [databaseRef] is looked up on every access instead of being captured
-  /// once, so callers that recreate the database (e.g. after a "clear
-  /// database" operation disposes [AppDatabase.instance]) are picked up
-  /// transparently instead of leaving this provider pinned to a closed
-  /// instance. [database] remains as a convenience for callers (mainly
-  /// tests) that already hold a fixed, never-disposed instance to inject;
-  /// prefer [databaseRef] for anything backed by the app-wide singleton.
+  /// [daoSource] is resolved on every access rather than captured, so a
+  /// source backed by an [AppDatabaseHolder] follows a recreated database
+  /// (e.g. after "clear database") instead of pinning a closed one.
   AppProvider({
-    AppDatabase Function()? databaseRef,
-    AppDatabase? database,
+    required DaoSource daoSource,
     required UnifiedServerService serverService,
     required ApiClientManagerInterface clientManager,
     TelemetryServiceInterface? telemetryService,
     ValueListenable<NasServer?>? activeServer,
-  }) : assert(
-         databaseRef != null || database != null,
-         'AppProvider requires either databaseRef or database',
-       ),
-       _databaseRef = databaseRef ?? (() => database!),
+  }) : _daoSource = daoSource,
        _serverService = serverService,
        _telemetryService = telemetryService,
        _session = ServerClientSession(
@@ -88,7 +79,6 @@ class AppProvider extends ChangeNotifier
     followActiveServer(activeServer);
   }
 
-  AppDatabase get _database => _databaseRef();
   ApiClientInterface? get _apiClient => _session.client;
   String? get _currentServerId => _session.serverId;
 
@@ -339,12 +329,12 @@ class AppProvider extends ChangeNotifier
     if (currentServer != null) {
       final stillExists = await _serverService.getServer(currentServer.id);
       if (stillExists == null) return;
-      await _database.serversDao.upsertServerAnchor(currentServer);
+      await _daoSource.serversDao.upsertServerAnchor(currentServer);
     }
 
     for (final app in apps) {
       // Get existing config if any
-      final existingConfig = await _database.appConfigsDao.getFullAppConfig(
+      final existingConfig = await _daoSource.appConfigsDao.getFullAppConfig(
         _currentServerId!,
         app.name,
       );
@@ -362,14 +352,14 @@ class AppProvider extends ChangeNotifier
               ports:
                   existingConfig.ports, // Preserve existing port configurations
             );
-        await _database.appConfigsDao.updateFullAppConfig(updatedConfig);
+        await _daoSource.appConfigsDao.updateFullAppConfig(updatedConfig);
       } else {
         // Create new config from app data
         final newConfig = AppConfig.fromApp(
           serverId: _currentServerId!,
           app: app,
         );
-        await _database.appConfigsDao.insertFullAppConfig(newConfig);
+        await _daoSource.appConfigsDao.insertFullAppConfig(newConfig);
       }
 
       // Sync portal URLs for installed apps
@@ -382,7 +372,7 @@ class AppProvider extends ChangeNotifier
   Future<void> _loadPersistedAppConfigs() async {
     if (_currentServerId == null) return;
 
-    _appConfigs = await _database.appConfigsDao.getFullAppConfigs(
+    _appConfigs = await _daoSource.appConfigsDao.getFullAppConfigs(
       _currentServerId!,
     );
 
@@ -616,14 +606,14 @@ class AppProvider extends ChangeNotifier
   Future<void> _syncPortalUrls(App app) async {
     if (_currentServerId == null) return;
 
-    final existingConfig = await _database.appConfigsDao.getFullAppConfig(
+    final existingConfig = await _daoSource.appConfigsDao.getFullAppConfig(
       _currentServerId!,
       app.name,
     );
     if (existingConfig?.id == null) return;
 
     // Get existing port configs for this app
-    final existingPorts = await _database.appConfigsDao.getAppPortConfigs(
+    final existingPorts = await _daoSource.appConfigsDao.getAppPortConfigs(
       existingConfig!.id!,
     );
     final existingPortsMap = <int, AppPortConfigData>{};
@@ -642,7 +632,7 @@ class AppProvider extends ChangeNotifier
         final existingPort = existingPortsMap[uri.port];
 
         if (existingPort == null) {
-          await _database.appConfigsDao.insertAppPortConfig(
+          await _daoSource.appConfigsDao.insertAppPortConfig(
             AppPortConfigsCompanion(
               appConfigId: Value(existingConfig.id!),
               portNumber: Value(uri.port),
@@ -740,7 +730,7 @@ class AppProvider extends ChangeNotifier
 
   // App configuration management methods
   Future<void> updateAppConfig(AppConfig config) async {
-    await _database.appConfigsDao.updateFullAppConfig(config);
+    await _daoSource.appConfigsDao.updateFullAppConfig(config);
     await _loadPersistedAppConfigs();
     notifyListeners();
   }
@@ -748,7 +738,7 @@ class AppProvider extends ChangeNotifier
   Future<void> setAppFavorite(String appName, bool isFavorite) async {
     if (_currentServerId == null) return;
 
-    await _database.appConfigsDao.setAppFavorite(
+    await _daoSource.appConfigsDao.setAppFavorite(
       _currentServerId!,
       appName,
       isFavorite,

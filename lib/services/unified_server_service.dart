@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/server_repository_interface.dart';
-import 'package:truehub/services/server_repository_factory.dart';
-import 'package:truehub/services/native_keychain_service.dart';
+import 'package:truenas_native_plugins/truenas_native_plugins.dart'
+    show KeychainServiceInterface;
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/server_lookup.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -12,56 +12,19 @@ final _log = appLogger('services.unified_server');
 /// Unified server service that combines server metadata management with secure credential storage
 /// Uses platform-appropriate repository (CloudKit on Apple, SQLite elsewhere) + Keychain for passwords
 class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
-  static UnifiedServerService? _instance;
-
   final ServerRepositoryInterface _repository;
-  final dynamic
-  _keychain; // Generic to support both production and mock keychains
+  final KeychainServiceInterface _keychain;
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 
   bool _isInitialized = false;
   StreamSubscription<List<NasServer>>? _repositorySubscription;
-  final bool _isSingleton;
 
-  /// Primary constructor - both production and testing use this
   UnifiedServerService({
     required ServerRepositoryInterface repository,
-    required dynamic keychain,
-    bool isSingleton = false,
+    required KeychainServiceInterface keychain,
   }) : _repository = repository,
-       _keychain = keychain,
-       _isSingleton = isSingleton;
-
-  /// Factory for production use with platform-appropriate dependencies
-  static Future<UnifiedServerService> createForProduction() async {
-    if (_instance != null) return _instance!;
-
-    final repository = await ServerRepositoryFactory.create();
-    final keychain = NativeKeychainService.instance;
-
-    _instance = UnifiedServerService(
-      repository: repository,
-      keychain: keychain,
-      isSingleton: true,
-    );
-
-    final initialized = await _instance!.initialize();
-    if (!initialized) {
-      throw StateError('Failed to initialize UnifiedServerService');
-    }
-
-    return _instance!;
-  }
-
-  static UnifiedServerService get instance {
-    if (_instance == null) {
-      throw StateError(
-        'UnifiedServerService not initialized. Call createForProduction() first.',
-      );
-    }
-    return _instance!;
-  }
+       _keychain = keychain;
 
   /// Initialize the service - same method for production and testing
   Future<bool> initialize() async {
@@ -241,10 +204,5 @@ class UnifiedServerService implements ServerLookup, ServerCredentialsLookup {
     await _repositorySubscription?.cancel();
     await _serversController.close();
     await _repository.dispose();
-
-    // Only clear the static instance if this IS the singleton instance
-    if (_isSingleton && _instance == this) {
-      _instance = null;
-    }
   }
 }
