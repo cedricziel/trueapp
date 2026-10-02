@@ -8,6 +8,7 @@ import 'package:truehub/widgets/connection_error_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 import 'package:truehub/widgets/section_card.dart';
 
 class ServerPoolsScreen extends StatefulWidget {
@@ -72,7 +73,8 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
               );
             }
 
-            return ListView.builder(
+            return RefreshableScrollView.builder(
+              onRefresh: provider.refreshPools,
               padding: const EdgeInsets.all(16),
               itemCount: provider.pools.length,
               itemBuilder: (context, index) {
