@@ -61,6 +61,7 @@ void main() {
   test('starts empty and idle', () {
     expect(provider.services, isEmpty);
     expect(provider.isLoading, isFalse);
+    expect(provider.hasLoaded, isFalse);
     expect(provider.connectionError, isNull);
     expect(provider.actionError, isNull);
   });
@@ -72,6 +73,7 @@ void main() {
       await provider.loadServices();
 
       expect(provider.services.map((s) => s.id), ['cifs', 'ssh']);
+      expect(provider.hasLoaded, isTrue);
       expect(provider.isLoading, isFalse);
       expect(provider.connectionError, isNull);
     });

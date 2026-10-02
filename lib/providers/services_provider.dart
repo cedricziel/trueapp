@@ -16,6 +16,7 @@ class ServicesProvider extends ChangeNotifier with ActiveServerFollower {
   List<ServiceStatus> _services = [];
   final Set<String> _busyServiceIds = {};
   bool _isLoading = false;
+  bool _hasLoaded = false;
   ConnectionError? _connectionError;
   String? _actionError;
 
@@ -38,6 +39,10 @@ class ServicesProvider extends ChangeNotifier with ActiveServerFollower {
 
   List<ServiceStatus> get services => _services;
   bool get isLoading => _isLoading;
+
+  /// Whether a load has finished, so an empty list can be told apart from
+  /// one that has not been fetched yet.
+  bool get hasLoaded => _hasLoaded;
   ConnectionError? get connectionError => _connectionError;
 
   /// Why the last start/stop/restart failed, until dismissed.
@@ -49,6 +54,7 @@ class ServicesProvider extends ChangeNotifier with ActiveServerFollower {
   @override
   Future<void> setServer(NasServer? server) async {
     _services = [];
+    _hasLoaded = false;
     _busyServiceIds.clear();
     _connectionError = null;
     _actionError = null;
@@ -80,6 +86,7 @@ class ServicesProvider extends ChangeNotifier with ActiveServerFollower {
       _recordError(e, stackTrace, 'loadServices');
     } finally {
       _isLoading = false;
+      _hasLoaded = true;
       notifyListeners();
     }
   }
