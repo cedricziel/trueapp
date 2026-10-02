@@ -94,7 +94,9 @@ class _SourceText extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+        color: CupertinoColors.systemGrey
+            .resolveFrom(context)
+            .withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
