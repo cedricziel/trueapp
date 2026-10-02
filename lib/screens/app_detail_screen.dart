@@ -98,12 +98,6 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               _toggleFavorite(appProvider);
             },
           ),
-          CupertinoActionSheetAction(
-            child: Text(widget.app.installed ? 'Manage App' : 'Install App'),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
           if (widget.app.home != null && widget.app.home!.isNotEmpty)
             CupertinoActionSheetAction(
               child: const Text('View Homepage'),

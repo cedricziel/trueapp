@@ -519,26 +519,6 @@ void main() {
   });
 
   group('AppDetailScreen - action buttons', () {
-    testWidgets('shows Install App and it can be tapped without crashing', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(wrap(_buildApp(installed: false)));
-      expect(find.text('Install App'), findsOneWidget);
-      await tester.tap(find.text('Install App'));
-      await tester.pump();
-      expectNoLayoutOverflow(tester);
-    });
-
-    testWidgets('shows Manage App for an installed app', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(wrap(_buildApp(installed: true)));
-      expect(find.text('Manage App'), findsOneWidget);
-      await tester.tap(find.text('Manage App'));
-      await tester.pump();
-      expectNoLayoutOverflow(tester);
-    });
-
     testWidgets('hides View Homepage when home is null', (
       WidgetTester tester,
     ) async {
