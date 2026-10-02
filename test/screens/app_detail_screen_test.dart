@@ -5,10 +5,11 @@ import 'package:truehub/models/app_config.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/app_configuration_screen.dart';
+import 'package:truehub/screens/app_detail/app_sources_section.dart';
 import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
-import 'package:truehub/screens/app_detail/app_sources_section.dart';
+
 import '../helpers/fake_url_opener.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
