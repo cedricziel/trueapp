@@ -249,7 +249,7 @@ void main() {
       );
 
       await expectLater(
-        client.getSystemInfo(),
+        client.getServerHealth(),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -260,7 +260,7 @@ void main() {
       );
     });
 
-    test('queryPools returns the pool list', () async {
+    test('getPools returns the pool list', () async {
       server.onMethod(
         'pool.query',
         (_) => [
@@ -269,143 +269,73 @@ void main() {
         ],
       );
 
-      final pools = await client.queryPools();
+      final pools = await client.getPools();
 
       expect(pools, hasLength(2));
-      expect(pools.first['name'], 'tank');
-
-      // getPools() is a thin wrapper around queryPools().
-      final poolsAgain = await client.getPools();
-      expect(poolsAgain, hasLength(2));
+      expect(pools.first.name, 'tank');
     });
 
-    test('getPoolById returns a single pool', () async {
-      server.onMethod('pool.query', (params) {
-        expect(params.asMap, {'id': 'tank'});
-        return {'id': 'tank', 'name': 'tank'};
-      });
+    test('getAlerts parses the alert list into models', () async {
+      server.onMethod(
+        'alert.list',
+        (_) => [
+          {'id': '1', 'level': 'CRITICAL', 'formatted': 'Pool degraded'},
+        ],
+      );
 
-      final pool = await client.getPoolById('tank');
+      final alerts = await client.getAlerts();
 
-      expect(pool['name'], 'tank');
+      expect(alerts, hasLength(1));
+      expect(alerts.first.message, 'Pool degraded');
     });
 
-    test('queryDatasets and getDatasetById', () async {
+    test('getServices parses the service list into models', () async {
+      server.onMethod(
+        'service.query',
+        (_) => [
+          {'service': 'cifs', 'state': 'RUNNING', 'enable': true},
+        ],
+      );
+
+      final services = await client.getServices();
+
+      expect(services, hasLength(1));
+      expect(services.first.id, 'cifs');
+      expect(services.first.isRunning, isTrue);
+      expect(services.first.isEnabled, isTrue);
+    });
+
+    test('getDatasets returns the dataset list', () async {
       server.onMethod(
         'pool.dataset.query',
-        (params) => params.value == null
-            ? [
-                {'id': 'tank/data', 'name': 'tank/data'},
-              ]
-            : {'id': 'tank/data', 'name': 'tank/data'},
+        (_) => [
+          {'id': 'tank/data', 'name': 'tank/data'},
+        ],
       );
 
-      final datasets = await client.queryDatasets();
+      final datasets = await client.getDatasets();
+
       expect(datasets, hasLength(1));
-
-      final datasetsAgain = await client.getDatasets();
-      expect(datasetsAgain, hasLength(1));
-
-      final dataset = await client.getDatasetById('tank/data');
-      expect(dataset['name'], 'tank/data');
+      expect(datasets.first['name'], 'tank/data');
     });
 
-    test('system info methods return the raw maps', () async {
-      server
-        ..onMethod('system.info', (_) => {'version': 'TrueNAS-SCALE-24.10'})
-        ..onMethod('system.cpu_info', (_) => {'cpu_count': 8})
-        ..onMethod('system.memory_info', (_) => {'total': 1000})
-        ..onMethod('system.temperature', (_) => 42.5)
-        ..onMethod('system.general.config', (_) => {'hostname': 'truenas'})
-        ..onMethod('system.advanced.config', (_) => {'consolemenu': false})
-        ..onMethod('system.product_type', (_) => 'SCALE')
-        ..onMethod('truenas.is_ix_hardware', (_) => false);
-
-      expect((await client.getSystemInfo())['version'], 'TrueNAS-SCALE-24.10');
-      expect((await client.getSystemCpuInfo())['cpu_count'], 8);
-      expect((await client.getSystemMemoryInfo())['total'], 1000);
-      expect(await client.getSystemTemperature(), 42.5);
-      expect((await client.getSystemGeneralConfig())['hostname'], 'truenas');
-      expect((await client.getSystemAdvancedConfig())['consolemenu'], false);
-      expect(await client.getSystemProductType(), 'SCALE');
-      expect(await client.isIxHardware(), isFalse);
-    });
-
-    test('listDirectory, getFileInfo and getDirectoryListing', () async {
-      server
-        ..onMethod(
-          'filesystem.listdir',
-          (params) => [
-            {
-              'name': 'file.txt',
-              'path': '${params.asMap['path']}/file.txt',
-              'type': 'FILE',
-              'size': 123,
-            },
-          ],
-        )
-        ..onMethod('filesystem.stat', (_) => {'name': 'file.txt', 'size': 123});
-
-      final entries = await client.listDirectory('/mnt/tank');
-      expect(entries, hasLength(1));
-      expect(entries.first['path'], '/mnt/tank/file.txt');
-
-      final info = await client.getFileInfo('/mnt/tank/file.txt');
-      expect(info['size'], 123);
+    test('getDirectoryListing parses the directory entries', () async {
+      server.onMethod(
+        'filesystem.listdir',
+        (params) => [
+          {
+            'name': 'file.txt',
+            'path': '${params.asMap['path']}/file.txt',
+            'type': 'FILE',
+            'size': 123,
+          },
+        ],
+      );
 
       final listing = await client.getDirectoryListing('/mnt/tank');
+
       expect(listing, hasLength(1));
       expect(listing.first.name, 'file.txt');
-    });
-
-    test('queryDisks and getDiskById', () async {
-      server.onMethod(
-        'disk.query',
-        (params) => params.value == null
-            ? [
-                {
-                  'name': 'sda',
-                  'model': 'WD',
-                  'serial': 'ABC',
-                  'size': 1000,
-                  'used': 500,
-                  'temperature': 30,
-                  'health': 'OK',
-                },
-              ]
-            : {'name': 'sda', 'id': params.asMap['id']},
-      );
-
-      final disks = await client.queryDisks();
-      expect(disks, hasLength(1));
-
-      final disk = await client.getDiskById('sda');
-      expect(disk['name'], 'sda');
-    });
-
-    test('getNetworkInfo and getNetworkInterfaces', () async {
-      server
-        ..onMethod(
-          'network.general.summary',
-          (_) => {
-            'download_speed': 100,
-            'upload_speed': 50,
-            'total_download': 1000,
-            'total_upload': 500,
-          },
-        )
-        ..onMethod(
-          'interface.query',
-          (_) => [
-            {'name': 'eth0'},
-          ],
-        );
-
-      final info = await client.getNetworkInfo();
-      expect(info['download_speed'], 100);
-
-      final interfaces = await client.getNetworkInterfaces();
-      expect(interfaces, hasLength(1));
     });
 
     test('getServerHealth combines several RPCs into one summary', () async {
@@ -982,25 +912,6 @@ void main() {
       expect(results[2], ['media']);
       expect(server.connectionCount, 1);
       expect(loginCount, 1);
-    });
-
-    test('getDockerStatus returns the raw map', () async {
-      server.onMethod('docker.status', (_) => {'status': 'RUNNING'});
-
-      final status = await client.getDockerStatus();
-
-      expect(status['status'], 'RUNNING');
-    });
-
-    test('getAppResourceUsage and getAppUpgradeInfo return stub data without '
-        'a network call', () async {
-      // These are documented as not backed by a TrueNAS RPC; verify they
-      // resolve without ever talking to the (unconfigured) fake server.
-      final usage = await client.getAppResourceUsage('plex');
-      expect(usage['cpu_usage'], 0.0);
-
-      final upgradeInfo = await client.getAppUpgradeInfo('plex');
-      expect(upgradeInfo['upgrade_available'], false);
     });
 
     test(
