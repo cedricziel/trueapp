@@ -270,7 +270,7 @@ void main() {
       // the FakeAsync zone, otherwise the drift future never completes.
       final updatedServer = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(updatedServer, isNotNull);
       expect(updatedServer!.name, 'Updated Server Name');
@@ -335,7 +335,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify all fields were updated in database
-      final serverFromDb = await database.getServer(testServer.id);
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.name, 'Database Test Server');
       expect(serverFromDb.host, 'new.example.com');
@@ -364,7 +364,7 @@ void main() {
           'newpassword',
         );
 
-        final serverFromDb = await database.getServer(testServer.id);
+        final serverFromDb = await database.serversDao.getServer(testServer.id);
         expect(serverFromDb, isNotNull);
         expect(serverFromDb!.password, isEmpty);
       },
@@ -573,7 +573,7 @@ void main() {
 
       final updated = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(updated!.trustedWifiSsids, ['GuestWiFi']);
     });
@@ -715,7 +715,7 @@ void main() {
 
       final updated = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(updated!.isDefault, isTrue);
     });
@@ -727,7 +727,7 @@ void main() {
       // FakeAsync zone without `runRealAsync` stepping outside it.
       final defaultServer = await runRealAsync(tester, () async {
         await serverProvider.setDefaultServer(testServer.id);
-        return (await database.getServer(testServer.id))!;
+        return (await database.serversDao.getServer(testServer.id))!;
       });
       expect(defaultServer!.isDefault, isTrue);
 
@@ -748,7 +748,7 @@ void main() {
 
       final updated = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(updated!.isDefault, isFalse);
     });
@@ -774,7 +774,7 @@ void main() {
 
       final updated = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(updated!.localUrl, isNull);
     });

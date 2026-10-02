@@ -9,7 +9,7 @@ final _log = appLogger('storage.sqlite');
 /// SQLite-based server repository for non-Apple platforms
 /// Provides local storage without automatic sync
 class SqliteServerRepository implements ServerRepositoryInterface {
-  final AppDatabase _database;
+  final ServersDao _database;
   final StreamController<List<NasServer>> _serversController =
       StreamController<List<NasServer>>.broadcast();
 

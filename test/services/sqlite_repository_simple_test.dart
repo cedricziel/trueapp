@@ -4,7 +4,7 @@ import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truehub/services/database.dart';
 
 /// Mock implementation of AppDatabase for testing
-class MockAppDatabase implements AppDatabase {
+class MockServersDao implements ServersDao {
   final Map<String, NasServer> _servers = {};
   String? _defaultServerId;
   bool _shouldThrowErrors = false;
@@ -117,12 +117,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SqliteServerRepository', () {
-    late MockAppDatabase mockDatabase;
+    late MockServersDao mockDao;
     late SqliteServerRepository repository;
 
     setUp(() {
-      mockDatabase = MockAppDatabase();
-      repository = SqliteServerRepository(mockDatabase);
+      mockDao = MockServersDao();
+      repository = SqliteServerRepository(mockDao);
     });
 
     tearDown(() async {
@@ -146,7 +146,7 @@ void main() {
 
       final saveResult = await repository.saveServer(server);
       expect(saveResult, isTrue);
-      expect(mockDatabase.serverCount, equals(1));
+      expect(mockDao.serverCount, equals(1));
 
       final retrievedServer = await repository.getServer(server.id);
       expect(retrievedServer, isNotNull);
@@ -189,7 +189,7 @@ void main() {
 
       final deleteResult = await repository.deleteServer(server.id);
       expect(deleteResult, isTrue);
-      expect(mockDatabase.serverCount, equals(0));
+      expect(mockDao.serverCount, equals(0));
     });
 
     test('should manage default server', () async {
@@ -236,7 +236,7 @@ void main() {
 
     test('should handle errors gracefully', () async {
       await repository.initialize();
-      mockDatabase.setShouldThrowErrors(true);
+      mockDao.setShouldThrowErrors(true);
 
       final server = NasServer.create(
         name: 'Test Server',

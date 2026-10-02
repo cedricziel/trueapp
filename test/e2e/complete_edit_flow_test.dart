@@ -223,7 +223,7 @@ void main() {
       // STEP 7: ... and was persisted.
       final serverFromDb = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.name, 'Updated TrueNAS Server');
@@ -268,7 +268,7 @@ void main() {
 
       final serverFromDb = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.name, 'Test TrueNAS Server');
@@ -311,7 +311,7 @@ void main() {
 
       final finalServer = await runRealAsync(
         tester,
-        () => database.getServer(testServer.id),
+        () => database.serversDao.getServer(testServer.id),
       );
       expect(finalServer, isNotNull);
       expect(finalServer!.name, 'First Edit');

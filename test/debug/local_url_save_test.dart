@@ -21,7 +21,7 @@ void main() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
 
     // Create real service with SQLite repository and mock keychain
-    final sqliteRepository = SqliteServerRepository(database);
+    final sqliteRepository = SqliteServerRepository(database.serversDao);
     final mockKeychain = MockKeychainService();
     unifiedServerService = UnifiedServerService(
       repository: sqliteRepository,
@@ -64,7 +64,7 @@ void main() {
       expect(testServer.localUrl, 's');
 
       // Load from database to ensure it was saved
-      final serverFromDb = await database.getServer(testServer.id);
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, 's');
     });
@@ -80,7 +80,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update worked
-      final serverFromDb = await database.getServer(testServer.id);
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, isNull);
     });
@@ -96,7 +96,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the update worked
-      final serverFromDb = await database.getServer(testServer.id);
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
       expect(serverFromDb, isNotNull);
       expect(serverFromDb!.localUrl, 'http://192.168.1.200:8080');
     });
@@ -113,7 +113,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the server was updated in database
-      final savedServer = await database.getServer(testServer.id);
+      final savedServer = await database.serversDao.getServer(testServer.id);
       expect(savedServer, isNotNull);
       expect(savedServer!.localUrl, isNull);
     });
@@ -131,7 +131,7 @@ void main() {
       await serverProvider.updateServer(updatedServer);
 
       // Verify the server was updated in database
-      final savedServer = await database.getServer(testServer.id);
+      final savedServer = await database.serversDao.getServer(testServer.id);
       expect(savedServer, isNotNull);
       expect(savedServer!.localUrl, 'http://192.168.1.200:8080');
     });
@@ -157,10 +157,10 @@ void main() {
             password: 'password',
           );
 
-          await database.insertServer(server);
+          await database.serversDao.insertServer(server);
 
           // Read back and verify - use a simple database call, no provider interaction
-          final serverFromDb = await database.getServer(server.id);
+          final serverFromDb = await database.serversDao.getServer(server.id);
           expect(serverFromDb, isNotNull, reason: 'Failed for $description');
 
           if (localUrl.isEmpty) {
@@ -178,7 +178,7 @@ void main() {
           }
 
           // Clean up
-          await database.deleteServer(server.id);
+          await database.serversDao.deleteServer(server.id);
         }
       },
     );

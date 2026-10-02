@@ -125,7 +125,7 @@ void main() {
         ]);
 
         // 5c. Verify changes are persisted in database
-        final serverFromDb = await database.getServer(testServer.id);
+        final serverFromDb = await database.serversDao.getServer(testServer.id);
         expect(serverFromDb, isNotNull);
         expect(serverFromDb!.name, 'Updated TrueNAS Server');
         expect(serverFromDb.host, '192.168.1.150');
@@ -231,7 +231,7 @@ void main() {
       );
 
       // Verify database is unchanged
-      final serverFromDb = await database.getServer(testServer.id);
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
       expect(serverFromDb!.name, originalName);
       expect(serverFromDb.host, originalHost);
       expect(serverFromDb.allowUntrustedCertificates, originalCerts);

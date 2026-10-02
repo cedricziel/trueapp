@@ -3040,6 +3040,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $NasServersTable nasServers = $NasServersTable(this);
   late final $AppConfigsTable appConfigs = $AppConfigsTable(this);
   late final $AppPortConfigsTable appPortConfigs = $AppPortConfigsTable(this);
+  late final ServersDao serversDao = ServersDao(this as AppDatabase);
+  late final AppConfigsDao appConfigsDao = AppConfigsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3455,7 +3457,7 @@ class $$NasServersTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$NasServersTable, NasServerData>(table),
                   $$NasServersTableReferences(db, table, e),
                 ),
               )
@@ -4324,7 +4326,7 @@ class $$AppConfigsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$AppConfigsTable, AppConfigData>(table),
                   $$AppConfigsTableReferences(db, table, e),
                 ),
               )
@@ -4786,7 +4788,7 @@ class $$AppPortConfigsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$AppPortConfigsTable, AppPortConfigData>(table),
                   $$AppPortConfigsTableReferences(db, table, e),
                 ),
               )

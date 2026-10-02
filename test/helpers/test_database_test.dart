@@ -10,7 +10,7 @@ void main() {
       () async {
         final database = createTestDatabase();
 
-        final servers = await database.getAllServers();
+        final servers = await database.serversDao.getAllServers();
         expect(servers, isEmpty);
       },
     );
@@ -19,7 +19,7 @@ void main() {
       final first = createTestDatabase();
       final second = createTestDatabase();
 
-      await first.insertServer(
+      await first.serversDao.insertServer(
         models.NasServer.create(
           name: 'Only in first',
           host: 'first.example.com',
@@ -30,8 +30,8 @@ void main() {
         ),
       );
 
-      expect((await first.getAllServers()).length, 1);
-      expect((await second.getAllServers()), isEmpty);
+      expect((await first.serversDao.getAllServers()).length, 1);
+      expect((await second.serversDao.getAllServers()), isEmpty);
     });
   });
 }
