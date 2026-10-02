@@ -11,10 +11,13 @@ for the TrueNAS Manager Flutter application.
   s.author           = { 'TrueNAS Manager' => 'cedric@ziel.dev' }
   s.source           = { :path => '.' }
   s.source_files     = 'truenas_native_plugins/Sources/truenas_native_plugins/**/*.swift'
-  s.dependency 'FlutterMacOS'
-  s.platform = :osx, '10.14'
+  s.ios.dependency 'Flutter'
+  s.osx.dependency 'FlutterMacOS'
+  s.ios.deployment_target = '12.0'
+  s.osx.deployment_target = '10.14'
 
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
+  # Flutter.framework does not contain a i386 slice.
+  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.0'
   
   # CloudKit framework

@@ -23,5 +23,7 @@ flutter:
     platforms:
       ios:
         pluginClass: TruenasNativePlugins
+        sharedDarwinSource: true
       macos:
         pluginClass: TruenasNativePlugins
+        sharedDarwinSource: true

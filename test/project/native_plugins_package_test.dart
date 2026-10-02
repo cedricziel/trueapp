@@ -6,8 +6,7 @@ import 'package:path/path.dart' as p;
 import '../helpers/repo_files.dart';
 
 const _podspecs = [
-  'packages/truenas_native_plugins/ios/truenas_native_plugins.podspec',
-  'packages/truenas_native_plugins/macos/truenas_native_plugins.podspec',
+  'packages/truenas_native_plugins/darwin/truenas_native_plugins.podspec',
 ];
 
 /// Every public class the package's main entrypoint exports (verified
@@ -123,10 +122,10 @@ void main() {
       // channels with a literal name, so cross-check against those - the
       // authoritative native-side source of truth - instead.
       final cloudKitSwift = repo.read(
-        'packages/truenas_native_plugins/ios/truenas_native_plugins/Sources/truenas_native_plugins/CloudKitPlugin.swift',
+        'packages/truenas_native_plugins/darwin/truenas_native_plugins/Sources/truenas_native_plugins/CloudKitPlugin.swift',
       );
       final keychainSwift = repo.read(
-        'packages/truenas_native_plugins/ios/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
+        'packages/truenas_native_plugins/darwin/truenas_native_plugins/Sources/truenas_native_plugins/KeychainPlugin.swift',
       );
 
       for (final channel in channels) {

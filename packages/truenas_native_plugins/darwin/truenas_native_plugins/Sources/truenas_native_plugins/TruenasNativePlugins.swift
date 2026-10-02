@@ -1,5 +1,8 @@
+#if canImport(Flutter)
 import Flutter
-import UIKit
+#else
+import FlutterMacOS
+#endif
 
 public class TruenasNativePlugins: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
