@@ -30,8 +30,8 @@ void main() {
     quitCalls = 0;
   });
 
-  Future<void> pumpBinder(WidgetTester tester, {bool isDesktop = true}) {
-    return tester.pumpWidget(
+  Future<void> pumpBinder(WidgetTester tester, {bool isDesktop = true}) async {
+    await tester.pumpWidget(
       TrayStatusBinder(
         isDesktop: isDesktop,
         tray: tray,
@@ -43,6 +43,7 @@ void main() {
         child: const SizedBox(),
       ),
     );
+    await tester.pump();
   }
 
   testWidgets('wires callbacks and initializes the tray on desktop', (
@@ -69,17 +70,40 @@ void main() {
     expect(tray.updates, isEmpty);
   });
 
-  testWidgets('pushes status when servers or apps change', (tester) async {
+  testWidgets('pushes the current status once the tray is ready', (
+    tester,
+  ) async {
     serverSource.servers = [_server('a'), _server('b')];
     serverSource.healthError = 'boom';
     await pumpBinder(tester);
 
+    expect(tray.updates.single.totalServers, 2);
+    expect(tray.updates.single.alerts, ['boom']);
+  });
+
+  testWidgets('pushes status when servers change', (tester) async {
+    serverSource.servers = [_server('a')];
+    await pumpBinder(tester);
+
+    serverSource.servers = [_server('a'), _server('b')];
+    serverSource.change();
+
+    expect(tray.updates, hasLength(2));
+    expect(tray.updates.last.totalServers, 2);
+  });
+
+  testWidgets('skips the push when nothing shown in the tray changed', (
+    tester,
+  ) async {
+    serverSource.servers = [_server('a')];
+    connectionSource.connectedServers = ['a'];
+    await pumpBinder(tester);
+
+    connectionSource.change();
     serverSource.change();
     appsSource.change();
 
-    expect(tray.updates, hasLength(2));
-    expect(tray.updates.first.totalServers, 2);
-    expect(tray.updates.first.alerts, ['boom']);
+    expect(tray.updates, hasLength(1));
   });
 
   testWidgets('counts only servers with a live connection as connected', (
@@ -88,8 +112,6 @@ void main() {
     serverSource.servers = [_server('a'), _server('b'), _server('c')];
     connectionSource.connectedServers = ['b', 'removed'];
     await pumpBinder(tester);
-
-    serverSource.change();
 
     expect(tray.updates.single.totalServers, 3);
     expect(tray.updates.single.connectedServers, 1);
@@ -104,7 +126,7 @@ void main() {
     connectionSource.connectedServers = ['a', 'b'];
     connectionSource.change();
 
-    expect(tray.updates.single.connectedServers, 2);
+    expect(tray.updates.last.connectedServers, 2);
   });
 
   testWidgets('still pushes status when the apps lookup throws', (
@@ -113,9 +135,6 @@ void main() {
     appsSource.error = StateError('no apps');
     await pumpBinder(tester);
 
-    serverSource.change();
-
-    expect(tray.updates, hasLength(1));
     expect(tray.updates.single.appsWithPortals, isEmpty);
   });
 
@@ -123,9 +142,10 @@ void main() {
     await pumpBinder(tester);
     await tester.pumpWidget(const SizedBox());
 
+    serverSource.servers = [_server('a')];
     serverSource.change();
     appsSource.change();
 
-    expect(tray.updates, isEmpty);
+    expect(tray.updates, hasLength(1));
   });
 }

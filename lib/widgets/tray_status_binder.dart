@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/services/app_logger.dart';
@@ -33,23 +34,26 @@ class TrayStatusBinder extends StatefulWidget {
 
 class _TrayStatusBinderState extends State<TrayStatusBinder> {
   bool _listening = false;
+  _TrayStatus? _lastPushed;
 
   @override
   void initState() {
     super.initState();
     if (!widget.isDesktop) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       widget.tray.setCallbacks(
         onShowWindow: widget.onShowWindow,
         onQuitApp: widget.onQuitApp,
         onRefresh: () => widget.serverSource.refreshSelectedServer(),
       );
-      widget.tray.initializeTray();
+      await widget.tray.initializeTray();
+      if (!mounted) return;
       widget.serverSource.addListener(_updateTrayStatus);
       widget.appsSource.addListener(_updateTrayStatus);
       widget.connectionSource.addListener(_updateTrayStatus);
       _listening = true;
+      _updateTrayStatus();
     });
   }
 
@@ -69,13 +73,22 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       _log.error('Error getting apps with portals', error: e);
     }
 
-    widget.tray.updateServerStatus(
+    final status = _TrayStatus(
       connectedServers: servers
           .where((s) => connectedIds.contains(s.id))
           .length,
       totalServers: servers.length,
       alerts: alerts,
       appsWithPortals: appsWithPortals,
+    );
+    if (status == _lastPushed) return;
+    _lastPushed = status;
+
+    widget.tray.updateServerStatus(
+      connectedServers: status.connectedServers,
+      totalServers: status.totalServers,
+      alerts: status.alerts,
+      appsWithPortals: status.appsWithPortals,
     );
   }
 
@@ -91,4 +104,34 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class _TrayStatus {
+  const _TrayStatus({
+    required this.connectedServers,
+    required this.totalServers,
+    required this.alerts,
+    required this.appsWithPortals,
+  });
+
+  final int connectedServers;
+  final int totalServers;
+  final List<String> alerts;
+  final List<AppConfig> appsWithPortals;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _TrayStatus &&
+      other.connectedServers == connectedServers &&
+      other.totalServers == totalServers &&
+      listEquals(other.alerts, alerts) &&
+      listEquals(other.appsWithPortals, appsWithPortals);
+
+  @override
+  int get hashCode => Object.hash(
+    connectedServers,
+    totalServers,
+    Object.hashAll(alerts),
+    Object.hashAll(appsWithPortals),
+  );
 }
