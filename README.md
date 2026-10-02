@@ -32,7 +32,6 @@ The app follows a clean architecture pattern with:
 - **Flutter**: Cross-platform framework
 - **drift**: Type-safe database library (formerly moor)
 - **Provider**: State management
-- **dio**: HTTP client for API calls
 - **flutter_slidable**: Swipe actions for list items
 
 ## Getting Started
