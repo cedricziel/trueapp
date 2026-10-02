@@ -8,6 +8,7 @@ import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 import 'package:truehub/widgets/section_card.dart';
 
 class PoolDetailScreen extends StatefulWidget {
@@ -47,7 +48,8 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
         trailing: JobsBellButton(server: widget.server),
       ),
       child: SafeArea(
-        child: CustomScrollView(
+        child: RefreshableScrollView(
+          onRefresh: context.read<DatasetProvider>().refreshDatasets,
           slivers: [
             // Pool Info Section
             SliverToBoxAdapter(
