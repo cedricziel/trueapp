@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 ///
 /// Config/documentation hygiene tests (see `test/project/`) need to read
 /// files that live outside `lib/`/`test/` — `.claude/settings.local.json`,
-/// `ios/Podfile`, `pubspec.yaml`, `README.md`, files under `packages/` — by
+/// `ios/Runner.xcodeproj`, `pubspec.yaml`, `README.md`, files under `packages/` — by
 /// a path relative to the repository root, regardless of the working
 /// directory `flutter test` happens to be invoked from. Coding against this
 /// interface (rather than bare `File` calls scattered across tests) keeps
