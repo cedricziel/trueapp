@@ -10,6 +10,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
+import '../helpers/pump_helpers.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
 
@@ -17,7 +18,7 @@ void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
   late UnifiedServerService unifiedServerService;
-  late FileProvider fileProvider;
+  late _CountingFileProvider fileProvider;
   late NasServer testServer;
 
   FileItem file(String name, {bool isDirectory = false}) {
@@ -43,7 +44,7 @@ void main() {
     serverProvider = await TestProviders.createSettledServerProvider(
       unifiedServerService,
     );
-    fileProvider = FileProvider(
+    fileProvider = _CountingFileProvider(
       clientManager: TestProviders.mockApiClientManager,
       unifiedServerService,
     );
@@ -111,7 +112,7 @@ void main() {
     final names = tester
         .widgetList<Text>(
           find.descendant(
-            of: find.byType(ListView).last,
+            of: find.byType(CustomScrollView),
             matching: find.byType(Text),
           ),
         )
@@ -156,4 +157,28 @@ void main() {
     expectNoLayoutOverflow(tester);
     expect(find.text('Home'), findsOneWidget);
   });
+
+  testWidgets('pulling down the file list refreshes the folder', (
+    WidgetTester tester,
+  ) async {
+    useCompactSurface(tester);
+    await tester.pumpWidget(createTestApp());
+    await tester.pumpAndSettle();
+
+    fileProvider.debugSetFiles([file('notes.txt')]);
+    await tester.pump();
+    await pullToRefresh(tester, finder: find.byType(CustomScrollView));
+
+    expect(fileProvider.refreshCount, 1);
+    expect(find.text('notes.txt'), findsOneWidget);
+  });
+}
+
+class _CountingFileProvider extends FileProvider {
+  _CountingFileProvider(super.service, {required super.clientManager});
+
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshFiles() async => refreshCount++;
 }

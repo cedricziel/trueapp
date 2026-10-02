@@ -52,6 +52,29 @@ class RefreshableScrollView extends StatelessWidget {
     ],
   );
 
+  /// A refreshable list with a [separatorBuilder] between lazily built items.
+  factory RefreshableScrollView.separated({
+    Key? key,
+    required Future<void> Function() onRefresh,
+    EdgeInsetsGeometry padding = EdgeInsets.zero,
+    required int itemCount,
+    required NullableIndexedWidgetBuilder itemBuilder,
+    required IndexedWidgetBuilder separatorBuilder,
+  }) => RefreshableScrollView(
+    key: key,
+    onRefresh: onRefresh,
+    slivers: [
+      SliverPadding(
+        padding: padding,
+        sliver: SliverList.separated(
+          itemCount: itemCount,
+          itemBuilder: itemBuilder,
+          separatorBuilder: separatorBuilder,
+        ),
+      ),
+    ],
+  );
+
   final Future<void> Function() onRefresh;
   final List<Widget> slivers;
 

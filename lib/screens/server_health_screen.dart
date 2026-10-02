@@ -7,8 +7,8 @@ import 'package:truehub/models/service_status.dart';
 import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
-import 'package:truehub/widgets/section_card.dart';
 import 'package:truehub/widgets/refreshable_scroll_view.dart';
+import 'package:truehub/widgets/section_card.dart';
 
 class ServerHealthScreen extends StatefulWidget {
   final NasServer server;

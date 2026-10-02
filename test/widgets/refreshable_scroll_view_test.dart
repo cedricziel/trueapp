@@ -41,6 +41,27 @@ void main() {
     expect(find.text('item 2'), findsOneWidget);
   });
 
+  testWidgets('pulling down a separated list invokes onRefresh', (
+    tester,
+  ) async {
+    var refreshes = 0;
+    await tester.pumpWidget(
+      host(
+        RefreshableScrollView.separated(
+          onRefresh: () async => refreshes++,
+          itemCount: 2,
+          itemBuilder: (context, index) => Text('item $index'),
+          separatorBuilder: (context, index) => const Text('---'),
+        ),
+      ),
+    );
+
+    await pullToRefresh(tester);
+
+    expect(refreshes, 1);
+    expect(find.text('---'), findsOneWidget);
+  });
+
   testWidgets('short content is still pullable', (tester) async {
     var refreshes = 0;
     await tester.pumpWidget(

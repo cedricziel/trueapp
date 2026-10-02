@@ -6,6 +6,7 @@ import 'package:truehub/providers/file_provider.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 
 class ServerFilesScreen extends StatefulWidget {
   final NasServer server;
@@ -182,7 +183,8 @@ class _ServerFilesScreenState extends State<ServerFilesScreen> {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
-    return ListView.separated(
+    return RefreshableScrollView.separated(
+      onRefresh: provider.refreshFiles,
       itemCount: sorted.length,
       separatorBuilder: (context, index) => Padding(
         padding: EdgeInsets.only(left: 56),
