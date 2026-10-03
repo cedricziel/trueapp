@@ -12,6 +12,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
+import '../helpers/pump_helpers.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
 
@@ -71,6 +72,20 @@ void main() {
 
     expectNoLayoutOverflow(tester);
     expect(find.text('All Systems Operational'), findsOneWidget);
+  });
+
+  testWidgets('pulling down the health view refreshes health', (
+    WidgetTester tester,
+  ) async {
+    useCompactSurface(tester);
+    final healthProvider = _FakeHealthProvider(unifiedServerService);
+    addTearDown(healthProvider.dispose);
+
+    await tester.pumpWidget(createTestApp(healthProvider));
+    await tester.pump();
+    await pullToRefresh(tester);
+
+    expect(healthProvider.refreshCount, 1);
   });
 
   testWidgets('surfaces active alerts and which disk needs attention', (
@@ -144,6 +159,11 @@ class _FakeHealthProvider extends HealthProvider {
     this.services = const [],
     this.serverHealth,
   }) : super(clientManager: TestProviders.mockApiClientManager);
+
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshHealth() async => refreshCount++;
 
   @override
   final List<Alert> alerts;

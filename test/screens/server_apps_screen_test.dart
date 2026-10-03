@@ -327,6 +327,33 @@ void main() {
       expect(find.text('sonarr'), findsOneWidget);
     });
 
+    testWidgets('dragging the app list down reloads apps from the API', (
+      WidgetTester tester,
+    ) async {
+      fakeClient.installedApps = [
+        _app(name: 'plex', title: 'Plex', installed: true),
+      ];
+      fakeClient.availableApps = [];
+      fakeClient.appCategories = [];
+
+      await pumpAndSettleInitialLoad(tester);
+      await tester.pump();
+
+      fakeClient.installedApps = [
+        _app(name: 'plex', title: 'Plex', installed: true),
+        _app(name: 'sonarr', title: 'Sonarr', installed: true),
+      ];
+
+      await settleLoad(
+        tester,
+        () => pullToRefresh(tester, finder: find.byType(CustomScrollView)),
+      );
+      await tester.pump();
+
+      expect(find.byType(AppCardWidget), findsNWidgets(2));
+      expect(find.text('sonarr'), findsOneWidget);
+    });
+
     testWidgets('tapping an app card navigates to the app detail screen', (
       WidgetTester tester,
     ) async {

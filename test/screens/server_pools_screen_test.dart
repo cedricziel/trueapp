@@ -387,6 +387,25 @@ void main() {
     });
   });
 
+  group('ServerPoolsScreen - pull to refresh', () {
+    testWidgets('pulling down the pool list refreshes the pools', (
+      WidgetTester tester,
+    ) async {
+      useCompactSurface(tester);
+      final poolProvider = _FakePoolProvider(unifiedServerService, [
+        Pool.fromJson({'name': 'tank', 'status': 'ONLINE', 'healthy': true}),
+      ]);
+      addTearDown(poolProvider.dispose);
+
+      await tester.pumpWidget(createTestApp(poolProvider));
+      await tester.pump();
+      await pullToRefresh(tester);
+
+      expect(poolProvider.refreshCount, 1);
+      expect(find.text('tank'), findsOneWidget);
+    });
+  });
+
   group('ServerPoolsScreen - per-drive topology visualization', () {
     testWidgets('renders a healthy pool with a drive badge per disk', (
       WidgetTester tester,
@@ -515,6 +534,11 @@ class _FakePoolProvider extends PoolProvider {
     : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<Pool> _seedPools;
+
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshPools() async => refreshCount++;
 
   @override
   List<Pool> get pools => _seedPools;

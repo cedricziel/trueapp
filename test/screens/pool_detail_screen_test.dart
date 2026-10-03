@@ -299,6 +299,25 @@ void main() {
       expect(find.text('data'), findsOneWidget);
     });
 
+    testWidgets('dragging the view down re-fetches the datasets', (
+      WidgetTester tester,
+    ) async {
+      fakeClient.datasets = [
+        {'name': 'tank/data', 'pool': 'tank'},
+      ];
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
+      await pumpUntilFound(tester, find.text('data'));
+
+      fakeClient.datasets = [
+        {'name': 'tank/data', 'pool': 'tank'},
+        {'name': 'tank/media', 'pool': 'tank'},
+      ];
+      await pullToRefresh(tester);
+      await pumpUntilFound(tester, find.text('media'));
+
+      expect(find.text('media'), findsOneWidget);
+    });
+
     testWidgets('shows an empty state when there are no datasets', (
       WidgetTester tester,
     ) async {

@@ -20,7 +20,7 @@ import '../helpers/test_surfaces.dart';
 void main() {
   late AppDatabase database;
   late ServerProvider serverProvider;
-  late FleetStatusProvider fleetStatusProvider;
+  late _FakeFleetStatusProvider fleetStatusProvider;
   late UnifiedServerService unifiedServerService;
 
   setUp(() async {
@@ -163,6 +163,20 @@ void main() {
     expect(find.textContaining('needs attention'), findsNothing);
   });
 
+  testWidgets('dragging the server list down refreshes the fleet status', (
+    WidgetTester tester,
+  ) async {
+    useCompactSurface(tester);
+    await tester.pumpWidget(createTestApp());
+    await tester.pumpAndSettle();
+    final refreshesOnMount = fleetStatusProvider.refreshAllCount;
+
+    await pullToRefresh(tester);
+
+    expect(fleetStatusProvider.refreshAllCount, refreshesOnMount + 1);
+    expect(find.text('vault.local'), findsOneWidget);
+  });
+
   testWidgets(
     'sorts a server needing attention first and shows a fleet banner',
     (WidgetTester tester) async {
@@ -212,9 +226,11 @@ class _FakeFleetStatusProvider extends FleetStatusProvider {
   _FakeFleetStatusProvider(super.service)
     : super(clientManager: TestProviders.mockApiClientManager);
 
+  int refreshAllCount = 0;
+
   @override
   Future<void> refreshAll(
     List<NasServer> servers, {
     Duration timeout = FleetStatusProvider.defaultTimeout,
-  }) async {}
+  }) async => refreshAllCount++;
 }

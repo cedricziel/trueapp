@@ -17,6 +17,7 @@ import 'package:truehub/screens/server_detail/server_system_stats_section.dart';
 import 'package:truehub/widgets/authentication_state_widget.dart';
 import 'package:truehub/widgets/connection_status_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 
 class ServerDetailScreen extends StatefulWidget {
   final NasServer server;
@@ -62,6 +63,13 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
       }
     });
   }
+
+  Future<void> _refresh() => Future.wait([
+    context.read<PoolProvider>().refreshPools(),
+    context.read<AppProvider>().refreshApps(),
+    context.read<HealthProvider>().refreshHealth(),
+    context.read<SystemStatsProvider>().refreshStats(),
+  ]);
 
   @override
   void didChangeDependencies() {
@@ -162,7 +170,8 @@ class _ServerDetailScreenState extends State<ServerDetailScreen> {
           ),
           child: AuthenticationStateWidget(
             child: SafeArea(
-              child: ListView(
+              child: RefreshableScrollView.list(
+                onRefresh: _refresh,
                 children: [
                   const SizedBox(height: 20),
                   ServerAlertBanner(server: currentServer),

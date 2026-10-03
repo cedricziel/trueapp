@@ -168,11 +168,11 @@ void main() {
     );
 
     // The "Pools" action button sits below the fold of the detail screen's
-    // ListView at this surface height - scroll it into view before tapping,
+    // scroll view at this surface height - scroll it into view before tapping,
     // otherwise the tap lands on whatever is at that now-stale offset
     // instead (see `server_detail_screen_test.dart`'s tests for the same
     // pattern).
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pump();
 
     await tapWhenUnambiguous(tester, find.text('Pools'));

@@ -9,6 +9,7 @@ import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/refreshable_scroll_view.dart';
 
 class ServerAppsScreen extends StatefulWidget {
   final NasServer server;
@@ -197,7 +198,8 @@ class _ServerAppsScreenState extends State<ServerAppsScreen> {
                     return _buildEmptyView();
                   }
 
-                  return ListView.builder(
+                  return RefreshableScrollView.builder(
+                    onRefresh: appProvider.refreshApps,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: apps.length + (catalogError != null ? 1 : 0),
                     itemBuilder: (context, index) {
