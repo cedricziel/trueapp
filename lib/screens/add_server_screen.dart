@@ -322,7 +322,6 @@ class _AddServerScreenState extends State<AddServerScreen> {
               AuthenticationSection(
                 usernameController: _usernameController,
                 passwordController: _passwordController,
-                autocorrect: false,
                 onChanged: () => setState(() {}),
               ),
               const SizedBox(height: 16),
