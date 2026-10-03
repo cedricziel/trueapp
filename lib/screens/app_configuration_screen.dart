@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/providers/app_provider.dart';
+import 'package:truehub/screens/app_configuration/port_edit_modal.dart';
+import 'package:truehub/screens/app_configuration/port_list_row.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppConfigurationScreen extends StatefulWidget {
@@ -130,85 +131,14 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
     return CupertinoFormSection(
       header: const Text('Ports'),
       children: _currentConfig.ports
-          .map((port) => _buildPortRow(port))
+          .map(
+            (port) => PortListRow(
+              port: port,
+              onOpen: () => _openUrl(port.effectiveUrl),
+              onEdit: () => _editPort(port),
+            ),
+          )
           .toList(),
-    );
-  }
-
-  Widget _buildPortRow(AppPortConfig port) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: CupertinoColors.separator.resolveFrom(context),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      port.displayName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      port.effectiveUrl,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(
-                          context,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (port.isPrimary)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemBlue,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Primary',
-                    style: TextStyle(
-                      color: CupertinoColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 8),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => _openUrl(port.effectiveUrl),
-                child: const Icon(CupertinoIcons.link, size: 20),
-              ),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => _editPort(port),
-                child: const Icon(CupertinoIcons.pencil, size: 20),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -235,7 +165,7 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
   void _editPort(AppPortConfig port) {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => _PortEditModal(
+      builder: (context) => PortEditModal(
         port: port,
         onSave: (updatedPort) => _updatePort(port, updatedPort),
         onDelete: () => _deletePort(port),
@@ -247,7 +177,7 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
   void _addNewPort() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => _PortEditModal(
+      builder: (context) => PortEditModal(
         port: const AppPortConfig(portNumber: 80),
         onSave: (newPort) => _addPort(newPort),
         isNewPort: true,
@@ -344,188 +274,5 @@ class _AppConfigurationScreenState extends State<AppConfigurationScreen> {
     if (mounted) {
       Navigator.of(context).pop();
     }
-  }
-}
-
-class _PortEditModal extends StatefulWidget {
-  final AppPortConfig port;
-  final Function(AppPortConfig) onSave;
-  final VoidCallback? onDelete;
-  final VoidCallback? onSetPrimary;
-  final bool isNewPort;
-
-  const _PortEditModal({
-    required this.port,
-    required this.onSave,
-    this.onDelete,
-    this.onSetPrimary,
-    this.isNewPort = false,
-  });
-
-  @override
-  State<_PortEditModal> createState() => _PortEditModalState();
-}
-
-class _PortEditModalState extends State<_PortEditModal> {
-  late TextEditingController _portController;
-  late TextEditingController _serviceNameController;
-  late TextEditingController _customUrlController;
-  late String _protocol;
-  late bool _isEnabled;
-
-  @override
-  void initState() {
-    super.initState();
-    _portController = TextEditingController(
-      text: widget.port.portNumber.toString(),
-    );
-    _serviceNameController = TextEditingController(
-      text: widget.port.serviceName ?? '',
-    );
-    _customUrlController = TextEditingController(
-      text: widget.port.customUrl ?? '',
-    );
-    _protocol = widget.port.protocol;
-    _isEnabled = widget.port.isEnabled;
-  }
-
-  @override
-  void dispose() {
-    _portController.dispose();
-    _serviceNameController.dispose();
-    _customUrlController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        middle: Text(widget.isNewPort ? 'Add Port' : 'Edit Port'),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _savePort,
-          child: const Text('Save'),
-        ),
-      ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            CupertinoFormSection(
-              children: [
-                CupertinoFormRow(
-                  prefix: const Text('Port'),
-                  child: CupertinoTextFormFieldRow(
-                    controller: _portController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-                ),
-                CupertinoFormRow(
-                  prefix: const Text('Protocol'),
-                  child: CupertinoSegmentedControl<String>(
-                    groupValue: _protocol,
-                    onValueChanged: (value) {
-                      setState(() {
-                        _protocol = value;
-                      });
-                    },
-                    children: const {
-                      'http': Text('HTTP'),
-                      'https': Text('HTTPS'),
-                    },
-                  ),
-                ),
-                CupertinoFormRow(
-                  prefix: const Text('Service Name'),
-                  child: CupertinoTextFormFieldRow(
-                    controller: _serviceNameController,
-                    placeholder: 'e.g., Web UI, API',
-                  ),
-                ),
-                CupertinoFormRow(
-                  prefix: const Text('Custom URL'),
-                  child: CupertinoTextFormFieldRow(
-                    controller: _customUrlController,
-                    placeholder: 'Leave empty for default',
-                  ),
-                ),
-                CupertinoFormRow(
-                  prefix: const Text('Enabled'),
-                  child: CupertinoSwitch(
-                    value: _isEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _isEnabled = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (!widget.isNewPort) ...[
-              const SizedBox(height: 24),
-              CupertinoFormSection(
-                children: [
-                  if (widget.onSetPrimary != null)
-                    CupertinoFormRow(
-                      child: CupertinoButton(
-                        onPressed: () {
-                          widget.onSetPrimary!();
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Set as Primary'),
-                      ),
-                    ),
-                  if (widget.onDelete != null)
-                    CupertinoFormRow(
-                      child: CupertinoButton(
-                        onPressed: () {
-                          widget.onDelete?.call();
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text(
-                          'Delete Port',
-                          style: TextStyle(
-                            color: CupertinoColors.destructiveRed,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _savePort() {
-    final portNumber = int.tryParse(_portController.text);
-    if (portNumber == null) return;
-
-    final updatedPort = widget.port.copyWith(
-      portNumber: portNumber,
-      protocol: _protocol,
-      serviceName: _serviceNameController.text.isEmpty
-          ? null
-          : _serviceNameController.text,
-      clearServiceName: _serviceNameController.text.isEmpty,
-      customUrl: _customUrlController.text.isEmpty
-          ? null
-          : _customUrlController.text,
-      clearCustomUrl: _customUrlController.text.isEmpty,
-      isEnabled: _isEnabled,
-    );
-
-    widget.onSave(updatedPort);
-    Navigator.of(context).pop();
   }
 }
