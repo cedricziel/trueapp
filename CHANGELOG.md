@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.0](https://github.com/cedricziel/trueapp/compare/v0.12.0...v0.13.0) (2026-10-03)
+
+
+### Features
+
+* add pull-to-refresh to screens with server data ([#230](https://github.com/cedricziel/trueapp/issues/230)) ([4325165](https://github.com/cedricziel/trueapp/commit/43251653dbc6002e973c55f14e38436bc419a9e7))
+* start, stop and restart services ([#226](https://github.com/cedricziel/trueapp/issues/226)) ([17f1b37](https://github.com/cedricziel/trueapp/commit/17f1b378ef34cdc24e54979f4fee928d3f4770d5))
+
+
+### Bug Fixes
+
+* create the CloudKit container only when the app has the iCloud entitlement ([#227](https://github.com/cedricziel/trueapp/issues/227)) ([faddc37](https://github.com/cedricziel/trueapp/commit/faddc37a8af2883b47c95b887a74cfb4fb8925ef))
+* stop presenting unopenable app links as working links ([#229](https://github.com/cedricziel/trueapp/issues/229)) ([f0ef1ae](https://github.com/cedricziel/trueapp/commit/f0ef1aed1efcc2f54b26755e80057d03da7bea77))
+
 ## [0.12.0](https://github.com/cedricziel/trueapp/compare/v0.11.0...v0.12.0) (2026-10-02)
 
 
