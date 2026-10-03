@@ -9,6 +9,7 @@ import 'package:truehub/providers/health_provider.dart';
 import 'package:truehub/providers/jobs_provider.dart';
 import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
+import 'package:truehub/providers/services_provider.dart';
 import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/providers/user_profile_provider.dart';
@@ -24,7 +25,8 @@ import 'test_providers.dart';
 /// it is required. [PoolProvider], [AppProvider], [SystemStatsProvider],
 /// [JobsProvider] and [ConnectionStatusProvider] are only read by
 /// `ServerDetailScreen`, [FileProvider] only by `ServerFilesScreen`,
-/// [HealthProvider] only by `ServerHealthScreen`, [FleetStatusProvider] only
+/// [HealthProvider] only by `ServerHealthScreen`, [ServicesProvider] only by
+/// `ServicesScreen`, [FleetStatusProvider] only
 /// by `HomeScreen`, [DatasetProvider] only by `PoolDetailScreen` (which
 /// `ServerPoolsScreen` and `ServerDetailScreen` can push), and [TrayProvider]
 /// only by `SettingsScreen`; pass one in when a test pumps the screen that
@@ -54,6 +56,7 @@ Widget provideAppProviders({
   FleetStatusProvider? fleetStatusProvider,
   DatasetProvider? datasetProvider,
   UserProfileProvider? userProfileProvider,
+  ServicesProvider? servicesProvider,
 }) {
   return MultiProvider(
     providers: [
@@ -148,6 +151,16 @@ Widget provideAppProviders({
             )
           : ChangeNotifierProvider<UserProfileProvider>(
               create: (_) => UserProfileProvider(
+                clientManager: TestProviders.mockApiClientManager,
+                service,
+              ),
+            ),
+      servicesProvider != null
+          ? ChangeNotifierProvider<ServicesProvider>.value(
+              value: servicesProvider,
+            )
+          : ChangeNotifierProvider<ServicesProvider>(
+              create: (_) => ServicesProvider(
                 clientManager: TestProviders.mockApiClientManager,
                 service,
               ),

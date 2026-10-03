@@ -27,6 +27,7 @@ part 'truenas_api_client/connection.dart';
 part 'truenas_api_client/keepalive.dart';
 part 'truenas_api_client/session.dart';
 part 'truenas_api_client/health.dart';
+part 'truenas_api_client/services.dart';
 part 'truenas_api_client/pools.dart';
 part 'truenas_api_client/datasets.dart';
 part 'truenas_api_client/files.dart';
@@ -240,6 +241,7 @@ abstract class _ClientTransport = _ClientBase
 class TrueNasApiClient extends _ClientTransport
     with
         _HealthOps,
+        _ServicesOps,
         _PoolsOps,
         _DatasetsOps,
         _FilesOps,

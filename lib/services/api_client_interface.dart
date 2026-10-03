@@ -7,6 +7,7 @@ abstract interface class ApiClientInterface
     implements
         SessionApi,
         HealthApi,
+        ServicesApi,
         PoolsApi,
         DatasetsApi,
         FilesApi,

@@ -15,6 +15,7 @@ A Flutter application for managing TrueNAS servers from iOS and macOS devices.
 - **File Management**: Browse files on your TrueNAS servers
 - **App Management**: Browse installed apps, view live resource usage and edit app configuration
 - **Storage**: Inspect pools and datasets
+- **Service Management**: View TrueNAS services and start, stop or restart them
 - **macOS Menu Bar**: Quick access to servers from the system tray
 
 ## Architecture

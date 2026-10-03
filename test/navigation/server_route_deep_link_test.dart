@@ -139,6 +139,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('deep link to /server/:id/services renders the services screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(createTestApp('/server/${testServer.id}/services'));
+    await pumpUntilAsync(
+      tester,
+      () => find.text('Deep Link Server - Services').evaluate().isNotEmpty,
+    );
+
+    expect(find.text('Deep Link Server - Services'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a deleted server closes its detail route back to the list', (
     WidgetTester tester,
   ) async {

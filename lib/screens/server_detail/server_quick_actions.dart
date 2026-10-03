@@ -15,78 +15,100 @@ class ServerQuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Consumer<PoolProvider>(
-              builder: (context, poolProvider, child) {
-                final poolCount = poolProvider.pools.length;
-                return _QuickActionTile(
-                  icon: CupertinoIcons.square_stack_3d_down_right,
-                  title: 'Pools',
-                  subtitle: poolCount == 1 ? '1 pool' : '$poolCount pools',
-                  onTap: () =>
-                      context.push('/server/${server.id}/pools', extra: server),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _QuickActionTile(
-              icon: CupertinoIcons.folder,
-              title: 'Files',
-              subtitle: 'Browse',
-              onTap: () =>
-                  context.push('/server/${server.id}/files', extra: server),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Consumer<HealthProvider>(
-              builder: (context, healthProvider, child) {
-                final activeCount = healthProvider.activeAlerts.length;
-                return _QuickActionTile(
-                  icon: CupertinoIcons.heart,
-                  title: 'Health',
-                  subtitle: activeCount == 0
-                      ? 'All clear'
-                      : '$activeCount active',
-                  subtitleColor: activeCount == 0
-                      ? CupertinoColors.systemGreen
-                      : CupertinoColors.systemRed,
-                  showAlertDot: activeCount > 0,
+          _buildTileRow(context),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _QuickActionTile(
+                  icon: CupertinoIcons.gear,
+                  title: 'Services',
+                  subtitle: 'Start, stop and restart',
                   onTap: () => context.push(
-                    '/server/${server.id}/health',
+                    '/server/${server.id}/services',
                     extra: server,
                   ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Consumer<JobsProvider>(
-              builder: (context, jobsProvider, child) {
-                final runningCount = jobsProvider.runningCount;
-                return _QuickActionTile(
-                  icon: CupertinoIcons.bell,
-                  title: 'Jobs',
-                  subtitle: runningCount == 0
-                      ? 'None running'
-                      : '$runningCount running',
-                  subtitleColor: jobsProvider.needsAttention
-                      ? CupertinoColors.systemRed
-                      : null,
-                  showAlertDot: jobsProvider.needsAttention,
-                  onTap: () =>
-                      context.push('/server/${server.id}/jobs', extra: server),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTileRow(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Consumer<PoolProvider>(
+            builder: (context, poolProvider, child) {
+              final poolCount = poolProvider.pools.length;
+              return _QuickActionTile(
+                icon: CupertinoIcons.square_stack_3d_down_right,
+                title: 'Pools',
+                subtitle: poolCount == 1 ? '1 pool' : '$poolCount pools',
+                onTap: () =>
+                    context.push('/server/${server.id}/pools', extra: server),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickActionTile(
+            icon: CupertinoIcons.folder,
+            title: 'Files',
+            subtitle: 'Browse',
+            onTap: () =>
+                context.push('/server/${server.id}/files', extra: server),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Consumer<HealthProvider>(
+            builder: (context, healthProvider, child) {
+              final activeCount = healthProvider.activeAlerts.length;
+              return _QuickActionTile(
+                icon: CupertinoIcons.heart,
+                title: 'Health',
+                subtitle: activeCount == 0
+                    ? 'All clear'
+                    : '$activeCount active',
+                subtitleColor: activeCount == 0
+                    ? CupertinoColors.systemGreen
+                    : CupertinoColors.systemRed,
+                showAlertDot: activeCount > 0,
+                onTap: () =>
+                    context.push('/server/${server.id}/health', extra: server),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Consumer<JobsProvider>(
+            builder: (context, jobsProvider, child) {
+              final runningCount = jobsProvider.runningCount;
+              return _QuickActionTile(
+                icon: CupertinoIcons.bell,
+                title: 'Jobs',
+                subtitle: runningCount == 0
+                    ? 'None running'
+                    : '$runningCount running',
+                subtitleColor: jobsProvider.needsAttention
+                    ? CupertinoColors.systemRed
+                    : null,
+                showAlertDot: jobsProvider.needsAttention,
+                onTap: () =>
+                    context.push('/server/${server.id}/jobs', extra: server),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

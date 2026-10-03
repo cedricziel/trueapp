@@ -135,6 +135,26 @@ class FakeApiClient implements ApiClientInterface {
 
   List<Map<String, dynamic>> services = [];
 
+  /// Service control calls received, as `(action, serviceId)` pairs.
+  final List<(String, String)> serviceControlCalls = [];
+
+  @override
+  Future<void> startService(String serviceId) async =>
+      _controlService('startService', 'start', serviceId);
+
+  @override
+  Future<void> stopService(String serviceId) async =>
+      _controlService('stopService', 'stop', serviceId);
+
+  @override
+  Future<void> restartService(String serviceId) async =>
+      _controlService('restartService', 'restart', serviceId);
+
+  void _controlService(String method, String action, String serviceId) {
+    _recordAndMaybeThrow(method);
+    serviceControlCalls.add((action, serviceId));
+  }
+
   @override
   Future<ServerHealth> getServerHealth() async {
     _recordAndMaybeThrow('getServerHealth');
