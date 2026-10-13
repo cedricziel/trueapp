@@ -391,10 +391,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_otel
-      sha256: "9992a60e9377ebea23d9c8f4d3b9d9064173c758d7d3a409a846114c24190202"
+      sha256: dd6ea9a701c3168da811559fa8ba645769e7a4969b74d56adbe33abc3a66834d
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.5"
+    version: "0.1.7"
   flutter_slidable:
     dependency: "direct main"
     description:
