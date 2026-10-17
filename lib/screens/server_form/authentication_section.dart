@@ -5,7 +5,6 @@ class AuthenticationSection extends StatelessWidget {
   final TextEditingController usernameController;
   final TextEditingController passwordController;
   final String passwordPlaceholder;
-  final bool autocorrect;
   final VoidCallback onChanged;
 
   const AuthenticationSection({
@@ -14,7 +13,6 @@ class AuthenticationSection extends StatelessWidget {
     required this.passwordController,
     required this.onChanged,
     this.passwordPlaceholder = 'Password',
-    this.autocorrect = true,
   });
 
   @override
@@ -26,7 +24,7 @@ class AuthenticationSection extends StatelessWidget {
           controller: usernameController,
           placeholder: 'admin',
           prefix: const Text('Username'),
-          autocorrect: autocorrect,
+          autocorrect: false,
           keyboardType: TextInputType.text,
           autofillHints: const [AutofillHints.username],
           onChanged: (_) => onChanged(),
@@ -36,7 +34,7 @@ class AuthenticationSection extends StatelessWidget {
           placeholder: passwordPlaceholder,
           prefix: const Text('Password'),
           obscureText: true,
-          autocorrect: autocorrect,
+          autocorrect: false,
           autofillHints: const [AutofillHints.password],
           onChanged: (_) => onChanged(),
           onEditingComplete: () {
