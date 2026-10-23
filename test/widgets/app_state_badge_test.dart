@@ -16,7 +16,15 @@ void main() {
     return tester.widget<StatusPill>(find.byType(StatusPill));
   }
 
-  const expectations = {
+  void expectColor(WidgetTester tester, Color actual, Color expected) {
+    final context = tester.element(find.byType(StatusPill));
+    expect(
+      CupertinoDynamicColor.resolve(actual, context),
+      CupertinoDynamicColor.resolve(expected, context),
+    );
+  }
+
+  final expectations = {
     AppState.running: ('Running', CupertinoColors.systemGreen),
     AppState.deploying: ('Deploying', CupertinoColors.systemOrange),
     AppState.stopping: ('Stopping', CupertinoColors.systemOrange),
@@ -31,7 +39,7 @@ void main() {
       final pill = await pumpBadge(tester, buildTestApp(state: entry.key));
 
       expect(find.text(entry.value.$1), findsOneWidget);
-      expect(pill.color, entry.value.$2);
+      expectColor(tester, pill.color, entry.value.$2);
     });
   }
 
@@ -44,6 +52,6 @@ void main() {
 
     expect(find.text('Available'), findsOneWidget);
     expect(find.text('Running'), findsNothing);
-    expect(pill.color, CupertinoColors.systemBlue);
+    expectColor(tester, pill.color, CupertinoColors.systemBlue);
   });
 }

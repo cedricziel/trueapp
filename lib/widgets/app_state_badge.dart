@@ -11,42 +11,36 @@ class AppStateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!app.installed) {
-      return const StatusPill(
-        label: 'Available',
-        color: CupertinoColors.systemBlue,
-      );
-    }
+    final (label, color, icon) = _describe(context);
+    return StatusPill(label: label, color: color, icon: icon);
+  }
+
+  (String, Color, IconData?) _describe(BuildContext context) {
+    final grey = CupertinoColors.systemGrey.resolveFrom(context);
+    if (!app.installed) return ('Available', CupertinoColors.systemBlue, null);
     return switch (app.state) {
-      AppState.running => const StatusPill(
-        label: 'Running',
-        color: CupertinoColors.systemGreen,
-        icon: CupertinoIcons.checkmark_circle_fill,
+      AppState.running => (
+        'Running',
+        CupertinoColors.systemGreen,
+        CupertinoIcons.checkmark_circle_fill,
       ),
-      AppState.deploying => const StatusPill(
-        label: 'Deploying',
-        color: CupertinoColors.systemOrange,
-        icon: CupertinoIcons.arrow_2_circlepath,
+      AppState.deploying => (
+        'Deploying',
+        CupertinoColors.systemOrange,
+        CupertinoIcons.arrow_2_circlepath,
       ),
-      AppState.stopping => const StatusPill(
-        label: 'Stopping',
-        color: CupertinoColors.systemOrange,
-        icon: CupertinoIcons.arrow_2_circlepath,
+      AppState.stopping => (
+        'Stopping',
+        CupertinoColors.systemOrange,
+        CupertinoIcons.arrow_2_circlepath,
       ),
-      AppState.stopped => const StatusPill(
-        label: 'Stopped',
-        color: CupertinoColors.systemGrey,
-        icon: CupertinoIcons.stop_circle,
+      AppState.stopped => ('Stopped', grey, CupertinoIcons.stop_circle),
+      AppState.crashed => (
+        'Crashed',
+        CupertinoColors.systemRed,
+        CupertinoIcons.exclamationmark_triangle_fill,
       ),
-      AppState.crashed => const StatusPill(
-        label: 'Crashed',
-        color: CupertinoColors.systemRed,
-        icon: CupertinoIcons.exclamationmark_triangle_fill,
-      ),
-      AppState.unknown => const StatusPill(
-        label: 'Installed',
-        color: CupertinoColors.systemGrey,
-      ),
+      AppState.unknown => ('Installed', grey, null),
     };
   }
 }

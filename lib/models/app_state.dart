@@ -14,7 +14,7 @@ enum AppState {
 
   static AppState parse(String? value) {
     for (final state in values) {
-      if (state.apiValue != null && state.apiValue == value) return state;
+      if (state.apiValue == value) return state;
     }
     return unknown;
   }
