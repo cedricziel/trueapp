@@ -6,37 +6,11 @@ import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
+import '../helpers/fake_app_provider.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
-
-/// An [AppProvider] whose favorite state the test drives directly, instead
-/// of routing every tap through a real drift database write. `isAppFavorite`
-/// and `setAppFavorite` are plain overridable members, mirroring the
-/// `_FakeAppProvider` seam already used in
-/// `test/screens/server_detail_screen_test.dart`.
-class _FakeAppProvider extends AppProvider {
-  _FakeAppProvider({required super.daoSource, required super.serverService})
-    : super(clientManager: TestProviders.mockApiClientManager);
-
-  bool _favorite = false;
-  String? lastToggledAppName;
-  bool? lastToggledValue;
-  int toggleCallCount = 0;
-
-  @override
-  bool isAppFavorite(String appName) => _favorite;
-
-  @override
-  Future<void> setAppFavorite(String appName, bool isFavorite) async {
-    toggleCallCount++;
-    lastToggledAppName = appName;
-    lastToggledValue = isFavorite;
-    _favorite = isFavorite;
-    notifyListeners();
-  }
-}
 
 App _buildApp({
   String name = 'plex',
@@ -194,7 +168,7 @@ void main() {
   group('AppCardWidget - installed', () {
     late AppDatabase database;
     late UnifiedServerService unifiedServerService;
-    late _FakeAppProvider appProvider;
+    late FakeAppProvider appProvider;
 
     setUp(() async {
       await TestProviders.cleanupTestEnvironment();
@@ -203,7 +177,7 @@ void main() {
       unifiedServerService = await TestProviders.createMockUnifiedServerService(
         database: database,
       );
-      appProvider = _FakeAppProvider(
+      appProvider = FakeAppProvider(
         daoSource: database,
         serverService: unifiedServerService,
       );

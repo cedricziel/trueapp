@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
-import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/app_configuration_screen.dart';
 import 'package:truehub/screens/app_detail/app_sources_section.dart';
@@ -10,6 +9,7 @@ import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
+import '../helpers/fake_app_provider.dart';
 import '../helpers/fake_url_opener.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
@@ -17,55 +17,6 @@ import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
-
-/// An [AppProvider] whose config/favorite state a test drives directly,
-/// mirroring the `_FakeAppProvider` seam already used in
-/// `test/widgets/app_card_widget_test.dart` and
-/// `test/screens/server_detail_screen_test.dart` - `AppDetailScreen` only
-/// reads `AppProvider` from its overflow menu (`_showAppActions`), never in
-/// `build`, so a fake that answers `getAppConfig`/`isAppFavorite` directly
-/// avoids routing every test through a real drift database write.
-class _FakeAppProvider extends AppProvider {
-  _FakeAppProvider({
-    required super.daoSource,
-    required super.serverService,
-    AppConfig? config,
-    bool favorite = false,
-  }) : _config = config,
-       _favorite = favorite,
-       super(clientManager: TestProviders.mockApiClientManager);
-
-  final AppConfig? _config;
-  bool _favorite;
-  List<App> _apps = const [];
-
-  @override
-  List<App> get apps => _apps;
-
-  set apps(List<App> value) {
-    _apps = value;
-    notifyListeners();
-  }
-
-  int toggleCallCount = 0;
-  String? lastToggledAppName;
-  bool? lastToggledValue;
-
-  @override
-  AppConfig? getAppConfig(String appName) => _config;
-
-  @override
-  bool isAppFavorite(String appName) => _favorite;
-
-  @override
-  Future<void> setAppFavorite(String appName, bool isFavorite) async {
-    toggleCallCount++;
-    lastToggledAppName = appName;
-    lastToggledValue = isFavorite;
-    _favorite = isFavorite;
-    notifyListeners();
-  }
-}
 
 App _buildApp({
   String name = 'plex',
@@ -155,12 +106,12 @@ void main() {
 
   Widget wrap(
     App app, {
-    _FakeAppProvider? appProvider,
+    FakeAppProvider? appProvider,
     FakeUrlOpener? urlOpener,
   }) {
     final fakeAppProvider =
         appProvider ??
-        _FakeAppProvider(
+        FakeAppProvider(
           daoSource: database,
           serverService: unifiedServerService,
         );
@@ -234,7 +185,7 @@ void main() {
     testWidgets('follows the provider copy of the app when it changes', (
       WidgetTester tester,
     ) async {
-      final provider = _FakeAppProvider(
+      final provider = FakeAppProvider(
         daoSource: database,
         serverService: unifiedServerService,
       )..apps = [_buildApp(installed: true, state: AppState.running)];
@@ -645,7 +596,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             _buildApp(name: 'plex'),
-            appProvider: _FakeAppProvider(
+            appProvider: FakeAppProvider(
               daoSource: database,
               serverService: unifiedServerService,
               favorite: true,
@@ -660,7 +611,7 @@ void main() {
     testWidgets('tapping the favorite action toggles favorite state', (
       WidgetTester tester,
     ) async {
-      final fakeProvider = _FakeAppProvider(
+      final fakeProvider = FakeAppProvider(
         daoSource: database,
         serverService: unifiedServerService,
       );
@@ -801,7 +752,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           _buildApp(name: 'plex', installed: true),
-          appProvider: _FakeAppProvider(
+          appProvider: FakeAppProvider(
             daoSource: database,
             serverService: unifiedServerService,
             config: config,
@@ -822,7 +773,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             _buildApp(name: 'plex', installed: true),
-            appProvider: _FakeAppProvider(
+            appProvider: FakeAppProvider(
               daoSource: database,
               serverService: unifiedServerService,
               config: null,
