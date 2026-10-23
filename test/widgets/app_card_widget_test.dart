@@ -45,6 +45,7 @@ App _buildApp({
   bool installed = false,
   bool healthy = true,
   String? healthyError,
+  AppState state = AppState.unknown,
   String latestVersion = '1.0.0',
   String latestAppVersion = '1.0.0',
   String latestHumanVersion = '1.0.0',
@@ -75,6 +76,7 @@ App _buildApp({
     installed: installed,
     healthy: healthy,
     healthyError: healthyError,
+    state: state,
     latestVersion: latestVersion,
     latestAppVersion: latestAppVersion,
     latestHumanVersion: latestHumanVersion,
@@ -187,20 +189,6 @@ void main() {
         expect(find.byIcon(CupertinoIcons.tag), findsNothing);
       },
     );
-
-    testWidgets('tapping the card navigates to the app detail screen', (
-      WidgetTester tester,
-    ) async {
-      final app = _buildApp(title: 'Plex Media Server');
-
-      await tester.pumpWidget(wrapPlain(app));
-
-      await tester.tap(find.byType(AppCardWidget));
-      await settleRouteTransition(tester);
-
-      expect(find.byIcon(CupertinoIcons.back), findsOneWidget);
-      expect(find.byIcon(CupertinoIcons.ellipsis), findsOneWidget);
-    });
   });
 
   group('AppCardWidget - installed', () {
@@ -243,6 +231,20 @@ void main() {
       );
     }
 
+    testWidgets('tapping the card navigates to the app detail screen', (
+      WidgetTester tester,
+    ) async {
+      final app = _buildApp(title: 'Plex Media Server');
+
+      await tester.pumpWidget(wrapInstalled(app));
+
+      await tester.tap(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byIcon(CupertinoIcons.back), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.ellipsis), findsOneWidget);
+    });
+
     testWidgets('shows an Installed badge and an outlined favorite icon', (
       WidgetTester tester,
     ) async {
@@ -254,6 +256,17 @@ void main() {
       expect(find.text('Available'), findsNothing);
       expect(find.byIcon(CupertinoIcons.heart), findsOneWidget);
       expectNoLayoutOverflow(tester);
+    });
+
+    testWidgets('shows the running state instead of a generic badge', (
+      WidgetTester tester,
+    ) async {
+      final app = _buildApp(installed: true, state: AppState.stopped);
+
+      await tester.pumpWidget(wrapInstalled(app));
+
+      expect(find.text('Stopped'), findsOneWidget);
+      expect(find.text('Installed'), findsNothing);
     });
 
     testWidgets('uses the instance name (not the title) as display name', (

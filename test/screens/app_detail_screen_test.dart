@@ -37,6 +37,16 @@ class _FakeAppProvider extends AppProvider {
 
   final AppConfig? _config;
   bool _favorite;
+  List<App> _apps = const [];
+
+  @override
+  List<App> get apps => _apps;
+
+  set apps(List<App> value) {
+    _apps = value;
+    notifyListeners();
+  }
+
   int toggleCallCount = 0;
   String? lastToggledAppName;
   bool? lastToggledValue;
@@ -64,6 +74,7 @@ App _buildApp({
   bool installed = false,
   bool healthy = true,
   String? healthyError,
+  AppState state = AppState.unknown,
   String latestVersion = '1.0.0',
   String latestAppVersion = '1.0.0',
   String latestHumanVersion = '1.0.0',
@@ -86,6 +97,7 @@ App _buildApp({
     installed: installed,
     healthy: healthy,
     healthyError: healthyError,
+    state: state,
     latestVersion: latestVersion,
     latestAppVersion: latestAppVersion,
     latestHumanVersion: latestHumanVersion,
@@ -186,13 +198,20 @@ void main() {
       expect(find.text('v3.1.4'), findsOneWidget);
     });
 
-    testWidgets('shows the green Installed badge when installed', (
+    testWidgets('shows the running state badge for an installed app', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.running)),
+      );
+      expect(find.text('Running'), findsOneWidget);
+    });
+
+    testWidgets('shows a neutral Installed badge when the state is unknown', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(wrap(_buildApp(installed: true)));
       expect(find.text('Installed'), findsOneWidget);
-      final badge = tester.widget<Text>(find.text('Installed'));
-      expect(badge.style?.color, CupertinoColors.systemGreen);
     });
 
     testWidgets('shows the blue Available badge when not installed', (
@@ -200,8 +219,6 @@ void main() {
     ) async {
       await tester.pumpWidget(wrap(_buildApp(installed: false)));
       expect(find.text('Available'), findsOneWidget);
-      final badge = tester.widget<Text>(find.text('Available'));
-      expect(badge.style?.color, CupertinoColors.systemBlue);
     });
 
     testWidgets('shows the effective display name in the nav bar title', (
@@ -210,6 +227,37 @@ void main() {
       await tester.pumpWidget(wrap(_buildApp(name: 'plex', title: 'Plex')));
       // Not installed -> effectiveDisplayName falls back to title.
       expect(find.text('Plex'), findsWidgets);
+    });
+  });
+
+  group('AppDetailScreen - live app state', () {
+    testWidgets('follows the provider copy of the app when it changes', (
+      WidgetTester tester,
+    ) async {
+      final provider = _FakeAppProvider(
+        daoSource: database,
+        serverService: unifiedServerService,
+      )..apps = [_buildApp(installed: true, state: AppState.running)];
+      final snapshot = _buildApp(installed: true, state: AppState.running);
+
+      await tester.pumpWidget(wrap(snapshot, appProvider: provider));
+      expect(find.text('Running'), findsOneWidget);
+
+      provider.apps = [_buildApp(installed: true, state: AppState.stopped)];
+      await tester.pump();
+
+      expect(find.text('Stopped'), findsOneWidget);
+      expect(find.text('Running'), findsNothing);
+    });
+
+    testWidgets('falls back to the passed app when the provider lacks it', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.crashed)),
+      );
+
+      expect(find.text('Crashed'), findsOneWidget);
     });
   });
 

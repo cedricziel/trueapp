@@ -31,11 +31,19 @@ class AppDetailScreen extends StatefulWidget {
 class _AppDetailScreenState extends State<AppDetailScreen> {
   final _sourcesKey = GlobalKey();
 
+  App _resolveApp(AppProvider provider) {
+    for (final app in provider.apps) {
+      if (app.name == widget.app.name) return app;
+    }
+    return widget.app;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final app = _resolveApp(context.watch<AppProvider>());
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text(widget.app.effectiveDisplayName),
+        middle: Text(app.effectiveDisplayName),
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           child: const Icon(CupertinoIcons.back),
@@ -53,29 +61,29 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppDetailHeader(app: widget.app),
+              AppDetailHeader(app: app),
               const SizedBox(height: 24),
-              if (widget.app.screenshots.isNotEmpty) ...[
-                AppScreenshotsSection(screenshots: widget.app.screenshots),
+              if (app.screenshots.isNotEmpty) ...[
+                AppScreenshotsSection(screenshots: app.screenshots),
                 const SizedBox(height: 24),
               ],
-              AppDescriptionSection(app: widget.app),
+              AppDescriptionSection(app: app),
               const SizedBox(height: 24),
-              AppMetadataSection(app: widget.app),
+              AppMetadataSection(app: app),
               const SizedBox(height: 24),
-              if (widget.app.maintainers.isNotEmpty) ...[
-                AppMaintainersSection(maintainers: widget.app.maintainers),
+              if (app.maintainers.isNotEmpty) ...[
+                AppMaintainersSection(maintainers: app.maintainers),
                 const SizedBox(height: 24),
               ],
-              if (widget.app.sources.isNotEmpty) ...[
+              if (app.sources.isNotEmpty) ...[
                 AppSourcesSection(
                   key: _sourcesKey,
-                  sources: widget.app.sources,
+                  sources: app.sources,
                   urlOpener: widget.urlOpener,
                 ),
                 const SizedBox(height: 24),
               ],
-              AppDetailActions(app: widget.app, urlOpener: widget.urlOpener),
+              AppDetailActions(app: app, urlOpener: widget.urlOpener),
               const SizedBox(height: 32),
             ],
           ),
@@ -95,15 +103,16 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
 
   void _showAppActions() {
     final appProvider = context.read<AppProvider>();
-    final appConfig = appProvider.getAppConfig(widget.app.name);
+    final app = _resolveApp(appProvider);
+    final appConfig = appProvider.getAppConfig(app.name);
 
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
-        title: Text(widget.app.effectiveDisplayName),
+        title: Text(app.effectiveDisplayName),
         actions: [
           // Edit Configuration for installed apps
-          if (widget.app.installed)
+          if (app.installed)
             CupertinoActionSheetAction(
               child: const Text('Edit Configuration'),
               onPressed: () {
@@ -114,7 +123,7 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
           // Toggle Favorite
           CupertinoActionSheetAction(
             child: Text(
-              appProvider.isAppFavorite(widget.app.name)
+              appProvider.isAppFavorite(app.name)
                   ? 'Remove from Favorites'
                   : 'Add to Favorites',
             ),
@@ -123,19 +132,15 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
               _toggleFavorite(appProvider);
             },
           ),
-          if (widget.app.home != null && widget.app.home!.isNotEmpty)
+          if (app.home != null && app.home!.isNotEmpty)
             CupertinoActionSheetAction(
               child: const Text('View Homepage'),
               onPressed: () {
                 Navigator.pop(context);
-                openLinkOrAlert(
-                  this.context,
-                  widget.urlOpener,
-                  widget.app.home!,
-                );
+                openLinkOrAlert(this.context, widget.urlOpener, app.home!);
               },
             ),
-          if (widget.app.sources.isNotEmpty)
+          if (app.sources.isNotEmpty)
             CupertinoActionSheetAction(
               child: const Text('View Sources'),
               onPressed: () {
