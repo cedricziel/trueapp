@@ -2,37 +2,35 @@ import 'package:truehub/models/app.dart';
 import 'package:truehub/providers/app_provider.dart';
 
 enum AppLifecycleAction {
-  start(label: 'Start', progressLabel: 'Starting', verb: 'start'),
+  start(label: 'Start', progressLabel: 'Starting'),
   stop(
     label: 'Stop',
     progressLabel: 'Stopping',
-    verb: 'stop',
     isDestructive: true,
     needsConfirmation: true,
   ),
   restart(
     label: 'Restart',
     progressLabel: 'Restarting',
-    verb: 'restart',
     needsConfirmation: true,
   ),
-  upgrade(label: 'Upgrade', progressLabel: 'Upgrading', verb: 'upgrade');
+  upgrade(label: 'Upgrade', progressLabel: 'Upgrading');
 
   const AppLifecycleAction({
     required this.label,
     required this.progressLabel,
-    required this.verb,
     this.isDestructive = false,
     this.needsConfirmation = false,
   });
 
   final String label;
   final String progressLabel;
-  final String verb;
   final bool isDestructive;
 
   /// Upgrade has its own confirmation flow, so it leaves this false.
   final bool needsConfirmation;
+
+  String get verb => label.toLowerCase();
 
   /// The actions that make sense for [app] right now, in menu order.
   static List<AppLifecycleAction> availableFor(App app) => [
