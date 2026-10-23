@@ -337,6 +337,7 @@ void main() {
         expect(config.title, equals('Plex'));
         expect(config.installed, isTrue);
         expect(config.healthy, isTrue);
+        expect(config.state, AppState.unknown);
         expect(config.version, equals('1.0.0'));
         expect(config.categories, equals(['media']));
         expect(config.recommended, isTrue);
@@ -393,6 +394,7 @@ void main() {
         installed: baseApp.installed,
         healthy: false,
         healthyError: 'crashed',
+        state: AppState.crashed,
         latestVersion: '2.0.0',
         latestAppVersion: '2.0.0',
         latestHumanVersion: '2.0.0',
@@ -417,6 +419,7 @@ void main() {
       expect(updated.title, equals('Plex Updated'));
       expect(updated.healthy, isFalse);
       expect(updated.healthyError, equals('crashed'));
+      expect(updated.state, AppState.crashed);
       expect(updated.version, equals('2.0.0'));
     });
 

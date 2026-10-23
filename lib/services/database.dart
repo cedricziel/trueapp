@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase implements DaoSource {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => buildMigrationStrategy(this);

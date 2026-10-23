@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:truehub/models/app.dart' show AppState;
 import 'package:truehub/models/app_config.dart' as app_models;
 import 'package:truehub/services/database.dart';
 
@@ -166,6 +167,7 @@ class AppConfigsDao extends DatabaseAccessor<AppDatabase>
       installed: data.installed,
       healthy: data.healthy,
       healthyError: data.healthyError,
+      state: data.state == null ? null : AppState.parse(data.state),
       version: data.version,
       appVersion: data.appVersion,
       humanVersion: data.humanVersion,
@@ -211,6 +213,7 @@ class AppConfigsDao extends DatabaseAccessor<AppDatabase>
       installed: Value(config.installed),
       healthy: Value(config.healthy),
       healthyError: Value(config.healthyError),
+      state: Value(config.state?.apiValue),
       version: Value(config.version),
       appVersion: Value(config.appVersion),
       humanVersion: Value(config.humanVersion),

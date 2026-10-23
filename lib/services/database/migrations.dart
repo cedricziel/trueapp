@@ -70,6 +70,9 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
         // Password remains in keychain only
         await _addColumnIfMissing(m, nasServers, nasServers.username);
       }
+      if (from < 11) {
+        await _addColumnIfMissing(m, appConfigs, appConfigs.state);
+      }
     },
     beforeOpen: (details) async {
       // SQLite ignores declared foreign keys (including onDelete: cascade)

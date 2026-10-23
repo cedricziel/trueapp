@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/widgets/app_icon.dart';
+import 'package:truehub/widgets/app_state_badge.dart';
 
 class AppDetailHeader extends StatelessWidget {
   final App app;
@@ -35,28 +36,7 @@ class AppDetailHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: app.installed
-                      ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
-                      : CupertinoColors.systemBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  app.installed ? 'Installed' : 'Available',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: app.installed
-                        ? CupertinoColors.systemGreen
-                        : CupertinoColors.systemBlue,
-                  ),
-                ),
-              ),
+              AppStateBadge(app: app),
             ],
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/widgets/app_icon.dart';
+import 'package:truehub/widgets/app_state_badge.dart';
 import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/widgets/app_card/app_health_error.dart';
 import 'package:truehub/widgets/app_card/app_ports_panel.dart';
@@ -69,7 +70,7 @@ class AppCardWidget extends StatelessWidget {
                   _FavoriteToggle(appName: app.name),
                   const SizedBox(width: 8),
                 ],
-                _StatusBadge(installed: app.installed),
+                AppStateBadge(app: app),
               ],
             ),
             if (app.categories.isNotEmpty ||
@@ -126,35 +127,6 @@ class _FavoriteToggle extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final bool installed;
-
-  const _StatusBadge({required this.installed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: installed
-            ? CupertinoColors.systemGreen.withValues(alpha: 0.1)
-            : CupertinoColors.systemBlue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        installed ? 'Installed' : 'Available',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: installed
-              ? CupertinoColors.systemGreen
-              : CupertinoColors.systemBlue,
-        ),
-      ),
     );
   }
 }

@@ -3,6 +3,7 @@
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/app.dart' show AppState;
 import 'package:truehub/models/app_config.dart' as app_models;
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/services/database.dart';
@@ -489,6 +490,44 @@ void main() {
         expect(mapped.sources, isNull);
       },
     );
+
+    test('state survives a write and read through the DAO', () async {
+      final database = createTestDatabase();
+      final serverId = await _seedServer(database);
+      final config = app_models.AppConfig(
+        serverId: serverId,
+        appName: 'plex',
+        state: AppState.crashed,
+      );
+
+      expect(
+        database.appConfigsDao.appConfigToCompanion(config).state.value,
+        'CRASHED',
+      );
+      await database.appConfigsDao.insertAppConfig(
+        database.appConfigsDao.appConfigToCompanion(config),
+      );
+      final row = (await database.appConfigsDao.getAppConfigs(serverId)).single;
+
+      expect(
+        database.appConfigsDao.mapToAppConfig(row, const []).state,
+        AppState.crashed,
+      );
+    });
+
+    test('mapToAppConfig leaves state null for rows without one', () async {
+      final database = createTestDatabase();
+      final serverId = await _seedServer(database);
+      await database.appConfigsDao.insertAppConfig(
+        AppConfigsCompanion.insert(serverId: serverId, appName: 'plex'),
+      );
+      final row = (await database.appConfigsDao.getAppConfigs(serverId)).single;
+
+      expect(
+        database.appConfigsDao.mapToAppConfig(row, const []).state,
+        isNull,
+      );
+    });
 
     test('mapToAppPortConfig / appPortConfigToCompanion round trip', () {
       final database = createTestDatabase();

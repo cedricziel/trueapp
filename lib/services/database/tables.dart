@@ -41,6 +41,7 @@ class AppConfigs extends Table {
   BoolColumn get installed => boolean().nullable()();
   BoolColumn get healthy => boolean().nullable()();
   TextColumn get healthyError => text().nullable()();
+  TextColumn get state => text().nullable()();
   TextColumn get version => text().nullable()();
   TextColumn get appVersion => text().nullable()();
   TextColumn get humanVersion => text().nullable()();
