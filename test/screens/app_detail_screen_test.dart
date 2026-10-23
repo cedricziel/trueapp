@@ -574,6 +574,59 @@ void main() {
       );
     });
 
+    testWidgets('lists lifecycle actions above Edit Configuration', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.running)),
+      );
+      await _openActionSheet(tester);
+
+      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Stop')).dy,
+        lessThan(tester.getTopLeft(find.text('Edit Configuration')).dy),
+      );
+    });
+
+    testWidgets('offers no lifecycle actions for an uninstalled app', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: false, state: AppState.running)),
+      );
+      await _openActionSheet(tester);
+
+      expect(find.text('Stop'), findsNothing);
+      expect(find.text('Start'), findsNothing);
+    });
+
+    testWidgets('stopping from the sheet confirms, calls the provider and '
+        'shows the new state', (WidgetTester tester) async {
+      final provider = FakeAppProvider(
+        daoSource: database,
+        serverService: unifiedServerService,
+      )..apps = [_buildApp(installed: true, state: AppState.running)];
+      await tester.pumpWidget(
+        wrap(
+          _buildApp(installed: true, state: AppState.running),
+          appProvider: provider,
+        ),
+      );
+      await _openActionSheet(tester);
+
+      await tester.tap(find.text('Stop'));
+      await settleRouteTransition(tester);
+      await tester.tap(find.text('Stop'));
+      await settleRouteTransition(tester);
+      expect(provider.calls, ['stop:plex']);
+
+      provider.apps = [_buildApp(installed: true, state: AppState.stopped)];
+      await tester.pump();
+      expect(find.text('Stopped'), findsOneWidget);
+    });
+
     testWidgets('does not show Edit Configuration for an uninstalled app', (
       WidgetTester tester,
     ) async {

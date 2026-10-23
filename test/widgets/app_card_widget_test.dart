@@ -205,6 +205,60 @@ void main() {
       );
     }
 
+    testWidgets('long-pressing a running app shows its lifecycle actions', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: true, state: AppState.running)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Start'), findsNothing);
+    });
+
+    testWidgets('a lifecycle action from the long-press sheet reaches the '
+        'provider', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: true, state: AppState.stopped)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+      await tester.tap(find.text('Start'));
+      await settleRouteTransition(tester);
+
+      expect(appProvider.calls, ['start:plex']);
+    });
+
+    testWidgets('long-pressing a catalog app opens nothing', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: false, state: AppState.running)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+    });
+
+    testWidgets('long-pressing an app without a known state opens nothing', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(wrapInstalled(_buildApp(installed: true)));
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+    });
+
     testWidgets('tapping the card navigates to the app detail screen', (
       WidgetTester tester,
     ) async {
