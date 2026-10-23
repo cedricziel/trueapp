@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/widgets/app_icon.dart';
+import 'package:truehub/widgets/app_lifecycle/app_lifecycle_sheet.dart';
 import 'package:truehub/widgets/app_state_badge.dart';
 import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/widgets/app_card/app_health_error.dart';
@@ -24,6 +25,9 @@ class AppCardWidget extends StatelessWidget {
           CupertinoPageRoute(builder: (context) => AppDetailScreen(app: app)),
         );
       },
+      onLongPress: app.installed
+          ? () => showAppLifecycleSheet(context, app)
+          : null,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
