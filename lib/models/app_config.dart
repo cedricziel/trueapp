@@ -86,6 +86,7 @@ class AppConfig extends Equatable {
   final bool? installed;
   final bool? healthy;
   final String? healthyError;
+  final AppState? state;
   final String? version;
   final String? appVersion;
   final String? humanVersion;
@@ -121,6 +122,7 @@ class AppConfig extends Equatable {
     this.installed,
     this.healthy,
     this.healthyError,
+    this.state,
     this.version,
     this.appVersion,
     this.humanVersion,
@@ -203,6 +205,7 @@ class AppConfig extends Equatable {
       installed: app.installed,
       healthy: app.healthy,
       healthyError: app.healthyError,
+      state: app.state,
       version: app.latestVersion,
       appVersion: app.latestAppVersion,
       humanVersion: app.latestHumanVersion,
@@ -237,6 +240,7 @@ class AppConfig extends Equatable {
       installed: app.installed,
       healthy: app.healthy,
       healthyError: app.healthyError,
+      state: app.state,
       version: app.latestVersion,
       appVersion: app.latestAppVersion,
       humanVersion: app.latestHumanVersion,
@@ -281,6 +285,7 @@ class AppConfig extends Equatable {
     bool? installed,
     bool? healthy,
     String? healthyError,
+    AppState? state,
     String? version,
     String? appVersion,
     String? humanVersion,
@@ -314,6 +319,7 @@ class AppConfig extends Equatable {
       installed: installed ?? this.installed,
       healthy: healthy ?? this.healthy,
       healthyError: healthyError ?? this.healthyError,
+      state: state ?? this.state,
       version: version ?? this.version,
       appVersion: appVersion ?? this.appVersion,
       humanVersion: humanVersion ?? this.humanVersion,
@@ -350,6 +356,7 @@ class AppConfig extends Equatable {
     installed,
     healthy,
     healthyError,
+    state,
     version,
     appVersion,
     humanVersion,

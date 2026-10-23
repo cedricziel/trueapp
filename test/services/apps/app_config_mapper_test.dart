@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/app.dart';
+import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/apps/app_config_mapper.dart';
 
@@ -11,6 +13,27 @@ NasServer _server({bool useHttps = true}) => NasServer.create(
 );
 
 void main() {
+  test('toApp carries the persisted state, defaulting to unknown', () {
+    const mapper = AppConfigMapper(null);
+
+    expect(
+      mapper
+          .toApp(
+            const AppConfig(
+              serverId: 's',
+              appName: 'plex',
+              state: AppState.stopped,
+            ),
+          )
+          .state,
+      AppState.stopped,
+    );
+    expect(
+      mapper.toApp(const AppConfig(serverId: 's', appName: 'plex')).state,
+      AppState.unknown,
+    );
+  });
+
   test('leaves URLs untouched without a server', () {
     expect(
       const AppConfigMapper(null).interpolateUrl('tcp://localhost:80'),

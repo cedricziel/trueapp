@@ -78,7 +78,7 @@ void main() {
       final database = openAsSchemaVersion4();
       addTearDown(database.close);
 
-      expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 11);
 
       // The v2/v3-era server row survives, and the v10 `username` column
       // added by `if (from < 10)` is readable with its default value.
@@ -105,11 +105,9 @@ void main() {
       expect(ports.single.apiUrl, isNull);
     });
 
-    test(
-      'upgrading from schema version 9 only adds the username column',
-      () async {
-        final raw = sqlite3.sqlite3.openInMemory();
-        raw.execute('''
+    test('upgrading from schema version 9 adds the username column', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      raw.execute('''
         CREATE TABLE nas_servers (
           id TEXT NOT NULL PRIMARY KEY,
           name TEXT NOT NULL,
@@ -124,19 +122,76 @@ void main() {
           is_default INTEGER NOT NULL DEFAULT 0
         );
       ''');
-        raw.execute('PRAGMA user_version = 9;');
-        raw.execute('''
+      // The v11 step adds a column to app_configs, so the table must exist.
+      raw.execute('CREATE TABLE app_configs (id INTEGER PRIMARY KEY);');
+      raw.execute('PRAGMA user_version = 9;');
+      raw.execute('''
         INSERT INTO nas_servers (id, name, host) VALUES ('s1', 'S', 'h.example.com')
       ''');
 
-        final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
-        addTearDown(database.close);
+      final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
+      addTearDown(database.close);
 
-        final server = await database.serversDao.getServer('s1');
-        expect(server, isNotNull);
-        expect(server!.username, '');
-      },
-    );
+      final server = await database.serversDao.getServer('s1');
+      expect(server, isNotNull);
+      expect(server!.username, '');
+    });
+
+    test('upgrading from schema version 10 adds the app state column and '
+        'keeps existing rows', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      raw.execute('''
+        CREATE TABLE nas_servers (
+          id TEXT NOT NULL PRIMARY KEY,
+          name TEXT NOT NULL,
+          host TEXT NOT NULL,
+          username TEXT NOT NULL DEFAULT '',
+          local_url TEXT,
+          trusted_wifi_ssids TEXT NOT NULL DEFAULT '[]',
+          port INTEGER,
+          use_https INTEGER NOT NULL DEFAULT 1,
+          allow_untrusted_certificates INTEGER NOT NULL DEFAULT 0,
+          last_connected INTEGER,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          is_default INTEGER NOT NULL DEFAULT 0
+        );
+      ''');
+      raw.execute('''
+        CREATE TABLE app_configs (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          server_id TEXT NOT NULL REFERENCES nas_servers (id) ON DELETE CASCADE,
+          app_name TEXT NOT NULL,
+          display_name TEXT,
+          icon_url TEXT,
+          is_enabled INTEGER NOT NULL DEFAULT 1,
+          is_favorite INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', CURRENT_TIMESTAMP) AS INTEGER)),
+          updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', CURRENT_TIMESTAMP) AS INTEGER)),
+          title TEXT, description TEXT, installed INTEGER, healthy INTEGER,
+          healthy_error TEXT, version TEXT, app_version TEXT,
+          human_version TEXT, categories TEXT, home TEXT, tags TEXT,
+          recommended INTEGER, catalog TEXT, train TEXT,
+          last_api_update INTEGER, screenshots TEXT, sources TEXT,
+          app_readme TEXT, maintainers_json TEXT, upgrade_info_json TEXT,
+          used_ports_json TEXT
+        );
+      ''');
+      raw.execute(
+        "INSERT INTO nas_servers (id, name, host) VALUES ('s1', 'S', 'h')",
+      );
+      raw.execute(
+        "INSERT INTO app_configs (server_id, app_name, title) VALUES ('s1', 'plex', 'Plex')",
+      );
+      raw.execute('PRAGMA user_version = 10;');
+
+      final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
+      addTearDown(database.close);
+
+      final config = await database.appConfigsDao.getAppConfig('s1', 'plex');
+      expect(config, isNotNull);
+      expect(config!.title, 'Plex');
+      expect(config.state, isNull);
+    });
 
     test('upgrading from schema version 1 runs every migration step cleanly '
         'and preserves the existing row', () async {
@@ -178,7 +233,7 @@ void main() {
       final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
       addTearDown(database.close);
 
-      expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 11);
 
       final server = await database.serversDao.getServer('s1');
       expect(server, isNotNull);
@@ -218,7 +273,7 @@ void main() {
       // the assumption the TableMigration above it must have already
       // added it), every subsequent read would fail with "no such
       // column: username" - unrecoverably, since the app would never
-      // run this migration again once schema_version reads 10.
+      // run this migration again once schema_version reads 11.
       //
       // Reproduces the "TableMigration failed" half of that chain by
       // pre-creating the temp table drift's TableMigration internally
@@ -250,7 +305,7 @@ void main() {
       final database = AppDatabase.forTesting(NativeDatabase.opened(raw));
       addTearDown(database.close);
 
-      expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 11);
 
       final server = await database.serversDao.getServer('s1');
       expect(server, isNotNull);

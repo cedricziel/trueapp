@@ -910,6 +910,15 @@ class $AppConfigsTable extends AppConfigs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _versionMeta = const VerificationMeta(
     'version',
   );
@@ -1100,6 +1109,7 @@ class $AppConfigsTable extends AppConfigs
     installed,
     healthy,
     healthyError,
+    state,
     version,
     appVersion,
     humanVersion,
@@ -1221,6 +1231,12 @@ class $AppConfigsTable extends AppConfigs
           data['healthy_error']!,
           _healthyErrorMeta,
         ),
+      );
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
       );
     }
     if (data.containsKey('version')) {
@@ -1405,6 +1421,10 @@ class $AppConfigsTable extends AppConfigs
         DriftSqlType.string,
         data['${effectivePrefix}healthy_error'],
       ),
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      ),
       version: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}version'],
@@ -1493,6 +1513,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
   final bool? installed;
   final bool? healthy;
   final String? healthyError;
+  final String? state;
   final String? version;
   final String? appVersion;
   final String? humanVersion;
@@ -1524,6 +1545,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     this.installed,
     this.healthy,
     this.healthyError,
+    this.state,
     this.version,
     this.appVersion,
     this.humanVersion,
@@ -1571,6 +1593,9 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     }
     if (!nullToAbsent || healthyError != null) {
       map['healthy_error'] = Variable<String>(healthyError);
+    }
+    if (!nullToAbsent || state != null) {
+      map['state'] = Variable<String>(state);
     }
     if (!nullToAbsent || version != null) {
       map['version'] = Variable<String>(version);
@@ -1653,6 +1678,9 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       healthyError: healthyError == null && nullToAbsent
           ? const Value.absent()
           : Value(healthyError),
+      state: state == null && nullToAbsent
+          ? const Value.absent()
+          : Value(state),
       version: version == null && nullToAbsent
           ? const Value.absent()
           : Value(version),
@@ -1720,6 +1748,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       installed: serializer.fromJson<bool?>(json['installed']),
       healthy: serializer.fromJson<bool?>(json['healthy']),
       healthyError: serializer.fromJson<String?>(json['healthyError']),
+      state: serializer.fromJson<String?>(json['state']),
       version: serializer.fromJson<String?>(json['version']),
       appVersion: serializer.fromJson<String?>(json['appVersion']),
       humanVersion: serializer.fromJson<String?>(json['humanVersion']),
@@ -1756,6 +1785,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       'installed': serializer.toJson<bool?>(installed),
       'healthy': serializer.toJson<bool?>(healthy),
       'healthyError': serializer.toJson<String?>(healthyError),
+      'state': serializer.toJson<String?>(state),
       'version': serializer.toJson<String?>(version),
       'appVersion': serializer.toJson<String?>(appVersion),
       'humanVersion': serializer.toJson<String?>(humanVersion),
@@ -1790,6 +1820,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     Value<bool?> installed = const Value.absent(),
     Value<bool?> healthy = const Value.absent(),
     Value<String?> healthyError = const Value.absent(),
+    Value<String?> state = const Value.absent(),
     Value<String?> version = const Value.absent(),
     Value<String?> appVersion = const Value.absent(),
     Value<String?> humanVersion = const Value.absent(),
@@ -1821,6 +1852,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     installed: installed.present ? installed.value : this.installed,
     healthy: healthy.present ? healthy.value : this.healthy,
     healthyError: healthyError.present ? healthyError.value : this.healthyError,
+    state: state.present ? state.value : this.state,
     version: version.present ? version.value : this.version,
     appVersion: appVersion.present ? appVersion.value : this.appVersion,
     humanVersion: humanVersion.present ? humanVersion.value : this.humanVersion,
@@ -1870,6 +1902,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
       healthyError: data.healthyError.present
           ? data.healthyError.value
           : this.healthyError,
+      state: data.state.present ? data.state.value : this.state,
       version: data.version.present ? data.version.value : this.version,
       appVersion: data.appVersion.present
           ? data.appVersion.value
@@ -1924,6 +1957,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           ..write('installed: $installed, ')
           ..write('healthy: $healthy, ')
           ..write('healthyError: $healthyError, ')
+          ..write('state: $state, ')
           ..write('version: $version, ')
           ..write('appVersion: $appVersion, ')
           ..write('humanVersion: $humanVersion, ')
@@ -1960,6 +1994,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
     installed,
     healthy,
     healthyError,
+    state,
     version,
     appVersion,
     humanVersion,
@@ -1995,6 +2030,7 @@ class AppConfigData extends DataClass implements Insertable<AppConfigData> {
           other.installed == this.installed &&
           other.healthy == this.healthy &&
           other.healthyError == this.healthyError &&
+          other.state == this.state &&
           other.version == this.version &&
           other.appVersion == this.appVersion &&
           other.humanVersion == this.humanVersion &&
@@ -2028,6 +2064,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
   final Value<bool?> installed;
   final Value<bool?> healthy;
   final Value<String?> healthyError;
+  final Value<String?> state;
   final Value<String?> version;
   final Value<String?> appVersion;
   final Value<String?> humanVersion;
@@ -2059,6 +2096,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.installed = const Value.absent(),
     this.healthy = const Value.absent(),
     this.healthyError = const Value.absent(),
+    this.state = const Value.absent(),
     this.version = const Value.absent(),
     this.appVersion = const Value.absent(),
     this.humanVersion = const Value.absent(),
@@ -2091,6 +2129,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     this.installed = const Value.absent(),
     this.healthy = const Value.absent(),
     this.healthyError = const Value.absent(),
+    this.state = const Value.absent(),
     this.version = const Value.absent(),
     this.appVersion = const Value.absent(),
     this.humanVersion = const Value.absent(),
@@ -2124,6 +2163,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Expression<bool>? installed,
     Expression<bool>? healthy,
     Expression<String>? healthyError,
+    Expression<String>? state,
     Expression<String>? version,
     Expression<String>? appVersion,
     Expression<String>? humanVersion,
@@ -2156,6 +2196,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       if (installed != null) 'installed': installed,
       if (healthy != null) 'healthy': healthy,
       if (healthyError != null) 'healthy_error': healthyError,
+      if (state != null) 'state': state,
       if (version != null) 'version': version,
       if (appVersion != null) 'app_version': appVersion,
       if (humanVersion != null) 'human_version': humanVersion,
@@ -2190,6 +2231,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     Value<bool?>? installed,
     Value<bool?>? healthy,
     Value<String?>? healthyError,
+    Value<String?>? state,
     Value<String?>? version,
     Value<String?>? appVersion,
     Value<String?>? humanVersion,
@@ -2222,6 +2264,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
       installed: installed ?? this.installed,
       healthy: healthy ?? this.healthy,
       healthyError: healthyError ?? this.healthyError,
+      state: state ?? this.state,
       version: version ?? this.version,
       appVersion: appVersion ?? this.appVersion,
       humanVersion: humanVersion ?? this.humanVersion,
@@ -2285,6 +2328,9 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
     }
     if (healthyError.present) {
       map['healthy_error'] = Variable<String>(healthyError.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
     }
     if (version.present) {
       map['version'] = Variable<String>(version.value);
@@ -2354,6 +2400,7 @@ class AppConfigsCompanion extends UpdateCompanion<AppConfigData> {
           ..write('installed: $installed, ')
           ..write('healthy: $healthy, ')
           ..write('healthyError: $healthyError, ')
+          ..write('state: $state, ')
           ..write('version: $version, ')
           ..write('appVersion: $appVersion, ')
           ..write('humanVersion: $humanVersion, ')
@@ -3526,6 +3573,7 @@ typedef $$AppConfigsTableCreateCompanionBuilder =
       Value<bool?> installed,
       Value<bool?> healthy,
       Value<String?> healthyError,
+      Value<String?> state,
       Value<String?> version,
       Value<String?> appVersion,
       Value<String?> humanVersion,
@@ -3559,6 +3607,7 @@ typedef $$AppConfigsTableUpdateCompanionBuilder =
       Value<bool?> installed,
       Value<bool?> healthy,
       Value<String?> healthyError,
+      Value<String?> state,
       Value<String?> version,
       Value<String?> appVersion,
       Value<String?> humanVersion,
@@ -3688,6 +3737,11 @@ class $$AppConfigsTableFilterComposer
 
   ColumnFilters<String> get healthyError => $composableBuilder(
     column: $table.healthyError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3894,6 +3948,11 @@ class $$AppConfigsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get version => $composableBuilder(
     column: $table.version,
     builder: (column) => ColumnOrderings(column),
@@ -4054,6 +4113,9 @@ class $$AppConfigsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
   GeneratedColumn<String> get version =>
       $composableBuilder(column: $table.version, builder: (column) => column);
 
@@ -4211,6 +4273,7 @@ class $$AppConfigsTableTableManager
                 Value<bool?> installed = const Value.absent(),
                 Value<bool?> healthy = const Value.absent(),
                 Value<String?> healthyError = const Value.absent(),
+                Value<String?> state = const Value.absent(),
                 Value<String?> version = const Value.absent(),
                 Value<String?> appVersion = const Value.absent(),
                 Value<String?> humanVersion = const Value.absent(),
@@ -4242,6 +4305,7 @@ class $$AppConfigsTableTableManager
                 installed: installed,
                 healthy: healthy,
                 healthyError: healthyError,
+                state: state,
                 version: version,
                 appVersion: appVersion,
                 humanVersion: humanVersion,
@@ -4275,6 +4339,7 @@ class $$AppConfigsTableTableManager
                 Value<bool?> installed = const Value.absent(),
                 Value<bool?> healthy = const Value.absent(),
                 Value<String?> healthyError = const Value.absent(),
+                Value<String?> state = const Value.absent(),
                 Value<String?> version = const Value.absent(),
                 Value<String?> appVersion = const Value.absent(),
                 Value<String?> humanVersion = const Value.absent(),
@@ -4306,6 +4371,7 @@ class $$AppConfigsTableTableManager
                 installed: installed,
                 healthy: healthy,
                 healthyError: healthyError,
+                state: state,
                 version: version,
                 appVersion: appVersion,
                 humanVersion: humanVersion,
