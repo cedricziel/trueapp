@@ -1,5 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+import 'app_state.dart';
+
+export 'app_state.dart';
+
 /// TrueNAS has returned datetime fields (`App.last_update`,
 /// `AppResourceUsage.last_updated`, ...) in more than one shape across SCALE
 /// versions: MongoDB-style extended JSON (`{"$date": <epoch ms>}`), a raw
@@ -220,6 +224,7 @@ class App extends Equatable {
   final bool installed;
   final bool healthy;
   final String? healthyError;
+  final AppState state;
   final String latestVersion;
   final String latestAppVersion;
   final String latestHumanVersion;
@@ -250,6 +255,7 @@ class App extends Equatable {
     required this.installed,
     required this.healthy,
     this.healthyError,
+    this.state = AppState.unknown,
     required this.latestVersion,
     required this.latestAppVersion,
     required this.latestHumanVersion,
@@ -285,6 +291,10 @@ class App extends Equatable {
     return title;
   }
 
+  bool get canStart => installed && state.canStart;
+  bool get canStop => installed && state.canStop;
+  bool get canRestart => installed && state.canRestart;
+
   String? get effectiveIconUrl => customIconUrl ?? iconUrl;
   String? get primaryUrl {
     if (primaryCustomUrl != null) return primaryCustomUrl;
@@ -300,6 +310,7 @@ class App extends Equatable {
       installed: json['installed'] as bool? ?? false,
       healthy: json['healthy'] as bool? ?? true,
       healthyError: json['healthy_error'] as String?,
+      state: AppState.parse(json['state'] as String?),
       latestVersion: json['latest_version'] as String? ?? '',
       latestAppVersion: json['latest_app_version'] as String? ?? '',
       latestHumanVersion: json['latest_human_version'] as String? ?? '',
@@ -367,6 +378,7 @@ class App extends Equatable {
       'installed': installed,
       'healthy': healthy,
       'healthy_error': healthyError,
+      'state': state.apiValue,
       'latest_version': latestVersion,
       'latest_app_version': latestAppVersion,
       'latest_human_version': latestHumanVersion,
@@ -402,6 +414,7 @@ class App extends Equatable {
     installed,
     healthy,
     healthyError,
+    state,
     latestVersion,
     latestAppVersion,
     latestHumanVersion,

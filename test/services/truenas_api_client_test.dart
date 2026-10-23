@@ -544,6 +544,7 @@ void main() {
       expect(plex.title, 'Plex Media Server');
       expect(plex.healthy, isTrue);
       expect(plex.healthyError, isNull);
+      expect(plex.state, AppState.running);
       expect(plex.upgradeInfo?.upgradeAvailable, isTrue);
       expect(plex.upgradeInfo?.canUpgrade, isTrue);
       expect(plex.resourceUsage?.memoryLimit, 512);
@@ -556,6 +557,7 @@ void main() {
       final minimal = apps.firstWhere((a) => a.name == 'minimal-app');
       expect(minimal.healthy, isFalse);
       expect(minimal.healthyError, 'App is stopped');
+      expect(minimal.state, AppState.stopped);
       expect(minimal.resourceUsage, isNull);
       expect(minimal.title, 'minimal-app');
       expect(minimal.train, 'community');
