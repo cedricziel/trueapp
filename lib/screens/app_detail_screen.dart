@@ -13,6 +13,7 @@ import 'package:truehub/screens/app_detail/app_screenshots_section.dart';
 import 'package:truehub/screens/app_detail/app_sources_section.dart';
 import 'package:truehub/screens/app_detail/open_link.dart';
 import 'package:truehub/services/url_opener.dart';
+import 'package:truehub/widgets/app_lifecycle/app_lifecycle_sheet.dart';
 
 class AppDetailScreen extends StatefulWidget {
   final App app;
@@ -111,6 +112,11 @@ class _AppDetailScreenState extends State<AppDetailScreen> {
       builder: (context) => CupertinoActionSheet(
         title: Text(app.effectiveDisplayName),
         actions: [
+          ...appLifecycleSheetActions(
+            sheetContext: context,
+            hostContext: this.context,
+            app: app,
+          ),
           // Edit Configuration for installed apps
           if (app.installed)
             CupertinoActionSheetAction(
