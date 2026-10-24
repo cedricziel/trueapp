@@ -449,6 +449,100 @@ void main() {
     });
   });
 
+  group('AppState', () {
+    test('parses each TrueNAS state string', () {
+      expect(AppState.parse('RUNNING'), AppState.running);
+      expect(AppState.parse('DEPLOYING'), AppState.deploying);
+      expect(AppState.parse('STOPPING'), AppState.stopping);
+      expect(AppState.parse('STOPPED'), AppState.stopped);
+      expect(AppState.parse('CRASHED'), AppState.crashed);
+    });
+
+    test('maps null and unrecognised values to unknown', () {
+      expect(AppState.parse(null), AppState.unknown);
+      expect(AppState.parse('running'), AppState.unknown);
+      expect(AppState.parse('MIGRATING'), AppState.unknown);
+    });
+
+    test('exposes which lifecycle actions each state allows', () {
+      final byState = {
+        for (final s in AppState.values)
+          s: [s.canStart, s.canStop, s.canRestart],
+      };
+      expect(byState, {
+        AppState.running: [false, true, true],
+        AppState.deploying: [false, true, false],
+        AppState.stopping: [false, false, false],
+        AppState.stopped: [true, false, false],
+        AppState.crashed: [true, true, false],
+        AppState.unknown: [false, false, false],
+      });
+    });
+  });
+
+  group('App.state', () {
+    App buildApp({bool installed = true, AppState? state}) => App(
+      name: 'app',
+      title: 'App',
+      description: '',
+      installed: installed,
+      healthy: true,
+      state: state ?? AppState.unknown,
+      latestVersion: '',
+      latestAppVersion: '',
+      latestHumanVersion: '',
+      categories: const [],
+      tags: const [],
+      screenshots: const [],
+      sources: const [],
+      maintainers: const [],
+      recommended: false,
+      catalog: '',
+      train: '',
+      usedPorts: const [],
+      portals: const {},
+    );
+
+    test('fromJson parses the state string, defaulting to unknown', () {
+      expect(App.fromJson({'state': 'CRASHED'}).state, AppState.crashed);
+      expect(App.fromJson({}).state, AppState.unknown);
+    });
+
+    test('toJson emits the TrueNAS state string and round-trips', () {
+      final app = buildApp(state: AppState.stopped);
+      expect(app.toJson()['state'], 'STOPPED');
+      expect(App.fromJson(app.toJson()).state, AppState.stopped);
+    });
+
+    test('state participates in equality', () {
+      expect(
+        buildApp(state: AppState.running),
+        isNot(equals(buildApp(state: AppState.stopped))),
+      );
+    });
+
+    test('capability getters follow the state for installed apps', () {
+      final stopped = buildApp(state: AppState.stopped);
+      expect(
+        [stopped.canStart, stopped.canStop, stopped.canRestart],
+        [true, false, false],
+      );
+      final running = buildApp(state: AppState.running);
+      expect(
+        [running.canStart, running.canStop, running.canRestart],
+        [false, true, true],
+      );
+    });
+
+    test('catalog apps offer no lifecycle actions', () {
+      final app = buildApp(installed: false, state: AppState.running);
+      expect(
+        [app.canStart, app.canStop, app.canRestart],
+        [false, false, false],
+      );
+    });
+  });
+
   group('App.effectiveDisplayName', () {
     App buildApp({
       bool installed = false,

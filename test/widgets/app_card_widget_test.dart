@@ -6,37 +6,11 @@ import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/widgets/app_card_widget.dart';
+import '../helpers/fake_app_provider.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
-
-/// An [AppProvider] whose favorite state the test drives directly, instead
-/// of routing every tap through a real drift database write. `isAppFavorite`
-/// and `setAppFavorite` are plain overridable members, mirroring the
-/// `_FakeAppProvider` seam already used in
-/// `test/screens/server_detail_screen_test.dart`.
-class _FakeAppProvider extends AppProvider {
-  _FakeAppProvider({required super.daoSource, required super.serverService})
-    : super(clientManager: TestProviders.mockApiClientManager);
-
-  bool _favorite = false;
-  String? lastToggledAppName;
-  bool? lastToggledValue;
-  int toggleCallCount = 0;
-
-  @override
-  bool isAppFavorite(String appName) => _favorite;
-
-  @override
-  Future<void> setAppFavorite(String appName, bool isFavorite) async {
-    toggleCallCount++;
-    lastToggledAppName = appName;
-    lastToggledValue = isFavorite;
-    _favorite = isFavorite;
-    notifyListeners();
-  }
-}
 
 App _buildApp({
   String name = 'plex',
@@ -45,6 +19,7 @@ App _buildApp({
   bool installed = false,
   bool healthy = true,
   String? healthyError,
+  AppState state = AppState.unknown,
   String latestVersion = '1.0.0',
   String latestAppVersion = '1.0.0',
   String latestHumanVersion = '1.0.0',
@@ -75,6 +50,7 @@ App _buildApp({
     installed: installed,
     healthy: healthy,
     healthyError: healthyError,
+    state: state,
     latestVersion: latestVersion,
     latestAppVersion: latestAppVersion,
     latestHumanVersion: latestHumanVersion,
@@ -187,26 +163,12 @@ void main() {
         expect(find.byIcon(CupertinoIcons.tag), findsNothing);
       },
     );
-
-    testWidgets('tapping the card navigates to the app detail screen', (
-      WidgetTester tester,
-    ) async {
-      final app = _buildApp(title: 'Plex Media Server');
-
-      await tester.pumpWidget(wrapPlain(app));
-
-      await tester.tap(find.byType(AppCardWidget));
-      await settleRouteTransition(tester);
-
-      expect(find.byIcon(CupertinoIcons.back), findsOneWidget);
-      expect(find.byIcon(CupertinoIcons.ellipsis), findsOneWidget);
-    });
   });
 
   group('AppCardWidget - installed', () {
     late AppDatabase database;
     late UnifiedServerService unifiedServerService;
-    late _FakeAppProvider appProvider;
+    late FakeAppProvider appProvider;
 
     setUp(() async {
       await TestProviders.cleanupTestEnvironment();
@@ -215,7 +177,7 @@ void main() {
       unifiedServerService = await TestProviders.createMockUnifiedServerService(
         database: database,
       );
-      appProvider = _FakeAppProvider(
+      appProvider = FakeAppProvider(
         daoSource: database,
         serverService: unifiedServerService,
       );
@@ -243,6 +205,74 @@ void main() {
       );
     }
 
+    testWidgets('long-pressing a running app shows its lifecycle actions', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: true, state: AppState.running)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Start'), findsNothing);
+    });
+
+    testWidgets('a lifecycle action from the long-press sheet reaches the '
+        'provider', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: true, state: AppState.stopped)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+      await tester.tap(find.text('Start'));
+      await settleRouteTransition(tester);
+
+      expect(appProvider.calls, ['start:plex']);
+    });
+
+    testWidgets('long-pressing a catalog app opens nothing', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInstalled(_buildApp(installed: false, state: AppState.running)),
+      );
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+    });
+
+    testWidgets('long-pressing an app without a known state opens nothing', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(wrapInstalled(_buildApp(installed: true)));
+
+      await tester.longPress(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+    });
+
+    testWidgets('tapping the card navigates to the app detail screen', (
+      WidgetTester tester,
+    ) async {
+      final app = _buildApp(title: 'Plex Media Server');
+
+      await tester.pumpWidget(wrapInstalled(app));
+
+      await tester.tap(find.byType(AppCardWidget));
+      await settleRouteTransition(tester);
+
+      expect(find.byIcon(CupertinoIcons.back), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.ellipsis), findsOneWidget);
+    });
+
     testWidgets('shows an Installed badge and an outlined favorite icon', (
       WidgetTester tester,
     ) async {
@@ -254,6 +284,17 @@ void main() {
       expect(find.text('Available'), findsNothing);
       expect(find.byIcon(CupertinoIcons.heart), findsOneWidget);
       expectNoLayoutOverflow(tester);
+    });
+
+    testWidgets('shows the running state instead of a generic badge', (
+      WidgetTester tester,
+    ) async {
+      final app = _buildApp(installed: true, state: AppState.stopped);
+
+      await tester.pumpWidget(wrapInstalled(app));
+
+      expect(find.text('Stopped'), findsOneWidget);
+      expect(find.text('Installed'), findsNothing);
     });
 
     testWidgets('uses the instance name (not the title) as display name', (

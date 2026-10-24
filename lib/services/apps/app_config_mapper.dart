@@ -17,6 +17,7 @@ class AppConfigMapper {
       installed: config.installed ?? false,
       healthy: config.healthy ?? true,
       healthyError: config.healthyError,
+      state: config.state ?? AppState.unknown,
       latestVersion: config.version ?? '',
       latestAppVersion: config.appVersion ?? '',
       latestHumanVersion: config.humanVersion ?? '',

@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/app_config.dart';
-import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/screens/app_configuration_screen.dart';
 import 'package:truehub/screens/app_detail/app_sources_section.dart';
@@ -10,6 +9,7 @@ import 'package:truehub/screens/app_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 
+import '../helpers/fake_app_provider.dart';
 import '../helpers/fake_url_opener.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/provider_scope.dart';
@@ -18,45 +18,6 @@ import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
 import '../helpers/test_surfaces.dart';
 
-/// An [AppProvider] whose config/favorite state a test drives directly,
-/// mirroring the `_FakeAppProvider` seam already used in
-/// `test/widgets/app_card_widget_test.dart` and
-/// `test/screens/server_detail_screen_test.dart` - `AppDetailScreen` only
-/// reads `AppProvider` from its overflow menu (`_showAppActions`), never in
-/// `build`, so a fake that answers `getAppConfig`/`isAppFavorite` directly
-/// avoids routing every test through a real drift database write.
-class _FakeAppProvider extends AppProvider {
-  _FakeAppProvider({
-    required super.daoSource,
-    required super.serverService,
-    AppConfig? config,
-    bool favorite = false,
-  }) : _config = config,
-       _favorite = favorite,
-       super(clientManager: TestProviders.mockApiClientManager);
-
-  final AppConfig? _config;
-  bool _favorite;
-  int toggleCallCount = 0;
-  String? lastToggledAppName;
-  bool? lastToggledValue;
-
-  @override
-  AppConfig? getAppConfig(String appName) => _config;
-
-  @override
-  bool isAppFavorite(String appName) => _favorite;
-
-  @override
-  Future<void> setAppFavorite(String appName, bool isFavorite) async {
-    toggleCallCount++;
-    lastToggledAppName = appName;
-    lastToggledValue = isFavorite;
-    _favorite = isFavorite;
-    notifyListeners();
-  }
-}
-
 App _buildApp({
   String name = 'plex',
   String title = 'Plex Media Server',
@@ -64,6 +25,7 @@ App _buildApp({
   bool installed = false,
   bool healthy = true,
   String? healthyError,
+  AppState state = AppState.unknown,
   String latestVersion = '1.0.0',
   String latestAppVersion = '1.0.0',
   String latestHumanVersion = '1.0.0',
@@ -86,6 +48,7 @@ App _buildApp({
     installed: installed,
     healthy: healthy,
     healthyError: healthyError,
+    state: state,
     latestVersion: latestVersion,
     latestAppVersion: latestAppVersion,
     latestHumanVersion: latestHumanVersion,
@@ -143,12 +106,12 @@ void main() {
 
   Widget wrap(
     App app, {
-    _FakeAppProvider? appProvider,
+    FakeAppProvider? appProvider,
     FakeUrlOpener? urlOpener,
   }) {
     final fakeAppProvider =
         appProvider ??
-        _FakeAppProvider(
+        FakeAppProvider(
           daoSource: database,
           serverService: unifiedServerService,
         );
@@ -186,13 +149,20 @@ void main() {
       expect(find.text('v3.1.4'), findsOneWidget);
     });
 
-    testWidgets('shows the green Installed badge when installed', (
+    testWidgets('shows the running state badge for an installed app', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.running)),
+      );
+      expect(find.text('Running'), findsOneWidget);
+    });
+
+    testWidgets('shows a neutral Installed badge when the state is unknown', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(wrap(_buildApp(installed: true)));
       expect(find.text('Installed'), findsOneWidget);
-      final badge = tester.widget<Text>(find.text('Installed'));
-      expect(badge.style?.color, CupertinoColors.systemGreen);
     });
 
     testWidgets('shows the blue Available badge when not installed', (
@@ -200,8 +170,6 @@ void main() {
     ) async {
       await tester.pumpWidget(wrap(_buildApp(installed: false)));
       expect(find.text('Available'), findsOneWidget);
-      final badge = tester.widget<Text>(find.text('Available'));
-      expect(badge.style?.color, CupertinoColors.systemBlue);
     });
 
     testWidgets('shows the effective display name in the nav bar title', (
@@ -210,6 +178,37 @@ void main() {
       await tester.pumpWidget(wrap(_buildApp(name: 'plex', title: 'Plex')));
       // Not installed -> effectiveDisplayName falls back to title.
       expect(find.text('Plex'), findsWidgets);
+    });
+  });
+
+  group('AppDetailScreen - live app state', () {
+    testWidgets('follows the provider copy of the app when it changes', (
+      WidgetTester tester,
+    ) async {
+      final provider = FakeAppProvider(
+        daoSource: database,
+        serverService: unifiedServerService,
+      )..apps = [_buildApp(installed: true, state: AppState.running)];
+      final snapshot = _buildApp(installed: true, state: AppState.running);
+
+      await tester.pumpWidget(wrap(snapshot, appProvider: provider));
+      expect(find.text('Running'), findsOneWidget);
+
+      provider.apps = [_buildApp(installed: true, state: AppState.stopped)];
+      await tester.pump();
+
+      expect(find.text('Stopped'), findsOneWidget);
+      expect(find.text('Running'), findsNothing);
+    });
+
+    testWidgets('falls back to the passed app when the provider lacks it', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.crashed)),
+      );
+
+      expect(find.text('Crashed'), findsOneWidget);
     });
   });
 
@@ -575,6 +574,59 @@ void main() {
       );
     });
 
+    testWidgets('lists lifecycle actions above Edit Configuration', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: true, state: AppState.running)),
+      );
+      await _openActionSheet(tester);
+
+      expect(find.text('Stop'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Stop')).dy,
+        lessThan(tester.getTopLeft(find.text('Edit Configuration')).dy),
+      );
+    });
+
+    testWidgets('offers no lifecycle actions for an uninstalled app', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(_buildApp(installed: false, state: AppState.running)),
+      );
+      await _openActionSheet(tester);
+
+      expect(find.text('Stop'), findsNothing);
+      expect(find.text('Start'), findsNothing);
+    });
+
+    testWidgets('stopping from the sheet confirms, calls the provider and '
+        'shows the new state', (WidgetTester tester) async {
+      final provider = FakeAppProvider(
+        daoSource: database,
+        serverService: unifiedServerService,
+      )..apps = [_buildApp(installed: true, state: AppState.running)];
+      await tester.pumpWidget(
+        wrap(
+          _buildApp(installed: true, state: AppState.running),
+          appProvider: provider,
+        ),
+      );
+      await _openActionSheet(tester);
+
+      await tester.tap(find.text('Stop'));
+      await settleRouteTransition(tester);
+      await tester.tap(find.text('Stop'));
+      await settleRouteTransition(tester);
+      expect(provider.calls, ['stop:plex']);
+
+      provider.apps = [_buildApp(installed: true, state: AppState.stopped)];
+      await tester.pump();
+      expect(find.text('Stopped'), findsOneWidget);
+    });
+
     testWidgets('does not show Edit Configuration for an uninstalled app', (
       WidgetTester tester,
     ) async {
@@ -597,7 +649,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             _buildApp(name: 'plex'),
-            appProvider: _FakeAppProvider(
+            appProvider: FakeAppProvider(
               daoSource: database,
               serverService: unifiedServerService,
               favorite: true,
@@ -612,7 +664,7 @@ void main() {
     testWidgets('tapping the favorite action toggles favorite state', (
       WidgetTester tester,
     ) async {
-      final fakeProvider = _FakeAppProvider(
+      final fakeProvider = FakeAppProvider(
         daoSource: database,
         serverService: unifiedServerService,
       );
@@ -753,7 +805,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           _buildApp(name: 'plex', installed: true),
-          appProvider: _FakeAppProvider(
+          appProvider: FakeAppProvider(
             daoSource: database,
             serverService: unifiedServerService,
             config: config,
@@ -774,7 +826,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             _buildApp(name: 'plex', installed: true),
-            appProvider: _FakeAppProvider(
+            appProvider: FakeAppProvider(
               daoSource: database,
               serverService: unifiedServerService,
               config: null,

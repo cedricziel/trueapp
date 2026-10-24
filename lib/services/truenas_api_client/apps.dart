@@ -176,6 +176,7 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
       installed: true, // These are installed apps
       healthy: isHealthy,
       healthyError: healthError,
+      state: AppState.parse(appState),
       latestVersion: trueNasApp['latest_version'] as String? ?? '',
       latestAppVersion: metadata?['app_version'] as String? ?? '',
       latestHumanVersion: trueNasApp['human_version'] as String? ?? '',
