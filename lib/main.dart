@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:truehub/app_dependencies.dart';
 import 'package:truehub/app_providers.dart';
@@ -13,6 +14,7 @@ import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
 import 'package:truehub/services/resume_refresher.dart';
 import 'package:truehub/services/telemetry_bootstrap.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/widgets/app_lifecycle_reconnector.dart';
 import 'package:truehub/widgets/tray_status_binder.dart';
@@ -41,6 +43,10 @@ class TrueNASManagerApp extends StatefulWidget {
 }
 
 class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
+  late final GoRouter _router = createAppRouter(
+    telemetry: context.read<TelemetryServiceInterface>(),
+  );
+
   Future<void> _refreshAfterResume(BuildContext context) async {
     final servers = context.read<ServerProvider>();
     final health = context.read<HealthProvider>();
@@ -74,7 +80,7 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
           theme: const CupertinoThemeData(
             primaryColor: CupertinoColors.systemBlue,
           ),
-          routerConfig: appRouter,
+          routerConfig: _router,
         ),
       ),
     );
