@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.0](https://github.com/cedricziel/trueapp/compare/v0.14.0...v0.15.0) (2026-10-24)
+
+
+### Features
+
+* show app running state ([#242](https://github.com/cedricziel/trueapp/issues/242)) ([b7930c5](https://github.com/cedricziel/trueapp/commit/b7930c5977286f84cc0deaf0bb115eaaed53f3bf))
+
+
+### Bug Fixes
+
+* tidy two server form quirks found in the screen split ([#228](https://github.com/cedricziel/trueapp/issues/228)) ([be0c974](https://github.com/cedricziel/trueapp/commit/be0c974dca95ddcae18a6a5d2bb0761b6bdd6dca))
+
 ## [0.14.0](https://github.com/cedricziel/trueapp/compare/v0.13.0...v0.14.0) (2026-10-10)
 
 
