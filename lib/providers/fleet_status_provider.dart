@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:truehub/models/alert.dart';
 import 'package:truehub/models/fleet_server_status.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
@@ -119,7 +120,13 @@ class FleetStatusProvider extends ChangeNotifier {
       var activeAlertCount = 0;
       try {
         final alerts = await client.getAlerts().timeout(timeout);
-        activeAlertCount = alerts.where((alert) => !alert.dismissed).length;
+        // INFO/NOTICE alerts (scrub started, update available) are routine
+        // and would otherwise flag a healthy server red.
+        activeAlertCount = alerts
+            .where(
+              (alert) => !alert.dismissed && alert.level != AlertLevel.info,
+            )
+            .length;
       } catch (e, stackTrace) {
         // Alerts are a bonus signal for this snapshot - a server that
         // answers system health but not alert.list (permissions, an older

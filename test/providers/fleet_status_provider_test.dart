@@ -7,6 +7,7 @@ import 'package:truehub/models/server_health.dart';
 import 'package:truehub/providers/fleet_status_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import '../helpers/fake_api_client.dart';
 import '../helpers/fake_telemetry_service.dart';
 import '../helpers/test_database.dart';
@@ -147,6 +148,20 @@ void main() {
         expect(status.needsAttention, isTrue);
       },
     );
+
+    test('does not count informational alerts as needing attention', () async {
+      fakeClient.alerts = [
+        {'id': '1', 'level': 'INFO', 'formatted': 'Scrub of pool started'},
+        {'id': '2', 'level': 'NOTICE', 'formatted': 'Update available'},
+      ];
+
+      await provider.refreshAll([testServer]);
+
+      final status = provider.statusFor(testServer.id);
+      expect(status.connectivity, FleetServerConnectivity.online);
+      expect(status.activeAlertCount, 0);
+      expect(status.needsAttention, isFalse);
+    });
 
     test('marks a server with no credentials offline', () async {
       final orphanServer = NasServer.create(
