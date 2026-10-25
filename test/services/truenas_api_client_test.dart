@@ -1272,6 +1272,56 @@ void main() {
       },
     );
 
+    test('a successful connect and request record connection and rpc '
+        'duration metrics with low-cardinality attributes', () async {
+      server.onMethod('app.categories', (_) => ['media']);
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(client.close);
+
+      await client.getAppCategories();
+
+      final attempt = telemetry.measurementsOf('truehub.connection.attempts');
+      expect(attempt, hasLength(1));
+      expect(attempt.single.value, 1);
+      expect(attempt.single.attributes, {'outcome': 'success'});
+
+      final duration = telemetry.measurementsOf('rpc.client.duration');
+      expect(duration, hasLength(1));
+      expect(duration.single.unit, 'ms');
+      expect(duration.single.value, greaterThanOrEqualTo(0));
+      expect(duration.single.attributes, {
+        'rpc.system': 'jsonrpc',
+        'rpc.method': 'app.categories',
+      });
+    });
+
+    test('a failed connect and request record failure outcomes with '
+        'error.type', () async {
+      await server.stop();
+      final telemetry = FakeTelemetryService();
+      final deadClient = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(deadClient.close);
+
+      await expectLater(
+        deadClient.getAppCategories(),
+        throwsA(isA<ConnectionException>()),
+      );
+
+      final attempt = telemetry.measurementsOf('truehub.connection.attempts');
+      expect(attempt.single.attributes, {
+        'outcome': 'failure',
+        'error.type': 'connection_refused',
+      });
+
+      final duration = telemetry.measurementsOf('rpc.client.duration');
+      expect(duration.single.attributes, {
+        'rpc.system': 'jsonrpc',
+        'rpc.method': 'app.categories',
+        'error.type': 'connection_refused',
+      });
+    });
+
     test('a failed connect names the underlying cause, not just the mapped '
         'ConnectionException', () async {
       await server.stop();

@@ -9,6 +9,11 @@ class FakeTelemetryService implements TelemetryServiceInterface {
   final List<RecordedTelemetryError> recordedErrors = [];
   final List<String> loggerNames = [];
   final List<String> tracerNames = [];
+  final List<String> meterNames = [];
+
+  /// Every measurement recorded through any [Meter] this service has
+  /// vended, in call order.
+  final List<RecordedMeasurement> measurements = [];
 
   /// Every [FakeSpan] started by any [Tracer] this service has vended, in
   /// start order - the seam tests use to assert on attributes/status/
@@ -32,6 +37,16 @@ class FakeTelemetryService implements TelemetryServiceInterface {
     tracerNames.add(name);
     return _FakeTracer(name, spans);
   }
+
+  @override
+  Meter getMeter({String name = 'truehub', String? version}) {
+    meterNames.add(name);
+    return _FakeMeter(measurements);
+  }
+
+  /// The measurements recorded on the instrument called [instrument].
+  List<RecordedMeasurement> measurementsOf(String instrument) =>
+      measurements.where((m) => m.instrument == instrument).toList();
 
   @override
   void recordError(
@@ -254,4 +269,92 @@ class RecordedSpanException {
   final Object exception;
   final StackTrace? stackTrace;
   final Map<String, Object?> attributes;
+}
+
+/// One value recorded on a metric instrument, captured for assertions.
+class RecordedMeasurement {
+  RecordedMeasurement({
+    required this.instrument,
+    required this.value,
+    required this.attributes,
+    this.unit,
+  });
+
+  final String instrument;
+  final num value;
+  final Map<String, Object?> attributes;
+  final String? unit;
+}
+
+/// Hands out instruments that append to a shared measurement list.
+class _FakeMeter implements Meter {
+  _FakeMeter(this._measurements);
+
+  final List<RecordedMeasurement> _measurements;
+
+  @override
+  String get name => 'fake';
+
+  _FakeInstrument _instrument(String name, String? unit) =>
+      _FakeInstrument(name, unit, _measurements);
+
+  @override
+  Counter createCounter(String name, {String? unit, String? description}) =>
+      _instrument(name, unit);
+
+  @override
+  UpDownCounter createUpDownCounter(
+    String name, {
+    String? unit,
+    String? description,
+  }) => _instrument(name, unit);
+
+  @override
+  Histogram createHistogram(
+    String name, {
+    String? unit,
+    String? description,
+    List<double>? explicitBucketBoundaries,
+  }) => _instrument(name, unit);
+
+  @override
+  Gauge createGauge(String name, {String? unit, String? description}) =>
+      _instrument(name, unit);
+
+  @override
+  ObservableGauge createObservableGauge(
+    String name,
+    ObservableCallback callback, {
+    String? unit,
+    String? description,
+  }) => _instrument(name, unit);
+}
+
+class _FakeInstrument
+    implements Counter, UpDownCounter, Histogram, Gauge, ObservableGauge {
+  _FakeInstrument(this._name, this._unit, this._measurements);
+
+  final String _name;
+  final String? _unit;
+  final List<RecordedMeasurement> _measurements;
+
+  void _record(num value, MetricAttributes attributes) => _measurements.add(
+    RecordedMeasurement(
+      instrument: _name,
+      value: value,
+      attributes: Map.of(attributes),
+      unit: _unit,
+    ),
+  );
+
+  @override
+  void add(num value, {MetricAttributes attributes = const {}}) =>
+      _record(value, attributes);
+
+  @override
+  void record(num value, {MetricAttributes attributes = const {}}) =>
+      _record(value, attributes);
+
+  @override
+  void close() {}
 }

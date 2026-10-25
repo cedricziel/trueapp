@@ -72,6 +72,18 @@ abstract class _ClientBase
   final NetworkService _networkService = NetworkService();
   final ConnectionStatusProvider? _connectionStatusProvider;
   final TelemetryServiceInterface? _telemetry;
+
+  /// Created on first use, and only reached when [_telemetry] is non-null.
+  late final Histogram _rpcDuration = _telemetry!.getMeter().createHistogram(
+    'rpc.client.duration',
+    unit: 'ms',
+    description: 'Duration of outbound JSON-RPC requests',
+  );
+  late final Counter _connectionAttempts = _telemetry!.getMeter().createCounter(
+    'truehub.connection.attempts',
+    description: 'Connection attempts to a TrueNAS server',
+  );
+
   Peer? _client;
   WebSocketChannel? _wsChannel;
   bool _isAuthenticated = false;
