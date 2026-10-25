@@ -13,65 +13,80 @@ class ConnectionError {
   final ConnectionErrorType type;
   final String message;
   final String? technicalDetails;
+
+  /// The exception this error was mapped from. Kept for diagnostics only - it
+  /// may carry details unfit for the UI, so never show it to the user.
+  final Object? cause;
+
   final bool isRetryable;
 
   const ConnectionError({
     required this.type,
     required this.message,
     this.technicalDetails,
+    this.cause,
     this.isRetryable = true,
   });
 
-  factory ConnectionError.networkUnreachable({String? details}) {
+  factory ConnectionError.networkUnreachable({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.networkUnreachable,
       message: 'Server not reachable',
       technicalDetails: details,
+      cause: cause,
       isRetryable: true,
     );
   }
 
-  factory ConnectionError.connectionTimeout({String? details}) {
+  factory ConnectionError.connectionTimeout({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.connectionTimeout,
       message: 'Connection timed out',
       technicalDetails: details,
+      cause: cause,
       isRetryable: true,
     );
   }
 
-  factory ConnectionError.authenticationFailed({String? details}) {
+  factory ConnectionError.authenticationFailed({
+    String? details,
+    Object? cause,
+  }) {
     return ConnectionError(
       type: ConnectionErrorType.authenticationFailed,
       message: 'Authentication failed',
       technicalDetails: details,
+      cause: cause,
       isRetryable: false,
     );
   }
 
-  factory ConnectionError.invalidCredentials({String? details}) {
+  factory ConnectionError.invalidCredentials({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.invalidCredentials,
       message: 'Invalid username or password',
       technicalDetails: details,
+      cause: cause,
       isRetryable: false,
     );
   }
 
-  factory ConnectionError.serverError({String? details}) {
+  factory ConnectionError.serverError({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.serverError,
       message: 'Server error occurred',
       technicalDetails: details,
+      cause: cause,
       isRetryable: true,
     );
   }
 
-  factory ConnectionError.permissionDenied({String? details}) {
+  factory ConnectionError.permissionDenied({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.permissionDenied,
       message: 'Permission denied',
       technicalDetails: details,
+      cause: cause,
       isRetryable: false,
     );
   }
@@ -80,20 +95,22 @@ class ConnectionError {
   /// response-shape mismatch between TrueNAS versions, or a parsing bug on
   /// our side. Distinct from [ConnectionError.unknown] so it never shows up
   /// as a generic "Connection error" that hides the actual cause.
-  factory ConnectionError.invalidResponse({String? details}) {
+  factory ConnectionError.invalidResponse({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.invalidResponse,
       message: 'Unexpected response from server',
       technicalDetails: details,
+      cause: cause,
       isRetryable: true,
     );
   }
 
-  factory ConnectionError.unknown({String? details}) {
+  factory ConnectionError.unknown({String? details, Object? cause}) {
     return ConnectionError(
       type: ConnectionErrorType.unknown,
       message: 'An unexpected error occurred',
       technicalDetails: details,
+      cause: cause,
       isRetryable: true,
     );
   }

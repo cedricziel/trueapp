@@ -4,10 +4,14 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
   @override
   Future<List<App>> getAvailableApps() async {
     try {
-      return await _traced('truenas.apps.available', () async {
-        final result = await _sendRequest('app.available');
-        return _parseAppList(result, App.fromJson, method: 'app.available');
-      });
+      return await _traced(
+        'truenas.apps.available',
+        rpcMethod: 'app.available',
+        () async {
+          final result = await _sendRequest('app.available');
+          return _parseAppList(result, App.fromJson, method: 'app.available');
+        },
+      );
     } catch (e) {
       throw _handleError(e);
     }
@@ -16,14 +20,18 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
   @override
   Future<List<App>> getInstalledApps() async {
     try {
-      return await _traced('truenas.apps.installed', () async {
-        final result = await _sendRequest('app.query');
-        return _parseAppList(
-          result,
-          _convertTrueNasAppToApp,
-          method: 'app.query',
-        );
-      });
+      return await _traced(
+        'truenas.apps.installed',
+        rpcMethod: 'app.query',
+        () async {
+          final result = await _sendRequest('app.query');
+          return _parseAppList(
+            result,
+            _convertTrueNasAppToApp,
+            method: 'app.query',
+          );
+        },
+      );
     } catch (e) {
       throw _handleError(e);
     }
@@ -222,10 +230,14 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
   @override
   Future<List<String>> getAppCategories() async {
     try {
-      return await _traced('truenas.apps.categories', () async {
-        final result = await _sendRequest('app.categories');
-        return (result as List<dynamic>).cast<String>();
-      });
+      return await _traced(
+        'truenas.apps.categories',
+        rpcMethod: 'app.categories',
+        () async {
+          final result = await _sendRequest('app.categories');
+          return (result as List<dynamic>).cast<String>();
+        },
+      );
     } catch (e) {
       throw _handleError(e);
     }

@@ -54,6 +54,7 @@ mixin _Connection on _ClientBase {
       // Not the URL itself - it can carry user-info/credentials-shaped query
       // parameters - just whether this connection stayed on the trusted LAN.
       span?.setAttribute('server.network.trusted', isOnTrustedNetwork);
+      span?.setAttributes(endpointAttributes(baseUrl));
 
       _log.debug(
         'Connecting to WebSocket via ${isOnTrustedNetwork ? 'local' : 'remote'} URL',
@@ -109,15 +110,19 @@ mixin _Connection on _ClientBase {
         TrueNASConnectionState.error,
         error: e.toString(),
       );
-      // The span's own exception/error-status recording is handled by
-      // Tracer.startActiveSpan's contract (it records whatever this method
-      // throws and marks the span an error) - this only needs to get the
-      // failure into the logs signal too.
-      _telemetry?.getLogger().error(
+      // Tracer.startActiveSpan records whatever this method throws, but that
+      // is the mapped ConnectionException ("Server not reachable"). Record the
+      // underlying failure too, so the span says why.
+      span?.setAttribute('error.type', errorTypeOf(e));
+      span?.recordException(e, stackTrace: stackTrace);
+      _telemetry?.getLogger().errorWithCause(
         'TrueNAS API: Connection failed',
-        error: e,
+        e,
         stackTrace: stackTrace,
-        attributes: {'server.id': _server.id},
+        attributes: {
+          'server.id': _server.id,
+          ...endpointAttributes(_currentConnectionUrl),
+        },
       );
       throw _handleConnectionError(e);
     }
@@ -134,7 +139,14 @@ mixin _Connection on _ClientBase {
   /// or `resources` shape TrueNAS returns differently than expected) threw
   /// past that span entirely, with nothing recording what broke. Wrapping
   /// the request+parse methods themselves closes that gap.
-  Future<T> _traced<T>(String spanName, Future<T> Function() body) async {
+  ///
+  /// [rpcMethod] is the TrueNAS method the span wraps (e.g. `app.query`),
+  /// recorded as `rpc.method`. Never pass parameters along with it.
+  Future<T> _traced<T>(
+    String spanName,
+    Future<T> Function() body, {
+    required String rpcMethod,
+  }) async {
     final telemetry = _telemetry;
     if (telemetry == null) {
       return body();
@@ -148,20 +160,34 @@ mixin _Connection on _ClientBase {
           span.setStatus(StatusCode.ok);
           return result;
         } catch (e, stackTrace) {
-          // The span's own exception/error-status recording is handled by
-          // Tracer.startActiveSpan's contract - this only needs to get the
-          // failure into the logs signal too.
-          telemetry.getLogger().error(
+          span.setAttribute('error.type', errorTypeOf(e));
+          // A ConnectionException from connecting or authenticating hides the
+          // real failure behind its generic message.
+          if (e is ConnectionException) {
+            span.recordException(rootCauseOf(e), stackTrace: stackTrace);
+          }
+          telemetry.getLogger().errorWithCause(
             'TrueNAS API: $spanName failed',
-            error: e,
+            e,
             stackTrace: stackTrace,
-            attributes: {'server.id': _server.id},
+            attributes: {
+              'server.id': _server.id,
+              'rpc.method': rpcMethod,
+              ...endpointAttributes(_currentConnectionUrl),
+            },
           );
           rethrow;
+        } finally {
+          // Only known once the request has connected, so set it last.
+          span.setAttributes(endpointAttributes(_currentConnectionUrl));
         }
       },
       kind: SpanKind.client,
-      attributes: {'server.id': _server.id},
+      attributes: {
+        'server.id': _server.id,
+        'rpc.system': 'jsonrpc',
+        'rpc.method': rpcMethod,
+      },
     );
   }
 
@@ -244,9 +270,10 @@ mixin _Connection on _ClientBase {
 
       // Send immediate ping to get initial connection status
       _sendKeepalivePing();
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
       throw ConnectionException(
         ConnectionError.connectionTimeout(
+          cause: e,
           details: 'Authentication request timed out after 15 seconds',
         ),
       );

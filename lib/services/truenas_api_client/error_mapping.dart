@@ -10,7 +10,10 @@ mixin _ErrorMapping {
         errorString.contains('no route to host') ||
         errorString.contains('connection refused')) {
       return ConnectionException(
-        ConnectionError.networkUnreachable(details: error.toString()),
+        ConnectionError.networkUnreachable(
+          cause: error,
+          details: error.toString(),
+        ),
       );
     }
 
@@ -20,7 +23,10 @@ mixin _ErrorMapping {
         errorString.contains('timed out') ||
         errorString.contains('client closed with pending request')) {
       return ConnectionException(
-        ConnectionError.connectionTimeout(details: error.toString()),
+        ConnectionError.connectionTimeout(
+          cause: error,
+          details: error.toString(),
+        ),
       );
     }
 
@@ -41,7 +47,7 @@ mixin _ErrorMapping {
           reasonLower.contains('not authenticated') ||
           reasonLower.contains('session is expired')) {
         return ConnectionException(
-          ConnectionError.authenticationFailed(details: details),
+          ConnectionError.authenticationFailed(cause: error, details: details),
         );
       }
 
@@ -50,7 +56,7 @@ mixin _ErrorMapping {
           errorString.contains('authentication failed') ||
           errorString.contains('invalid credentials')) {
         return ConnectionException(
-          ConnectionError.invalidCredentials(details: details),
+          ConnectionError.invalidCredentials(cause: error, details: details),
         );
       }
 
@@ -60,20 +66,25 @@ mixin _ErrorMapping {
           errorString.contains('forbidden') ||
           reasonLower.contains('not authorized')) {
         return ConnectionException(
-          ConnectionError.permissionDenied(details: details),
+          ConnectionError.permissionDenied(cause: error, details: details),
         );
       }
 
       // Anything else the middleware rejected (a method that failed, a
       // method that doesn't exist on this TrueNAS version, invalid params)
       // happened on the server, and is not a connectivity problem.
-      return ConnectionException(ConnectionError.serverError(details: details));
+      return ConnectionException(
+        ConnectionError.serverError(cause: error, details: details),
+      );
     }
 
     // The server answered, but not in a shape this client understands.
     if (error is FormatException || error is TypeError) {
       return ConnectionException(
-        ConnectionError.invalidResponse(details: error.toString()),
+        ConnectionError.invalidResponse(
+          cause: error,
+          details: error.toString(),
+        ),
       );
     }
 
@@ -83,6 +94,7 @@ mixin _ErrorMapping {
         errorString.contains('upgrade failed')) {
       return ConnectionException(
         ConnectionError.networkUnreachable(
+          cause: error,
           details: 'WebSocket connection failed: ${error.toString()}',
         ),
       );
@@ -90,7 +102,7 @@ mixin _ErrorMapping {
 
     // Default to unknown error
     return ConnectionException(
-      ConnectionError.unknown(details: error.toString()),
+      ConnectionError.unknown(cause: error, details: error.toString()),
     );
   }
 
