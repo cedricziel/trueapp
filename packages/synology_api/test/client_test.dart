@@ -38,22 +38,16 @@ void main() {
   });
 
   group('login', () {
-    test(
-      'uses the highest Auth version on the path the NAS advertises',
-      () async {
-        await client.login('admin', 'secret');
+    test('logs in with Auth v6 on the path the NAS advertises', () async {
+      await client.login('admin', 'secret');
 
-        final login = nas.calls.last;
-        expect((login.path, login.version), ('entry.cgi', 7));
+      final login = nas.calls.last;
+      expect((login.path, login.version), ('entry.cgi', 6));
 
-        final dsm6 = FakeSynologyNas.dsm6();
-        await clientFor(dsm6).login('admin', 'secret');
-        expect(
-          (dsm6.calls.last.path, dsm6.calls.last.version),
-          ('auth.cgi', 6),
-        );
-      },
-    );
+      final dsm6 = FakeSynologyNas.dsm6();
+      await clientFor(dsm6).login('admin', 'secret');
+      expect((dsm6.calls.last.path, dsm6.calls.last.version), ('auth.cgi', 6));
+    });
 
     test('labels the session with the configured name', () async {
       await SynologyClient(
@@ -143,12 +137,12 @@ void main() {
       throwsA(isA<SynologyUnsupportedException>()),
     );
     await expectLater(
-      dsm6.call('SYNO.Core.Package', 'list', minVersion: 2, maxVersion: 3),
+      dsm6.call('SYNO.Core.Package', 'list', minVersion: 3, maxVersion: 4),
       throwsA(
         isA<SynologyUnsupportedException>().having(
           (e) => e.message,
           'message',
-          contains('v1-1 does not overlap'),
+          contains('v1-2 does not overlap'),
         ),
       ),
     );

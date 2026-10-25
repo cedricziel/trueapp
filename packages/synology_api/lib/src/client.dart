@@ -58,7 +58,9 @@ class SynologyClient {
       authApi,
       'login',
       minVersion: 3,
-      maxVersion: 7,
+      // Clients that log in at v7 add a key exchange this library does not
+      // implement; v6 works on DSM 6 and 7 alike.
+      maxVersion: 6,
       authenticated: false,
       params: {
         'account': account,

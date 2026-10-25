@@ -48,8 +48,7 @@ final class FakeSynologyError implements Exception {
 /// Use [client] to plug it into an `HttpSynologyTransport` without sockets,
 /// or [serve] to exercise a real HTTP stack.
 ///
-/// The [dsm6] and [dsm7] catalogs are representative, not a copy of any one
-/// firmware build; pass [apis] to model a specific box.
+/// Pass [apis] to model a box other than the [dsm6] and [dsm7] presets.
 class FakeSynologyNas {
   FakeSynologyNas({
     Map<String, ApiInfo>? apis,
@@ -72,19 +71,27 @@ class FakeSynologyNas {
   factory FakeSynologyNas.dsm7({Map<String, String>? accounts}) =>
       FakeSynologyNas(accounts: accounts);
 
+  /// Taken from a captured DSM 6.2 `SYNO.API.Info` dump, trimmed to the APIs
+  /// this library knows about.
   static Map<String, ApiInfo> dsm6Apis() => _catalog({
     'SYNO.API.Info': ('query.cgi', 1, 1),
     authApi: ('auth.cgi', 1, 6),
-    'SYNO.DSM.Info': ('entry.cgi', 1, 2),
+    'SYNO.DSM.Info': ('entry.cgi', 2, 2),
+    'SYNO.Core.System': ('entry.cgi', 1, 3),
+    'SYNO.Core.System.Utilization': ('entry.cgi', 1, 1),
     'SYNO.Storage.CGI.Storage': ('entry.cgi', 1, 1),
     'SYNO.FileStation.List': ('entry.cgi', 1, 2),
-    'SYNO.Core.Package': ('entry.cgi', 1, 1),
+    'SYNO.Core.Package': ('entry.cgi', 1, 2),
   });
 
+  /// Taken from a captured DSM 7.0 `SYNO.API.Info` dump, with the Docker
+  /// package installed. `SYNO.Docker.*` comes from that package, not DSM.
   static Map<String, ApiInfo> dsm7Apis() => _catalog({
     'SYNO.API.Info': ('query.cgi', 1, 1),
     authApi: ('entry.cgi', 1, 7),
-    'SYNO.DSM.Info': ('entry.cgi', 1, 2),
+    'SYNO.DSM.Info': ('entry.cgi', 2, 2),
+    'SYNO.Core.System': ('entry.cgi', 1, 3),
+    'SYNO.Core.System.Utilization': ('entry.cgi', 1, 1),
     'SYNO.Storage.CGI.Storage': ('entry.cgi', 1, 1),
     'SYNO.FileStation.List': ('entry.cgi', 1, 2),
     'SYNO.Core.Package': ('entry.cgi', 1, 2),
