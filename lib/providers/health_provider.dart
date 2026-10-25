@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/alert.dart';
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_health.dart';
@@ -22,6 +25,12 @@ class HealthProvider extends ChangeNotifier
   ServerHealth? _serverHealth;
   bool _isLoading = false;
   ConnectionError? _connectionError;
+  bool _showDismissed = false;
+  StreamSubscription<AlertEvent>? _alertSubscription;
+
+  /// The client [_alertSubscription] belongs to, kept so it can be
+  /// unsubscribed after [_session] has moved on to another server.
+  ApiClientInterface? _alertClient;
 
   /// Bumped by every [setServer] call, so a [loadHealth] call for a
   /// server the caller has already switched away from can tell its own
@@ -53,6 +62,20 @@ class HealthProvider extends ChangeNotifier
   List<Alert> get activeAlerts =>
       _alerts.where((alert) => !alert.dismissed).toList();
 
+  /// Whether dismissed alerts are listed alongside the active ones.
+  bool get showDismissed => _showDismissed;
+
+  set showDismissed(bool value) {
+    if (_showDismissed == value) return;
+    _showDismissed = value;
+    notifyListeners();
+  }
+
+  bool get hasDismissedAlerts => alerts.any((alert) => alert.dismissed);
+
+  /// The alerts the health screen lists: dismissed ones only on request.
+  List<Alert> get visibleAlerts => _showDismissed ? alerts : activeAlerts;
+
   List<ServiceStatus> get services => _services;
   ServerHealth? get serverHealth => _serverHealth;
   bool get isLoading => _isLoading;
@@ -65,6 +88,7 @@ class HealthProvider extends ChangeNotifier
   @override
   Future<void> setServer(NasServer server) async {
     _generation++;
+    await _stopAlertUpdates();
     _alerts = [];
     _services = [];
     _serverHealth = null;
@@ -86,6 +110,9 @@ class HealthProvider extends ChangeNotifier
     notifyListeners();
 
     try {
+      // Subscribe before fetching, so a change landing between the two is in
+      // the fetched list or arrives as an event, never neither.
+      await _ensureAlertSubscription(client, generation);
       final alerts = await client.getAlerts();
       final services = await client.getServices();
       final serverHealth = await client.getServerHealth();
@@ -122,8 +149,109 @@ class HealthProvider extends ChangeNotifier
     await loadHealth();
   }
 
+  Future<bool> dismissAlert(String alertId) =>
+      _setDismissed(alertId, dismissed: true);
+
+  Future<bool> restoreAlert(String alertId) =>
+      _setDismissed(alertId, dismissed: false);
+
+  /// Flips the alert locally first so the list reacts at once, then asks the
+  /// server. A failed request puts the alert back unless a live update has
+  /// settled its state in the meantime.
+  Future<bool> _setDismissed(String alertId, {required bool dismissed}) async {
+    final client = _apiClient;
+    if (client == null) return false;
+    final generation = _generation;
+
+    _flipDismissed(alertId, from: !dismissed);
+    try {
+      if (dismissed) {
+        await client.dismissAlert(alertId);
+      } else {
+        await client.restoreAlert(alertId);
+      }
+      return true;
+    } catch (e, stackTrace) {
+      if (generation == _generation) {
+        _flipDismissed(alertId, from: dismissed);
+      }
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context:
+            'HealthProvider.${dismissed ? 'dismissAlert' : 'restoreAlert'}',
+      );
+      return false;
+    }
+  }
+
+  /// Toggles the alert's dismissed flag if it is currently [from].
+  void _flipDismissed(String alertId, {required bool from}) {
+    final index = _alerts.indexWhere((alert) => alert.id == alertId);
+    if (index < 0 || _alerts[index].dismissed != from) return;
+    _alerts = [..._alerts]..[index] = _alerts[index].copyWith(dismissed: !from);
+    notifyListeners();
+  }
+
+  Future<void> _ensureAlertSubscription(
+    ApiClientInterface client,
+    int generation,
+  ) async {
+    if (_alertSubscription != null) return;
+
+    _alertClient = client;
+    _alertSubscription = client.alertEvents.listen(_onAlertEvent);
+    try {
+      await client.subscribeToAlerts();
+      if (generation != _generation) {
+        // A server switch ran while subscribing, so the cleanup it did came
+        // before the subscription existed.
+        unawaited(client.unsubscribeFromAlerts().catchError((_) {}));
+      }
+    } catch (e, stackTrace) {
+      // Alerts still load without live updates; the next load retries.
+      await _alertSubscription?.cancel();
+      _alertSubscription = null;
+      _alertClient = null;
+      _telemetryService?.recordError(
+        e,
+        stackTrace,
+        context: 'HealthProvider.subscribeToAlerts',
+      );
+    }
+  }
+
+  Future<void> _stopAlertUpdates() async {
+    final subscription = _alertSubscription;
+    final client = _alertClient;
+    _alertSubscription = null;
+    _alertClient = null;
+    await subscription?.cancel();
+    try {
+      await client?.unsubscribeFromAlerts();
+    } catch (_) {
+      // The client is going away; a failed unsubscribe leaves nothing to undo.
+    }
+  }
+
+  void _onAlertEvent(AlertEvent event) {
+    final alert = event.alert;
+    if (event.type == AlertEventType.removed) {
+      _alerts = _alerts.where((a) => a.id != event.id).toList();
+    } else if (alert != null) {
+      final index = _alerts.indexWhere((a) => a.id == alert.id);
+      _alerts = index < 0
+          ? [..._alerts, alert]
+          : ([..._alerts]..[index] = alert);
+    } else {
+      return;
+    }
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    unawaited(_stopAlertUpdates());
     _session.dispose();
     super.dispose();
   }
