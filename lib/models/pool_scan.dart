@@ -62,13 +62,11 @@ class PoolScan extends Equatable {
   static PoolScan? tryParse(Object? raw) {
     if (raw is! Map) return null;
     final json = raw.cast<String, dynamic>();
-    final function = _parseFunction(json['function']);
-    final state = _parseState(json['state']);
     if (json['function'] == null && json['state'] == null) return null;
 
     return PoolScan(
-      function: function,
-      state: state,
+      function: _parseFunction(json['function']),
+      state: _parseState(json['state']),
       percentage: _asNum(json['percentage'])?.toDouble(),
       bytesToProcess: _asNum(json['bytes_to_process'])?.toInt(),
       bytesIssued: _asNum(json['bytes_issued'])?.toInt(),

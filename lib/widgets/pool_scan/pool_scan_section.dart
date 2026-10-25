@@ -16,7 +16,6 @@ class PoolScanSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scan = this.scan;
     return SectionCard(
       title: scan.isRunning
           ? scan.function.label
@@ -24,10 +23,10 @@ class PoolScanSection extends StatelessWidget {
       icon: CupertinoIcons.shield_lefthalf_fill,
       iconColor: scan.isRunning
           ? CupertinoColors.systemBlue
-          : CupertinoColors.systemGrey,
+          : CupertinoColors.systemGrey.resolveFrom(context),
       children: scan.isRunning
           ? _runningRows(scan, now ?? DateTime.now())
-          : _idleRows(scan),
+          : _idleRows(context, scan),
     );
   }
 
@@ -67,13 +66,13 @@ class PoolScanSection extends StatelessWidget {
     ];
   }
 
-  List<Widget> _idleRows(PoolScan scan) {
+  List<Widget> _idleRows(BuildContext context, PoolScan scan) {
     final endTime = scan.endTime;
     final duration = scan.duration;
     final (statusLabel, statusColor) = switch (scan.state) {
       PoolScanState.finished => ('Completed', CupertinoColors.systemGreen),
       PoolScanState.canceled => ('Canceled', CupertinoColors.systemOrange),
-      _ => ('Unknown', CupertinoColors.systemGrey),
+      _ => ('Unknown', CupertinoColors.systemGrey.resolveFrom(context)),
     };
 
     return [

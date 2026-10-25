@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/pool.dart';
-import 'package:truehub/models/pool_scan.dart';
 
 import '../helpers/pool_scan_fixtures.dart';
 
