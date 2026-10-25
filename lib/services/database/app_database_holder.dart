@@ -4,7 +4,7 @@ import 'package:truehub/services/database.dart';
 /// keep working after [dispose] (e.g. "clear database") instead of pinning a
 /// closed instance.
 class AppDatabaseHolder implements DaoSource {
-  AppDatabaseHolder({required AppDatabase Function() open}) : _open = open;
+  AppDatabaseHolder({required this._open});
 
   final AppDatabase Function() _open;
   AppDatabase? _current;

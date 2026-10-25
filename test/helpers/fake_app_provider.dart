@@ -17,11 +17,9 @@ class FakeAppProvider extends AppProvider {
   FakeAppProvider({
     required super.daoSource,
     required super.serverService,
-    AppConfig? config,
-    bool favorite = false,
-  }) : _config = config,
-       _favorite = favorite,
-       super(clientManager: TestProviders.mockApiClientManager);
+    this._config,
+    this._favorite = false,
+  }) : super(clientManager: TestProviders.mockApiClientManager);
 
   final AppConfig? _config;
   bool _favorite;

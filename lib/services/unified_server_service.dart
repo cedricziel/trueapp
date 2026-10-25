@@ -22,11 +22,7 @@ class UnifiedServerService
   bool _isInitialized = false;
   StreamSubscription<List<NasServer>>? _repositorySubscription;
 
-  UnifiedServerService({
-    required ServerRepositoryInterface repository,
-    required KeychainServiceInterface keychain,
-  }) : _repository = repository,
-       _keychain = keychain;
+  UnifiedServerService({required this._repository, required this._keychain});
 
   /// Initialize the service - same method for production and testing
   Future<bool> initialize() async {

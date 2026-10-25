@@ -471,11 +471,9 @@ class _FakeAppProvider extends AppProvider {
   _FakeAppProvider({
     required super.daoSource,
     required super.serverService,
-    required List<App> seedApps,
-    required List<AppConfig> seedFavorites,
-  }) : _seedApps = seedApps,
-       _seedFavorites = seedFavorites,
-       super(clientManager: TestProviders.mockApiClientManager);
+    required this._seedApps,
+    required this._seedFavorites,
+  }) : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<App> _seedApps;
   final List<AppConfig> _seedFavorites;

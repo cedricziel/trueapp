@@ -17,10 +17,9 @@ class AppStatsTracker {
   int _epoch = 0;
 
   AppStatsTracker({
-    required void Function() onChanged,
+    required this._onChanged,
     TelemetryServiceInterface? telemetryService,
-  }) : _onChanged = onChanged,
-       _telemetry = telemetryService;
+  }) : _telemetry = telemetryService;
 
   AppResourceUsage? usageFor(String appName) => _lastKnown[appName];
 

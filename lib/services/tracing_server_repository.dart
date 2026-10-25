@@ -8,12 +8,10 @@ import 'package:truehub/services/telemetry_service_interface.dart';
 /// names, hosts, usernames or passwords.
 class TracingServerRepository implements ServerRepositoryInterface {
   TracingServerRepository({
-    required ServerRepositoryInterface inner,
-    required TelemetryServiceInterface telemetry,
-    required String dbSystem,
-  }) : _inner = inner,
-       _telemetry = telemetry,
-       _dbSystem = dbSystem;
+    required this._inner,
+    required this._telemetry,
+    required this._dbSystem,
+  });
 
   final ServerRepositoryInterface _inner;
   final TelemetryServiceInterface _telemetry;
