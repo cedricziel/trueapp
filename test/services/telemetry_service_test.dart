@@ -162,6 +162,16 @@ void main() {
       );
     });
 
+    test('getMeter returns a usable meter and metrics flush and shut down '
+        'cleanly', () async {
+      final service = await TelemetryService.initialize(disabledConfig);
+
+      service.getMeter().createCounter('test.count').add(1);
+
+      await expectLater(service.flush(), completes);
+      await expectLater(service.shutdown(), completes);
+    });
+
     test('flush completes', () async {
       final service = await TelemetryService.initialize(disabledConfig);
 

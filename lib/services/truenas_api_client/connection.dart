@@ -20,12 +20,21 @@ mixin _Connection on _ClientBase {
       return _ensureConnectedTraced(null);
     }
 
-    return telemetry.getTracer().startActiveSpan(
-      'truenas.connect',
-      (span) => _ensureConnectedTraced(span),
-      kind: SpanKind.client,
-      attributes: {'server.id': _server.id},
-    );
+    try {
+      await telemetry.getTracer().startActiveSpan(
+        'truenas.connect',
+        (span) => _ensureConnectedTraced(span),
+        kind: SpanKind.client,
+        attributes: {'server.id': _server.id},
+      );
+      _connectionAttempts.add(1, attributes: {'outcome': 'success'});
+    } catch (e) {
+      _connectionAttempts.add(
+        1,
+        attributes: {'outcome': 'failure', 'error.type': errorTypeOf(e)},
+      );
+      rethrow;
+    }
   }
 
   /// The body of [_ensureConnected]. [span] is the active span for this
@@ -155,12 +164,15 @@ mixin _Connection on _ClientBase {
     return telemetry.getTracer().startActiveSpan(
       spanName,
       (span) async {
+        final stopwatch = Stopwatch()..start();
+        String? errorType;
         try {
           final result = await body();
           span.setStatus(StatusCode.ok);
           return result;
         } catch (e, stackTrace) {
-          span.setAttribute('error.type', errorTypeOf(e));
+          errorType = errorTypeOf(e);
+          span.setAttribute('error.type', errorType);
           // A ConnectionException from connecting or authenticating hides the
           // real failure behind its generic message.
           if (e is ConnectionException) {
@@ -178,6 +190,14 @@ mixin _Connection on _ClientBase {
           );
           rethrow;
         } finally {
+          _rpcDuration.record(
+            stopwatch.elapsedMicroseconds / 1000,
+            attributes: {
+              'rpc.system': 'jsonrpc',
+              'rpc.method': rpcMethod,
+              'error.type': ?errorType,
+            },
+          );
           // Only known once the request has connected, so set it last.
           span.setAttributes(endpointAttributes(_currentConnectionUrl));
         }

@@ -245,26 +245,26 @@ packages:
     dependency: transitive
     description:
       name: dart_otel_api
-      sha256: "8de058ce18eafae08d8b1d5bfb94b3f349790bc2f8d045354a932ccee7fc4066"
+      sha256: d5fce123cb6a49e63aa9c4f87caa171aaded855831d212f4df5121c735ea57f5
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.1.2"
   dart_otel_exporter_otlp_http:
     dependency: transitive
     description:
       name: dart_otel_exporter_otlp_http
-      sha256: "52c9241e699a53d2273786c833011269708e986f56a99f2170e623430e0ae982"
+      sha256: "31c95b6202c822f68604ad1dc6b0352dbca53afb556beb773680ef3f1a69219a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.1.1"
   dart_otel_sdk:
     dependency: transitive
     description:
       name: dart_otel_sdk
-      sha256: "8c9dd99d67dfcce448706000dc9d8c43437a3f13c85e45b3a31f9b9f62e57be4"
+      sha256: eb64247f3416fe4a7eb0a91ee2dcdb7964ac068d757503cbfe380be11b650f19
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.2"
+    version: "0.1.4"
   dart_pre_commit:
     dependency: "direct dev"
     description:
@@ -391,10 +391,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_otel
-      sha256: ae872990a12e2bec8d59ef655d3a2fbaee845389be6161ce3b9bf6940ae81f4b
+      sha256: "62f1353cc037a93979170d1df21721d6d8e45600542a29af42c7091260610e6a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.8"
+    version: "0.1.9"
   flutter_slidable:
     dependency: "direct main"
     description:
