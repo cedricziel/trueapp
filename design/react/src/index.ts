@@ -97,12 +97,25 @@ export type {
   AppIconProps,
   AppCardWidgetProps,
 } from "./components/AppCardWidget";
+export { AppStateBadge } from "./components/AppStateBadge";
+export type { AppState, AppStateBadgeProps } from "./components/AppStateBadge";
 export { JobCardWidget } from "./components/JobCardWidget";
 export type {
   Job,
   JobState,
   JobCardWidgetProps,
 } from "./components/JobCardWidget";
+export {
+  ServiceTile,
+  ServiceActionErrorBanner,
+  serviceDisplayName,
+} from "./components/Services";
+export type {
+  ServiceAction,
+  ServiceStatus,
+  ServiceTileProps,
+  ServiceActionErrorBannerProps,
+} from "./components/Services";
 export { ServerListTile } from "./components/ServerListTile";
 export type {
   NasServer,
@@ -179,3 +192,4 @@ export * from "./screens/ServerAppsScreen";
 export * from "./screens/AppDetailScreen";
 export * from "./screens/AppConfigurationScreen";
 export * from "./screens/ServerJobsScreen";
+export * from "./screens/ServicesScreen";

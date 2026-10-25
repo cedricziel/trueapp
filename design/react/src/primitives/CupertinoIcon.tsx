@@ -9,6 +9,7 @@ import {
   Check,
   CirclePause,
   CirclePlay,
+  CircleStop,
   CircleUser,
   Cog,
   Ellipsis,
@@ -146,6 +147,7 @@ const outlined = {
   refresh: RefreshCw,
   shield: Shield,
   speedometer: Gauge,
+  stop_circle: CircleStop,
   square_stack_3d_down_right: Layers,
   tag: Tag,
   time: Clock,
@@ -230,7 +232,13 @@ export function CupertinoIcon({
             strokeLinejoin="round"
           />
         </mask>
-        <circle cx="12" cy="12" r="10.5" fill={stroke} mask={`url(#${maskId})`} />
+        <circle
+          cx="12"
+          cy="12"
+          r="10.5"
+          fill={stroke}
+          mask={`url(#${maskId})`}
+        />
       </svg>
     );
   }
@@ -292,8 +300,19 @@ export function CupertinoIcon({
       >
         {filled && (
           <mask id={maskId}>
-            <path d={TRIANGLE} fill="#fff" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M12 9.5v4M12 17v.1" stroke="#000" strokeWidth="2.2" strokeLinecap="round" />
+            <path
+              d={TRIANGLE}
+              fill="#fff"
+              stroke="#fff"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M12 9.5v4M12 17v.1"
+              stroke="#000"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
           </mask>
         )}
         <path
@@ -305,7 +324,12 @@ export function CupertinoIcon({
           mask={filled ? `url(#${maskId})` : undefined}
         />
         {!filled && (
-          <path d="M12 9.5v4M12 17v.1" stroke={stroke} strokeWidth="2.2" strokeLinecap="round" />
+          <path
+            d="M12 9.5v4M12 17v.1"
+            stroke={stroke}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
         )}
       </svg>
     );

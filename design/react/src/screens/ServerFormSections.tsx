@@ -31,8 +31,11 @@ export interface ServerFormValues {
 }
 
 export interface ConnectionTestResult {
-  /** Green when true, red otherwise. */
-  success: boolean;
+  /**
+   * Green only when it starts with "Connection successful", red otherwise,
+   * like the app. The Add Server screen prefixes its messages with ✅/❌, so
+   * its results are always red there.
+   */
   message: string;
 }
 
@@ -369,7 +372,9 @@ export function ServerFormBody(
               style={{
                 flex: 1,
                 textAlign: "right",
-                color: connectionTestResult.success
+                color: connectionTestResult.message.startsWith(
+                  "Connection successful",
+                )
                   ? "var(--cupertino-system-green)"
                   : "var(--cupertino-system-red)",
               }}

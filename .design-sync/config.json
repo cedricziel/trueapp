@@ -73,7 +73,11 @@
     "CupertinoSearchTextField": "../../.design-sync/groups/Forms.md",
     "CupertinoSwitch": "../../.design-sync/groups/Forms.md",
     "CupertinoTextField": "../../.design-sync/groups/Forms.md",
-    "CupertinoTextFormFieldRow": "../../.design-sync/groups/Forms.md"
+    "CupertinoTextFormFieldRow": "../../.design-sync/groups/Forms.md",
+    "ServiceTile": "../../.design-sync/groups/Data.md",
+    "ServiceActionErrorBanner": "../../.design-sync/groups/States.md",
+    "ServicesScreen": "../../.design-sync/groups/Screens.md",
+    "AppStateBadge": "../../.design-sync/groups/Data.md"
   },
   "libOverrides": {
     "dts.mjs": "inline the package-own types a props body references (Pool, ColorValue, CupertinoIconName) as .d.ts preludes"
@@ -273,6 +277,18 @@
       "cardMode": "column"
     },
     "CupertinoTextFormFieldRow": {
+      "cardMode": "column"
+    },
+    "ServicesScreen": {
+      "cardMode": "column"
+    },
+    "AppStateBadge": {
+      "cardMode": "column"
+    },
+    "ServiceTile": {
+      "cardMode": "column"
+    },
+    "ServiceActionErrorBanner": {
       "cardMode": "column"
     }
   },

@@ -17,8 +17,6 @@ export type SettingsPlatform = "ios" | "macos" | "windows" | "linux";
 
 /** The alert the settings screen is currently showing, if any. */
 export type SettingsDialog =
-  | "sessionLocked"
-  | "sessionUnlocked"
   | "clearDatabaseConfirm"
   | "clearingDatabase"
   | "databaseRecreated"
@@ -29,15 +27,11 @@ export interface SettingsScreenProps {
   platform?: SettingsPlatform;
   minimizeToTray?: boolean;
   showInDock?: boolean;
-  /** Whether the biometric session is unlocked: the button then reads "Lock Session" in red. */
-  isSessionValid?: boolean;
   dialog?: SettingsDialog;
   /** The failure text for the `clearDatabaseError` dialog. */
   clearDatabaseError?: string;
   onMinimizeToTrayChange?: (value: boolean) => void;
   onShowInDockChange?: (value: boolean) => void;
-  onLockSession?: () => void;
-  onUnlockSession?: () => void;
   /** "Clear" tapped: the app opens the `clearDatabaseConfirm` dialog. */
   onClearDatabase?: () => void;
   onConfirmClearDatabase?: () => void;
@@ -61,24 +55,6 @@ function SettingsAlert({
     </CupertinoDialogAction>
   );
   switch (dialog) {
-    case "sessionLocked":
-      return (
-        <CupertinoAlertDialog
-          barrier
-          title="Session Locked"
-          content="Your authentication session has been locked. You will need to authenticate again to access server credentials."
-          actions={[ok]}
-        />
-      );
-    case "sessionUnlocked":
-      return (
-        <CupertinoAlertDialog
-          barrier
-          title="Session Unlocked"
-          content="Authentication successful. Your session will remain active for 30 minutes."
-          actions={[ok]}
-        />
-      );
     case "clearDatabaseConfirm":
       return (
         <CupertinoAlertDialog
@@ -148,21 +124,18 @@ function SettingsAlert({
 }
 
 /**
- * The Settings tab: desktop tray/dock options, the biometric session lock,
- * clearing the database, and version info. Destructive and session actions
- * confirm through alerts, selected with `dialog`.
+ * The Settings tab: desktop tray/dock options, clearing the database, and
+ * version info. Clearing the database confirms through alerts, selected with
+ * `dialog`.
  */
 export function SettingsScreen({
   platform = "ios",
   minimizeToTray = false,
   showInDock = true,
-  isSessionValid = false,
   dialog,
   clearDatabaseError,
   onMinimizeToTrayChange,
   onShowInDockChange,
-  onLockSession,
-  onUnlockSession,
   onClearDatabase,
   onConfirmClearDatabase,
   onDismissDialog,
@@ -216,25 +189,6 @@ export function SettingsScreen({
           {spacer}
         </>
       )}
-      <CupertinoFormSection header="SECURITY">
-        <CupertinoFormRow
-          prefix={
-            <FormRowLabel
-              title="Authentication Session"
-              subtitle="Manage biometric authentication session"
-            />
-          }
-        >
-          <CupertinoButton
-            padding={0}
-            color={isSessionValid ? "destructiveRed" : "activeBlue"}
-            onClick={isSessionValid ? onLockSession : onUnlockSession}
-          >
-            {isSessionValid ? "Lock Session" : "Unlock Session"}
-          </CupertinoButton>
-        </CupertinoFormRow>
-      </CupertinoFormSection>
-      {spacer}
       <CupertinoFormSection header="DATABASE">
         <CupertinoFormRow
           prefix={

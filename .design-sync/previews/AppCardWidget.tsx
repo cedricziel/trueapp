@@ -23,6 +23,7 @@ const jellyfin: TrueNASApp = {
     "Free media system that puts you in control of managing and streaming your media.",
   installed: true,
   healthy: true,
+  state: "running",
   isFavorite: true,
   categories: ["media", "streaming"],
   latestAppVersion: "10.10.3",
@@ -48,6 +49,7 @@ const nextcloud: TrueNASApp = {
     "A safe home for all your data: files, calendars, contacts and more.",
   installed: true,
   healthy: true,
+  state: "running",
   categories: ["productivity", "storage"],
   latestAppVersion: "30.0.1",
   resourceUsage: {
@@ -68,10 +70,32 @@ const homeAssistant: TrueNASApp = {
     "Open source home automation that puts local control and privacy first.",
   installed: true,
   healthy: false,
+  state: "crashed",
   categories: ["home-automation"],
   latestAppVersion: "2024.11.2",
   usedPorts: [{ containerPort: 8123, protocol: "tcp", hostPort: 30103 }],
   healthyError: "Container homeassistant exited with code 1",
+};
+
+const paperless: TrueNASApp = {
+  name: "Paperless-ngx",
+  description:
+    "Community-supported document management system that transforms physical documents into a searchable online archive.",
+  installed: true,
+  healthy: true,
+  state: "stopped",
+  categories: ["productivity", "documents"],
+  latestAppVersion: "2.13.5",
+};
+
+const syncthing: TrueNASApp = {
+  name: "Syncthing",
+  description: "Continuous file synchronization between your devices.",
+  installed: true,
+  healthy: true,
+  state: "deploying",
+  categories: ["storage"],
+  latestAppVersion: "1.28.1",
 };
 
 function Pane({
@@ -128,6 +152,18 @@ export const UpgradeAvailableLight = () => (
 export const UnhealthyDark = () => (
   <Pane dark>
     <AppCardWidget app={homeAssistant} />
+  </Pane>
+);
+
+export const StoppedLight = () => (
+  <Pane>
+    <AppCardWidget app={paperless} onToggleFavorite={noop} />
+  </Pane>
+);
+
+export const DeployingDark = () => (
+  <Pane dark>
+    <AppCardWidget app={syncthing} onToggleFavorite={noop} />
   </Pane>
 );
 
