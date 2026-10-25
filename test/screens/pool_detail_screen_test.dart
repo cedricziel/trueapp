@@ -12,6 +12,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_api_client.dart';
 import '../helpers/layout_assertions.dart';
+import '../helpers/pool_scan_fixtures.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
@@ -78,6 +79,52 @@ void main() {
       ),
     );
   }
+
+  group('PoolDetailScreen - scan', () {
+    testWidgets('shows scrub progress for a running scan', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'scan': poolScanJson(percentage: 42.5, totalSecsLeft: 90),
+          }),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('Datasets'));
+
+      expect(find.text('Scrub'), findsOneWidget);
+      expect(find.text('42.5%'), findsOneWidget);
+      expect(find.text('1m'), findsOneWidget);
+    });
+
+    testWidgets('shows the last completed scan when idle', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'scan': poolScanJson(
+              state: 'FINISHED',
+              endTime: truenasDate(DateTime(2026, 10, 1, 15, 30)),
+            ),
+          }),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('Datasets'));
+
+      expect(find.text('Last scrub'), findsOneWidget);
+      expect(find.text('Oct 1, 2026 15:30'), findsOneWidget);
+    });
+
+    testWidgets('has no scan section for a pool that was never scanned', (
+      tester,
+    ) async {
+      await tester.pumpWidget(wrap(Pool.fromJson({'name': 'tank'})));
+      await pumpUntilFound(tester, find.text('Datasets'));
+
+      expect(find.text('Scrub'), findsNothing);
+      expect(find.text('Last scrub'), findsNothing);
+    });
+  });
 
   group('PoolDetailScreen - pool info', () {
     testWidgets('shows the pool name in the nav bar title', (

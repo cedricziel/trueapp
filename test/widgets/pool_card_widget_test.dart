@@ -9,6 +9,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/widgets/pool_card_widget.dart';
 import '../helpers/layout_assertions.dart';
+import '../helpers/pool_scan_fixtures.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/test_database.dart';
 import '../helpers/test_providers.dart';
@@ -270,6 +271,35 @@ void main() {
 
       expect(find.text('512B'), findsOneWidget);
       expect(find.text('2.0KB'), findsOneWidget);
+    });
+  });
+
+  group('PoolCardWidget - scan indicator', () {
+    testWidgets('shows scrub progress while a scan is running', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'scan': poolScanJson(percentage: 42.0),
+          }),
+        ),
+      );
+
+      expect(find.text('Scrubbing 42%'), findsOneWidget);
+      expectNoLayoutOverflow(tester);
+    });
+
+    testWidgets('shows nothing for an idle pool', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          Pool.fromJson({
+            'name': 'tank',
+            'scan': poolScanJson(state: 'FINISHED'),
+          }),
+        ),
+      );
+
+      expect(find.textContaining('Scrub'), findsNothing);
     });
   });
 

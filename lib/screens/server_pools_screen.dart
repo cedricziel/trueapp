@@ -8,6 +8,7 @@ import 'package:truehub/widgets/connection_error_widget.dart';
 import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/pool_scan/pool_scan_badge.dart';
 import 'package:truehub/widgets/refreshable_scroll_view.dart';
 import 'package:truehub/widgets/section_card.dart';
 
@@ -180,6 +181,10 @@ class _ServerPoolsScreenState extends State<ServerPoolsScreen> {
                   runSpacing: 6,
                   children: [for (final disk in disks) _buildDriveBadge(disk)],
                 ),
+              ],
+              if (pool.scan case final scan? when scan.isRunning) ...[
+                const SizedBox(height: 12),
+                PoolScanBadge(scan: scan),
               ],
               if (unhealthyDisks.isNotEmpty) ...[
                 const SizedBox(height: 8),

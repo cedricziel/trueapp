@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/pool.dart';
+import 'package:truehub/widgets/pool_scan/pool_scan_badge.dart';
 import 'package:truehub/widgets/storage_metric_widget.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 
@@ -132,6 +133,13 @@ class PoolCardWidget extends StatelessWidget {
                 ),
               ],
             ),
+            if (pool.scan case final scan? when scan.isRunning) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PoolScanBadge(scan: scan),
+              ),
+            ],
           ],
         ),
       ),
