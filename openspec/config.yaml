@@ -1,0 +1,38 @@
+schema: spec-driven
+
+context: |
+  TrueHub: Flutter app managing TrueNAS SCALE servers on iOS and macOS.
+  UI uses Cupertino widgets only, never Material.
+  State management uses provider; expose changing state as Streams.
+  Passwords live in the Keychain (NativeKeychainService), never in the database.
+  Server metadata: CloudKit on Apple platforms, SQLite (drift) elsewhere.
+  TrueNAS client: JSON-RPC 2.0 over WebSocket at /api/current (lib/services/truenas_api_client).
+  Native Keychain/CloudKit code lives in packages/truenas_native_plugins.
+  Telemetry uses OpenTelemetry (flutter_otel).
+  CI gates: flutter analyze, dart format --set-exit-if-changed ., flutter test --coverage,
+  dart run tool/check_coverage.dart (ratchet in tool/coverage_floor.txt), iOS and macOS builds.
+  Commits are conventional; release-please cuts releases from main.
+  After changing the drift schema, run dart run build_runner build.
+
+rules:
+  proposal:
+    - Name the TrueNAS SCALE (and DSM, if touched) releases the change must support and what happens on older ones.
+    - List any new Info.plist key, entitlement or permission prompt the change needs.
+    - State whether any data leaves the device to a third party, and how PRIVACY.md changes.
+  design:
+    - Define each new service as an interface, with the implementation injected.
+  specs:
+    - A scenario that depends on server behaviour names the server release it describes.
+  tasks:
+    - Each task names the failing test that proves it.
+    - Tests that need a server use the shared fakes in test/helpers or package testing libraries, not per-test fakes.
+
+operations:
+  apply:
+    guidance:
+      - Work red, green, refactor; keep only tests that would catch a real regression.
+      - Make one conventional commit per task or smaller.
+      - Before reporting a task done, run flutter analyze, dart format --set-exit-if-changed ., flutter test --coverage and dart run tool/check_coverage.dart.
+  archive:
+    guidance:
+      - Archive the change as the last commit on its branch, so one merge carries the code and the updated specs.
