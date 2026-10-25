@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/app_logger.dart';
 import 'package:truehub/services/tray_status_ports.dart';
 
@@ -15,6 +16,7 @@ class TrayStatusBinder extends StatefulWidget {
     required this.healthSource,
     required this.appsSource,
     required this.connectionSource,
+    required this.poolsSource,
     required this.onShowWindow,
     required this.onQuitApp,
     required this.child,
@@ -26,6 +28,7 @@ class TrayStatusBinder extends StatefulWidget {
   final TrayHealthSource healthSource;
   final TrayAppsSource appsSource;
   final TrayConnectionSource connectionSource;
+  final TrayPoolsSource poolsSource;
   final VoidCallback onShowWindow;
   final VoidCallback onQuitApp;
   final Widget child;
@@ -47,7 +50,10 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       widget.tray.setCallbacks(
         onShowWindow: widget.onShowWindow,
         onQuitApp: widget.onQuitApp,
-        onRefresh: () => widget.serverSource.refreshSelectedServer(),
+        onRefresh: () {
+          widget.serverSource.refreshSelectedServer();
+          widget.poolsSource.refreshPools();
+        },
       );
       await widget.tray.initializeTray();
       if (!mounted) return;
@@ -55,6 +61,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       widget.healthSource.addListener(_updateTrayStatus);
       widget.appsSource.addListener(_updateTrayStatus);
       widget.connectionSource.addListener(_updateTrayStatus);
+      widget.poolsSource.addListener(_updateTrayStatus);
       _listening = true;
       _updateTrayStatus();
     });
@@ -83,6 +90,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       totalServers: servers.length,
       alerts: alerts,
       appsWithPortals: appsWithPortals,
+      pools: widget.poolsSource.pools,
     );
     if (status == _lastPushed) return;
     _lastPushed = status;
@@ -92,6 +100,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       totalServers: status.totalServers,
       alerts: status.alerts,
       appsWithPortals: status.appsWithPortals,
+      pools: status.pools,
     );
   }
 
@@ -102,6 +111,7 @@ class _TrayStatusBinderState extends State<TrayStatusBinder> {
       widget.healthSource.removeListener(_updateTrayStatus);
       widget.appsSource.removeListener(_updateTrayStatus);
       widget.connectionSource.removeListener(_updateTrayStatus);
+      widget.poolsSource.removeListener(_updateTrayStatus);
     }
     super.dispose();
   }
@@ -116,12 +126,14 @@ class _TrayStatus {
     required this.totalServers,
     required this.alerts,
     required this.appsWithPortals,
+    required this.pools,
   });
 
   final int connectedServers;
   final int totalServers;
   final List<String> alerts;
   final List<AppConfig> appsWithPortals;
+  final List<Pool> pools;
 
   @override
   bool operator ==(Object other) =>
@@ -129,7 +141,8 @@ class _TrayStatus {
       other.connectedServers == connectedServers &&
       other.totalServers == totalServers &&
       listEquals(other.alerts, alerts) &&
-      listEquals(other.appsWithPortals, appsWithPortals);
+      listEquals(other.appsWithPortals, appsWithPortals) &&
+      listEquals(other.pools, pools);
 
   @override
   int get hashCode => Object.hash(
@@ -137,5 +150,6 @@ class _TrayStatus {
     totalServers,
     Object.hashAll(alerts),
     Object.hashAll(appsWithPortals),
+    Object.hashAll(pools),
   );
 }

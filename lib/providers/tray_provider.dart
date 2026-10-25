@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:truehub/services/tray_service.dart';
 import 'package:truehub/services/window_manager.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/tray_status_ports.dart';
 
 class TrayProvider with ChangeNotifier implements TrayStatusSink {
@@ -75,6 +76,7 @@ class TrayProvider with ChangeNotifier implements TrayStatusSink {
     required int totalServers,
     List<String>? alerts,
     List<AppConfig>? appsWithPortals,
+    List<Pool>? pools,
   }) async {
     // Only update on desktop platforms
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) return;
@@ -85,6 +87,7 @@ class TrayProvider with ChangeNotifier implements TrayStatusSink {
       totalServers: totalServers,
       alerts: alerts,
       appsWithPortals: appsWithPortals,
+      pools: pools,
     );
   }
 

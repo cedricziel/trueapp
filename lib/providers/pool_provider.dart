@@ -8,8 +8,11 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/tray_status_ports.dart';
 
-class PoolProvider extends ChangeNotifier with ActiveServerFollower {
+class PoolProvider extends ChangeNotifier
+    with ActiveServerFollower
+    implements TrayPoolsSource {
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Pool> _pools = [];
@@ -33,6 +36,7 @@ class PoolProvider extends ChangeNotifier with ActiveServerFollower {
 
   ApiClientInterface? get _apiClient => _session.client;
 
+  @override
   List<Pool> get pools => _pools;
   bool get isLoading => _isLoading;
   ConnectionError? get connectionError => _connectionError;
@@ -85,6 +89,7 @@ class PoolProvider extends ChangeNotifier with ActiveServerFollower {
     }
   }
 
+  @override
   Future<void> refreshPools() async {
     await loadPools();
   }

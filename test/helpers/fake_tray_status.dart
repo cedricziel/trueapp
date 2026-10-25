@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/tray_status_ports.dart';
 
 class StatusUpdate {
@@ -9,12 +10,14 @@ class StatusUpdate {
     required this.totalServers,
     required this.alerts,
     required this.appsWithPortals,
+    required this.pools,
   });
 
   final int connectedServers;
   final int totalServers;
   final List<String>? alerts;
   final List<AppConfig>? appsWithPortals;
+  final List<Pool>? pools;
 }
 
 class FakeTraySink implements TrayStatusSink {
@@ -44,6 +47,7 @@ class FakeTraySink implements TrayStatusSink {
     required int totalServers,
     List<String>? alerts,
     List<AppConfig>? appsWithPortals,
+    List<Pool>? pools,
   }) async {
     updates.add(
       StatusUpdate(
@@ -51,6 +55,7 @@ class FakeTraySink implements TrayStatusSink {
         totalServers: totalServers,
         alerts: alerts,
         appsWithPortals: appsWithPortals,
+        pools: pools,
       ),
     );
   }
@@ -92,6 +97,18 @@ class FakeTrayAppsSource extends ChangeNotifier implements TrayAppsSource {
     if (error != null) throw error!;
     return apps;
   }
+
+  void change() => notifyListeners();
+}
+
+class FakeTrayPoolsSource extends ChangeNotifier implements TrayPoolsSource {
+  @override
+  List<Pool> pools = [];
+
+  int refreshCalls = 0;
+
+  @override
+  Future<void> refreshPools() async => refreshCalls++;
 
   void change() => notifyListeners();
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/app_config.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 
 abstract interface class TrayStatusSink {
   void setCallbacks({
@@ -16,6 +17,7 @@ abstract interface class TrayStatusSink {
     required int totalServers,
     List<String>? alerts,
     List<AppConfig>? appsWithPortals,
+    List<Pool>? pools,
   });
 }
 
@@ -31,6 +33,12 @@ abstract interface class TrayHealthSource implements Listenable {
 
 abstract interface class TrayConnectionSource implements Listenable {
   List<String> get connectedServers;
+}
+
+abstract interface class TrayPoolsSource implements Listenable {
+  List<Pool> get pools;
+
+  Future<void> refreshPools();
 }
 
 abstract interface class TrayAppsSource implements Listenable {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/tray/tray_host.dart';
 import 'package:truehub/services/tray_service.dart';
 
@@ -254,6 +255,54 @@ void main() {
       ]);
 
       expect(_keys(host.lastMenuEntries), isNot(contains('app_radarr')));
+    });
+
+    test(
+      'lists pool capacity between the status rows and the actions',
+      () async {
+        await service.updateServerStatus(
+          connectedServers: 1,
+          totalServers: 1,
+          pools: const [
+            Pool(
+              id: '1',
+              name: 'tank',
+              status: 'ONLINE',
+              healthy: true,
+              allocatedBytes: 85,
+              freeBytes: 15,
+              dataVdevs: [],
+            ),
+          ],
+        );
+
+        expect(_keys(host.lastMenu), [
+          'show_window',
+          null,
+          'server_status',
+          null,
+          'pools_header',
+          'pool_1',
+          null,
+          'refresh',
+          null,
+          'quit',
+        ]);
+        expect(
+          _entry(host, 'pool_1').label,
+          contains('tank: 85B / 100B (85%)'),
+        );
+      },
+    );
+
+    test('omits the Pools section when no pools are known', () async {
+      await service.updateServerStatus(
+        connectedServers: 1,
+        totalServers: 1,
+        pools: const [],
+      );
+
+      expect(_keys(host.lastMenu), isNot(contains('pools_header')));
     });
 
     test('limits the Quick Access section to the first 10 apps', () async {
