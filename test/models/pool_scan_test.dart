@@ -2,39 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/pool.dart';
 import 'package:truehub/models/pool_scan.dart';
 
-void main() {
-  final startMs = DateTime.utc(2026, 10, 1, 12).millisecondsSinceEpoch;
-  final start = DateTime.fromMillisecondsSinceEpoch(startMs);
+import '../helpers/pool_scan_fixtures.dart';
 
-  Map<String, dynamic> scanJson({
-    String? function = 'SCRUB',
-    String? state = 'SCANNING',
-    Object? percentage = 25.0,
-    Object? bytesToProcess = 1000,
-    Object? bytesProcessed = 300,
-    Object? bytesIssued = 250,
-    Object? startTime,
-    Object? endTime,
-    Object? pause,
-    Object? errors = 0,
-    Object? totalSecsLeft,
-  }) => {
-    'function': function,
-    'state': state,
-    'start_time': startTime ?? {r'$date': startMs},
-    'end_time': endTime,
-    'percentage': percentage,
-    'bytes_to_process': bytesToProcess,
-    'bytes_processed': bytesProcessed,
-    'bytes_issued': bytesIssued,
-    'pause': pause,
-    'errors': errors,
-    'total_secs_left': totalSecsLeft,
-  };
+void main() {
+  final start = poolScanStart;
 
   group('PoolScan.tryParse', () {
     test('parses a running scrub', () {
-      final scan = PoolScan.tryParse(scanJson(totalSecsLeft: 600))!;
+      final scan = PoolScan.tryParse(poolScanJson(totalSecsLeft: 600))!;
 
       expect(scan.function, PoolScanFunction.scrub);
       expect(scan.state, PoolScanState.scanning);
@@ -51,7 +26,7 @@ void main() {
     });
 
     test('parses a running resilver', () {
-      final scan = PoolScan.tryParse(scanJson(function: 'RESILVER'))!;
+      final scan = PoolScan.tryParse(poolScanJson(function: 'RESILVER'))!;
 
       expect(scan.function, PoolScanFunction.resilver);
       expect(scan.isRunning, isTrue);
@@ -60,12 +35,12 @@ void main() {
     test('parses a finished scrub with errors and an end time', () {
       final end = start.add(const Duration(hours: 3));
       final scan = PoolScan.tryParse(
-        scanJson(
+        poolScanJson(
           state: 'FINISHED',
           percentage: 100.0,
           bytesIssued: 1000,
           errors: 4,
-          endTime: {r'$date': end.millisecondsSinceEpoch},
+          endTime: truenasDate(end),
         ),
       )!;
 
@@ -76,14 +51,14 @@ void main() {
     });
 
     test('parses a canceled scan', () {
-      final scan = PoolScan.tryParse(scanJson(state: 'CANCELED'))!;
+      final scan = PoolScan.tryParse(poolScanJson(state: 'CANCELED'))!;
 
       expect(scan.state, PoolScanState.canceled);
       expect(scan.isRunning, isFalse);
     });
 
     test('flags a paused scan', () {
-      final scan = PoolScan.tryParse(scanJson(pause: {r'$date': startMs}))!;
+      final scan = PoolScan.tryParse(poolScanJson(pause: truenasDate(start)))!;
 
       expect(scan.isPaused, isTrue);
     });
@@ -132,7 +107,7 @@ void main() {
 
     test('keeps unrecognised function and state values as unknown', () {
       final scan = PoolScan.tryParse(
-        scanJson(function: 'ERRORSCRUB', state: 'WEIRD'),
+        poolScanJson(function: 'ERRORSCRUB', state: 'WEIRD'),
       )!;
 
       expect(scan.function, PoolScanFunction.unknown);
@@ -141,21 +116,21 @@ void main() {
 
     test('derives the percentage from bytes when it is missing', () {
       final scan = PoolScan.tryParse(
-        scanJson(percentage: null, bytesIssued: 500),
+        poolScanJson(percentage: null, bytesIssued: 500),
       )!;
 
       expect(scan.fraction, 0.5);
     });
 
     test('clamps fraction into 0..1', () {
-      expect(PoolScan.tryParse(scanJson(percentage: 140.0))!.fraction, 1.0);
-      expect(PoolScan.tryParse(scanJson(percentage: -3.0))!.fraction, 0.0);
+      expect(PoolScan.tryParse(poolScanJson(percentage: 140.0))!.fraction, 1.0);
+      expect(PoolScan.tryParse(poolScanJson(percentage: -3.0))!.fraction, 0.0);
     });
   });
 
   group('PoolScan speed and time left', () {
     test('derives speed from bytes issued over elapsed time', () {
-      final scan = PoolScan.tryParse(scanJson(bytesIssued: 600))!;
+      final scan = PoolScan.tryParse(poolScanJson(bytesIssued: 600))!;
 
       expect(scan.bytesPerSecond(start.add(const Duration(seconds: 60))), 10.0);
     });
@@ -163,37 +138,39 @@ void main() {
     test('has no speed before any bytes are issued or time has elapsed', () {
       expect(
         PoolScan.tryParse(
-          scanJson(bytesIssued: 0),
+          poolScanJson(bytesIssued: 0),
         )!.bytesPerSecond(start.add(const Duration(seconds: 60))),
         isNull,
       );
-      expect(PoolScan.tryParse(scanJson())!.bytesPerSecond(start), isNull);
+      expect(PoolScan.tryParse(poolScanJson())!.bytesPerSecond(start), isNull);
     });
 
     test('has no speed for a finished or paused scan', () {
       final later = start.add(const Duration(minutes: 5));
 
       expect(
-        PoolScan.tryParse(scanJson(state: 'FINISHED'))!.bytesPerSecond(later),
+        PoolScan.tryParse(
+          poolScanJson(state: 'FINISHED'),
+        )!.bytesPerSecond(later),
         isNull,
       );
       expect(
         PoolScan.tryParse(
-          scanJson(pause: {r'$date': startMs}),
+          poolScanJson(pause: truenasDate(start)),
         )!.bytesPerSecond(later),
         isNull,
       );
     });
 
     test('prefers the middleware ETA over the derived one', () {
-      final scan = PoolScan.tryParse(scanJson(totalSecsLeft: 90))!;
+      final scan = PoolScan.tryParse(poolScanJson(totalSecsLeft: 90))!;
 
       expect(scan.timeLeft(DateTime.now()), const Duration(seconds: 90));
     });
 
     test('derives the ETA from speed when the middleware gives none', () {
       // 600 of 1000 bytes in 60s => 10 B/s => 40s for the remaining 400.
-      final scan = PoolScan.tryParse(scanJson(bytesIssued: 600))!;
+      final scan = PoolScan.tryParse(poolScanJson(bytesIssued: 600))!;
 
       expect(
         scan.timeLeft(start.add(const Duration(seconds: 60))),
@@ -203,7 +180,7 @@ void main() {
 
     test('has no ETA when nothing can be derived', () {
       final scan = PoolScan.tryParse(
-        scanJson(bytesToProcess: null, bytesIssued: null),
+        poolScanJson(bytesToProcess: null, bytesIssued: null),
       )!;
 
       expect(scan.timeLeft(DateTime.now()), isNull);
@@ -211,7 +188,7 @@ void main() {
 
     test('has no ETA for a finished scan', () {
       final scan = PoolScan.tryParse(
-        scanJson(state: 'FINISHED', totalSecsLeft: 5),
+        poolScanJson(state: 'FINISHED', totalSecsLeft: 5),
       )!;
 
       expect(scan.timeLeft(DateTime.now()), isNull);
@@ -220,7 +197,7 @@ void main() {
 
   group('Pool.scan', () {
     test('is parsed from pool.query and part of equality', () {
-      final withScan = Pool.fromJson({'name': 'tank', 'scan': scanJson()});
+      final withScan = Pool.fromJson({'name': 'tank', 'scan': poolScanJson()});
       final without = Pool.fromJson({'name': 'tank', 'scan': null});
 
       expect(withScan.scan?.function, PoolScanFunction.scrub);
