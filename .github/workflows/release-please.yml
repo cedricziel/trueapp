@@ -128,7 +128,7 @@ jobs:
 
       - name: Upload IPA artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TrueNASManager-${{ needs.release-please.outputs.tag_name }}
           path: build/*.ipa
@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload macOS pkg artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TrueNASManager-macOS-${{ needs.release-please.outputs.tag_name }}
           path: build/macos/*.pkg

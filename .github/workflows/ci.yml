@@ -89,7 +89,7 @@ jobs:
         # always(): the report is most useful precisely when the floor check
         # above failed, so the upload must not be skipped by that failure.
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: lcov-report
           path: coverage/lcov.info
