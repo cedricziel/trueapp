@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/api_client_manager_impl.dart';
+import 'package:truehub/services/retry_policy.dart';
 import 'package:truehub/services/truenas_api_client.dart';
 
 import '../helpers/fake_telemetry_service.dart';
+import '../helpers/fake_truenas_server.dart';
 
 void main() {
   group('ApiClientManager', () {
@@ -189,6 +191,63 @@ void main() {
         },
         timeout: const Timeout(Duration(seconds: 25)),
       );
+
+      group('retry on resume', () {
+        late List<Duration> waits;
+        late ApiClientManagerImpl retrying;
+
+        setUp(() {
+          waits = [];
+          retrying = ApiClientManagerImpl(
+            retryPolicy: RetryPolicy(jitter: 0),
+            wait: (d) async => waits.add(d),
+          );
+        });
+
+        tearDown(() => retrying.closeAllClients());
+
+        NasServer serverOn(int port) => NasServer(
+          id: 'retry-server',
+          name: 'Retry Server',
+          host: '127.0.0.1',
+          port: port,
+          useHttps: false,
+          username: 'root',
+          password: 'password',
+          isDefault: false,
+          trustedWifiSsids: const [],
+          localUrl: null,
+        );
+
+        test('backs off and retries a connection that keeps failing, then '
+            'reports the failure', () async {
+          // Nothing listens on port 1, so every attempt is refused.
+          await retrying.getClient(serverOn(1));
+
+          final failures = await retrying.ensureAllConnectionsAlive();
+
+          expect(failures.keys, ['retry-server']);
+          expect(waits, [
+            const Duration(seconds: 1),
+            const Duration(seconds: 2),
+          ]);
+        });
+
+        test('does not retry a rejected login', () async {
+          final fake = await FakeTrueNasServer.start();
+          addTearDown(fake.stop);
+          fake.onMethod('auth.login', (_) => false);
+          await retrying.getClient(serverOn(fake.port));
+
+          final failures = await retrying.ensureAllConnectionsAlive();
+
+          expect(waits, isEmpty);
+          expect(
+            (failures['retry-server']! as ConnectionException).error.type,
+            ConnectionErrorType.invalidCredentials,
+          );
+        });
+      });
 
       test(
         'only reports failures for servers whose client is still cached',

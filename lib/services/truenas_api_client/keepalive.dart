@@ -110,6 +110,7 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
 
   Future<void> _recoverConnection() async {
     _awaitingPong = false;
+    _lastRecoveryError = null;
 
     _log.warn('Keepalive failed, attempting reconnection');
 
@@ -168,7 +169,8 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
 
       _log.info('Successfully reconnected after keepalive timeout');
     } catch (e) {
-      _log.error('Failed to reconnect after keepalive timeout', error: e);
+      _lastRecoveryError = _handleError(e);
+      _log.errorWithCause('Failed to reconnect after keepalive timeout', e);
       _connectionStatusProvider?.updateConnectionState(
         _server.id,
         TrueNASConnectionState.error,
@@ -215,11 +217,12 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
     // does not rethrow, because the periodic timer must not die on a blip. A
     // caller that asked for a usable connection needs the bad news.
     if (!_hasLiveConnection || !_isAuthenticated) {
-      throw ConnectionException(
-        ConnectionError.networkUnreachable(
-          details: 'Could not restore the connection to ${_server.name}',
-        ),
-      );
+      throw _lastRecoveryError ??
+          ConnectionException(
+            ConnectionError.networkUnreachable(
+              details: 'Could not restore the connection to ${_server.name}',
+            ),
+          );
     }
   }
 
