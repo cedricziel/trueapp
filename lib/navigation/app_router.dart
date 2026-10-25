@@ -76,6 +76,7 @@ GoRouter createAppRouter({
     observers: [?newObserver()],
     routes: [
       ShellRoute(
+        notifyRootObserver: false,
         observers: [?newObserver()],
         builder: (context, state, child) {
           return AdaptiveNavigationScaffold(child: child);

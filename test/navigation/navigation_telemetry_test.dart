@@ -63,5 +63,10 @@ void main() {
     final screens = events.map((e) => e['screen.name']).toSet();
     expect(screens, containsAll(['server-apps', 'add-server']));
     expect(events.toString(), isNot(contains('secret-server-id')));
+    expect(
+      events.map((e) => e.toString()).toSet().length,
+      events.length,
+      reason: 'duplicate events',
+    );
   });
 }
