@@ -10,6 +10,7 @@ import 'package:truehub/screens/dataset_detail_screen.dart';
 import 'package:truehub/screens/pool_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import '../helpers/fake_api_client.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pool_scan_fixtures.dart';
@@ -481,8 +482,7 @@ void main() {
           'available': {'value': '1.5TiB'},
         },
         {
-          'name':
-              'tank/a-fairly-long-dataset-name-for-overflow-testing/nested-child',
+          'name': 'tank/a-fairly-long-dataset-name-for-overflow-testing/nested-child',
           'pool': 'tank',
           'type': 'VOLUME',
           'used': {'value': '12GiB'},

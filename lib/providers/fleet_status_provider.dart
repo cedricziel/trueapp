@@ -56,9 +56,8 @@ class FleetStatusProvider extends ChangeNotifier {
     Duration timeout = defaultTimeout,
   }) async {
     for (final server in servers) {
-      _statuses[server.id] = statusFor(
-        server.id,
-      ).copyWith(connectivity: FleetServerConnectivity.loading);
+      _statuses[server.id] = statusFor(server.id)
+          .copyWith(connectivity: FleetServerConnectivity.loading);
     }
     notifyListeners();
 

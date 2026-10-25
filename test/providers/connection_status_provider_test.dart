@@ -49,29 +49,26 @@ void main() {
       expect(status.isHealthy, isTrue);
     });
 
-    test(
-      'preserves connectionUrl and isLocalConnection when omitted on a later update',
-      () {
-        provider.updateConnectionState(
-          'server-1',
-          TrueNASConnectionState.connected,
-          connectionUrl: 'https://nas.local',
-          isLocalConnection: true,
-        );
+    test('preserves connectionUrl and isLocalConnection when omitted on a later update', () {
+      provider.updateConnectionState(
+        'server-1',
+        TrueNASConnectionState.connected,
+        connectionUrl: 'https://nas.local',
+        isLocalConnection: true,
+      );
 
-        provider.updateConnectionState(
-          'server-1',
-          TrueNASConnectionState.reconnecting,
-        );
+      provider.updateConnectionState(
+        'server-1',
+        TrueNASConnectionState.reconnecting,
+      );
 
-        final status = provider.getStatus('server-1')!;
-        expect(status.state, TrueNASConnectionState.reconnecting);
-        expect(status.connectionUrl, 'https://nas.local');
-        expect(status.isLocalConnection, isTrue);
-        // lastPong from the earlier connected state is preserved too.
-        expect(status.lastPong, isNotNull);
-      },
-    );
+      final status = provider.getStatus('server-1')!;
+      expect(status.state, TrueNASConnectionState.reconnecting);
+      expect(status.connectionUrl, 'https://nas.local');
+      expect(status.isLocalConnection, isTrue);
+      // lastPong from the earlier connected state is preserved too.
+      expect(status.lastPong, isNotNull);
+    });
 
     test('records an error message on the error state', () {
       provider.updateConnectionState(

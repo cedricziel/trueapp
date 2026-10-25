@@ -183,9 +183,8 @@ void main() {
       await database.serversDao.updateLastConnected(server.id);
       final after = DateTime.now().add(const Duration(seconds: 2));
 
-      final lastConnected = (await database.serversDao.getServer(
-        server.id,
-      ))!.lastConnected!;
+      final lastConnected = (await database.serversDao.getServer(server.id))!
+          .lastConnected!;
       expect(lastConnected.isAfter(before), isTrue);
       expect(lastConnected.isBefore(after), isTrue);
     });

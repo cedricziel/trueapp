@@ -429,46 +429,43 @@ void main() {
       );
     });
 
-    test(
-      'appConfigToCompanion JSON-encodes list fields, mapToAppConfig decodes them back',
-      () async {
-        final database = createTestDatabase();
-        final serverId = await _seedServer(database);
-        final config = app_models.AppConfig(
-          serverId: serverId,
-          appName: 'plex',
-          categories: const ['media', 'entertainment'],
-          tags: const ['popular'],
-          screenshots: const ['https://example.com/1.png'],
-          sources: const ['https://example.com/src'],
-          maintainersJson: '[{"name":"someone"}]',
-          upgradeInfoJson: '{"available":true}',
-          usedPortsJson: '[{"port":32400}]',
-        );
+    test('appConfigToCompanion JSON-encodes list fields, mapToAppConfig decodes them back', () async {
+      final database = createTestDatabase();
+      final serverId = await _seedServer(database);
+      final config = app_models.AppConfig(
+        serverId: serverId,
+        appName: 'plex',
+        categories: const ['media', 'entertainment'],
+        tags: const ['popular'],
+        screenshots: const ['https://example.com/1.png'],
+        sources: const ['https://example.com/src'],
+        maintainersJson: '[{"name":"someone"}]',
+        upgradeInfoJson: '{"available":true}',
+        usedPortsJson: '[{"port":32400}]',
+      );
 
-        final companion = database.appConfigsDao.appConfigToCompanion(config);
-        expect(companion.categories.value, isNotNull);
-        expect(companion.categories.value, '["media","entertainment"]');
+      final companion = database.appConfigsDao.appConfigToCompanion(config);
+      expect(companion.categories.value, isNotNull);
+      expect(companion.categories.value, '["media","entertainment"]');
 
-        final id = await database.appConfigsDao.insertAppConfig(companion);
-        final roundTripped = (await database.appConfigsDao.getAppConfigs(
-          serverId,
-        )).single;
-        final mapped = database.appConfigsDao.mapToAppConfig(
-          roundTripped,
-          const [],
-        );
+      final id = await database.appConfigsDao.insertAppConfig(companion);
+      final roundTripped = (await database.appConfigsDao.getAppConfigs(
+        serverId,
+      )).single;
+      final mapped = database.appConfigsDao.mapToAppConfig(
+        roundTripped,
+        const [],
+      );
 
-        expect(mapped.id, id);
-        expect(mapped.categories, ['media', 'entertainment']);
-        expect(mapped.tags, ['popular']);
-        expect(mapped.screenshots, ['https://example.com/1.png']);
-        expect(mapped.sources, ['https://example.com/src']);
-        expect(mapped.maintainersJson, '[{"name":"someone"}]');
-        expect(mapped.upgradeInfoJson, '{"available":true}');
-        expect(mapped.usedPortsJson, '[{"port":32400}]');
-      },
-    );
+      expect(mapped.id, id);
+      expect(mapped.categories, ['media', 'entertainment']);
+      expect(mapped.tags, ['popular']);
+      expect(mapped.screenshots, ['https://example.com/1.png']);
+      expect(mapped.sources, ['https://example.com/src']);
+      expect(mapped.maintainersJson, '[{"name":"someone"}]');
+      expect(mapped.upgradeInfoJson, '{"available":true}');
+      expect(mapped.usedPortsJson, '[{"port":32400}]');
+    });
 
     test(
       'mapToAppConfig leaves list fields null when the row has none set',
@@ -478,9 +475,8 @@ void main() {
         await database.appConfigsDao.insertAppConfig(
           AppConfigsCompanion.insert(serverId: serverId, appName: 'plex'),
         );
-        final row = (await database.appConfigsDao.getAppConfigs(
-          serverId,
-        )).single;
+        final row = (await database.appConfigsDao.getAppConfigs(serverId))
+            .single;
 
         final mapped = database.appConfigsDao.mapToAppConfig(row, const []);
 

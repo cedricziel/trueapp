@@ -137,8 +137,7 @@ class _AddServerScreenState extends State<AddServerScreen> {
         if (isValid) {
           _connectionTestResult = '✅ Connection successful!';
         } else {
-          _connectionTestResult =
-              '❌ Authentication failed. Check username/password and server settings.';
+          _connectionTestResult = '❌ Authentication failed. Check username/password and server settings.';
         }
         _isTestingConnection = false;
       });

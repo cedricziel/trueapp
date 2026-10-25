@@ -15,6 +15,7 @@ import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/providers/user_profile_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import 'fake_tray_host.dart';
 import 'test_providers.dart';
 

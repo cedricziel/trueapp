@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/services/tray_service.dart';
 import 'package:truehub/services/window_manager.dart';

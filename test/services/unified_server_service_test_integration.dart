@@ -218,41 +218,38 @@ void _testStreamUpdates() {
 }
 
 void _testErrorHandling() {
-  test(
-    'should auto-initialize when operations called before explicit initialization',
-    () async {
-      final repository = MockServerRepository();
-      final keychain = MockKeychainService();
-      final service = UnifiedServerService(
-        repository: repository,
-        keychain: keychain,
-      );
-      // Don't explicitly initialize
+  test('should auto-initialize when operations called before explicit initialization', () async {
+    final repository = MockServerRepository();
+    final keychain = MockKeychainService();
+    final service = UnifiedServerService(
+      repository: repository,
+      keychain: keychain,
+    );
+    // Don't explicitly initialize
 
-      final server = NasServer.create(
-        name: 'Test',
-        host: '192.168.1.100',
-        username: 'admin',
-        password: 'temp-password',
-      );
+    final server = NasServer.create(
+      name: 'Test',
+      host: '192.168.1.100',
+      username: 'admin',
+      password: 'temp-password',
+    );
 
-      // These should succeed due to auto-initialization
-      final saveResult = await service.saveServerConfig(
-        server: server,
-        password: 'pass',
-      );
-      expect(saveResult, isTrue);
+    // These should succeed due to auto-initialization
+    final saveResult = await service.saveServerConfig(
+      server: server,
+      password: 'pass',
+    );
+    expect(saveResult, isTrue);
 
-      final servers = await service.getAllServers();
-      expect(servers.length, equals(1));
+    final servers = await service.getAllServers();
+    expect(servers.length, equals(1));
 
-      final retrievedServer = await service.getServer(server.id);
-      expect(retrievedServer, isNotNull);
+    final retrievedServer = await service.getServer(server.id);
+    expect(retrievedServer, isNotNull);
 
-      // Service should now be initialized
-      expect(service.isInitialized, isTrue);
-    },
-  );
+    // Service should now be initialized
+    expect(service.isInitialized, isTrue);
+  });
 
   test('should handle keychain failures gracefully', () async {
     final repository = MockServerRepository();

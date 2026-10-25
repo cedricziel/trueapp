@@ -8,6 +8,7 @@ import 'package:truehub/screens/edit_server_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/network_service.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import '../helpers/test_providers.dart';
 import '../helpers/mock_network_service.dart';
 import '../helpers/pump_helpers.dart';
@@ -108,26 +109,25 @@ void main() {
                 child: const Text('Edit'),
                 onPressed: () async {
                   navigationResult =
-                      await Navigator.of(
-                        tester.element(find.text('Edit')),
-                      ).push<bool>(
-                        CupertinoPageRoute(
-                          builder: (context) => MultiProvider(
-                            providers: [
-                              Provider<UnifiedServerService>.value(
-                                value: unifiedServerService,
+                      await Navigator.of(tester.element(find.text('Edit')))
+                          .push<bool>(
+                            CupertinoPageRoute(
+                              builder: (context) => MultiProvider(
+                                providers: [
+                                  Provider<UnifiedServerService>.value(
+                                    value: unifiedServerService,
+                                  ),
+                                  ChangeNotifierProvider.value(
+                                    value: serverProvider,
+                                  ),
+                                ],
+                                child: EditServerScreen(
+                                  server: testServer,
+                                  networkService: mockNetworkService,
+                                ),
                               ),
-                              ChangeNotifierProvider.value(
-                                value: serverProvider,
-                              ),
-                            ],
-                            child: EditServerScreen(
-                              server: testServer,
-                              networkService: mockNetworkService,
                             ),
-                          ),
-                        ),
-                      );
+                          );
                 },
               ),
             ),
@@ -172,26 +172,25 @@ void main() {
                 child: const Text('Edit'),
                 onPressed: () async {
                   navigationResult =
-                      await Navigator.of(
-                        tester.element(find.text('Edit')),
-                      ).push<bool>(
-                        CupertinoPageRoute(
-                          builder: (context) => MultiProvider(
-                            providers: [
-                              Provider<UnifiedServerService>.value(
-                                value: unifiedServerService,
+                      await Navigator.of(tester.element(find.text('Edit')))
+                          .push<bool>(
+                            CupertinoPageRoute(
+                              builder: (context) => MultiProvider(
+                                providers: [
+                                  Provider<UnifiedServerService>.value(
+                                    value: unifiedServerService,
+                                  ),
+                                  ChangeNotifierProvider.value(
+                                    value: serverProvider,
+                                  ),
+                                ],
+                                child: EditServerScreen(
+                                  server: testServer,
+                                  networkService: mockNetworkService,
+                                ),
                               ),
-                              ChangeNotifierProvider.value(
-                                value: serverProvider,
-                              ),
-                            ],
-                            child: EditServerScreen(
-                              server: testServer,
-                              networkService: mockNetworkService,
                             ),
-                          ),
-                        ),
-                      );
+                          );
                   navigationCompleted = true;
                 },
               ),
