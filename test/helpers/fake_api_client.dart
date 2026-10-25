@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:truehub/models/alert.dart';
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/job.dart';
@@ -126,6 +127,47 @@ class FakeApiClient implements ApiClientInterface {
   }
 
   List<Map<String, dynamic>> alerts = [];
+
+  final StreamController<AlertEvent> _alertEventsController =
+      StreamController<AlertEvent>.broadcast();
+
+  @override
+  Stream<AlertEvent> get alertEvents => _alertEventsController.stream;
+
+  /// Pushes [event] to every current [alertEvents] listener.
+  void emitAlertEvent(AlertEvent event) => _alertEventsController.add(event);
+
+  @override
+  Future<void> subscribeToAlerts() async {
+    _recordAndMaybeThrow('subscribeToAlerts');
+  }
+
+  @override
+  Future<void> unsubscribeFromAlerts() async {
+    _recordAndMaybeThrow('unsubscribeFromAlerts');
+  }
+
+  /// When set, [dismissAlert] and [restoreAlert] wait for it before
+  /// returning, so a test can observe state while the request is in flight.
+  Future<void>? alertActionGate;
+
+  /// Alert ids passed to [dismissAlert] and [restoreAlert], in call order.
+  final List<String> dismissedAlertIds = [];
+  final List<String> restoredAlertIds = [];
+
+  @override
+  Future<void> dismissAlert(String alertId) async {
+    dismissedAlertIds.add(alertId);
+    await alertActionGate;
+    _recordAndMaybeThrow('dismissAlert');
+  }
+
+  @override
+  Future<void> restoreAlert(String alertId) async {
+    restoredAlertIds.add(alertId);
+    await alertActionGate;
+    _recordAndMaybeThrow('restoreAlert');
+  }
 
   @override
   Future<List<ServiceStatus>> getServices() async {
@@ -325,11 +367,12 @@ class FakeApiClient implements ApiClientInterface {
   int rerunJobResult = 0;
 
   /// Closes the stream controllers backing [systemStatsStream],
-  /// [appStatsStream] and [jobsStream]. Call from a test's `tearDown` if the
+  /// [appStatsStream], [jobsStream] and [alertEvents]. Call from a test's `tearDown` if the
   /// fake was used with subscriptions.
   Future<void> dispose() async {
     await _systemStatsController.close();
     await _appStatsController.close();
     await _jobsController.close();
+    await _alertEventsController.close();
   }
 }

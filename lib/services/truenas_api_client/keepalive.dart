@@ -128,6 +128,8 @@ mixin _KeepaliveAndRecovery on _ClientBase, _Connection implements SessionApi {
     _appStatsSubscriptionId = null;
     _isSubscribedToJobs = false;
     _jobsSubscriptionId = null;
+    _isSubscribedToAlerts = false;
+    _alertsSubscriptionId = null;
 
     try {
       // The session this recovery was invoked for is no longer trusted, even

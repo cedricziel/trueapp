@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -288,6 +289,102 @@ void main() {
 
       expect(alerts, hasLength(1));
       expect(alerts.first.message, 'Pool degraded');
+    });
+
+    test('subscribeToAlerts subscribes to alert.list and delivers ADDED, '
+        'CHANGED and REMOVED events', () async {
+      final subscribed = <Object?>[];
+      server.onMethod('core.subscribe', (params) {
+        subscribed.add(params.value);
+        return 'sub-alerts';
+      });
+
+      await client.subscribeToAlerts();
+      expect(subscribed, [
+        ['alert.list'],
+      ]);
+
+      final eventsFuture = client.alertEvents.take(3).toList();
+      final peer = server.lastPeer!;
+      peer.sendNotification('collection_update', {
+        'collection': 'alert.list',
+        'msg': 'ADDED',
+        'id': 'a1',
+        'fields': {'uuid': 'a1', 'level': 'WARNING', 'formatted': 'Hot'},
+      });
+      peer.sendNotification('collection_update', {
+        'collection': 'alert.list',
+        'msg': 'CHANGED',
+        'id': 'a1',
+        'fields': {
+          'uuid': 'a1',
+          'level': 'WARNING',
+          'formatted': 'Hot',
+          'dismissed': true,
+        },
+      });
+      peer.sendNotification('collection_update', {
+        'collection': 'alert.list',
+        'msg': 'REMOVED',
+        'id': 'a1',
+      });
+
+      final events = await eventsFuture.timeout(const Duration(seconds: 5));
+
+      expect(events.map((e) => e.type), [
+        AlertEventType.added,
+        AlertEventType.changed,
+        AlertEventType.removed,
+      ]);
+      expect(events[0].alert!.message, 'Hot');
+      expect(events[1].alert!.dismissed, isTrue);
+      expect(events[2].id, 'a1');
+
+      await client.unsubscribeFromAlerts();
+    });
+
+    test('unsubscribeFromAlerts cancels the server subscription', () async {
+      final unsubscribed = <Object?>[];
+      server
+        ..onMethod('core.subscribe', (_) => 'sub-alerts')
+        ..onMethod('core.unsubscribe', (params) {
+          unsubscribed.add(params.value);
+          return true;
+        });
+
+      await client.subscribeToAlerts();
+      await client.unsubscribeFromAlerts();
+
+      expect(unsubscribed, [
+        ['sub-alerts'],
+      ]);
+    });
+
+    test('dismissAlert and restoreAlert send the alert uuid', () async {
+      final calls = <String>[];
+      server
+        ..onMethod('alert.dismiss', (params) {
+          calls.add('dismiss ${params.value}');
+          return <Object?>[];
+        })
+        ..onMethod('alert.restore', (params) {
+          calls.add('restore ${params.value}');
+          return <Object?>[];
+        });
+
+      await client.dismissAlert('a1');
+      await client.restoreAlert('a1');
+
+      expect(calls, ['dismiss [a1]', 'restore [a1]']);
+    });
+
+    test('dismissAlert surfaces a server failure', () async {
+      server.onMethod(
+        'alert.dismiss',
+        (_) => throw json_rpc.RpcException(500, 'boom'),
+      );
+
+      await expectLater(client.dismissAlert('a1'), throwsA(isA<Exception>()));
     });
 
     test('getServices parses the service list into models', () async {

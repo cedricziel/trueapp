@@ -12,6 +12,7 @@ import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/user_info.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/alert.dart';
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/job.dart';
 import 'package:truehub/models/system_stats.dart';
@@ -28,6 +29,7 @@ part 'truenas_api_client/connection.dart';
 part 'truenas_api_client/keepalive.dart';
 part 'truenas_api_client/session.dart';
 part 'truenas_api_client/health.dart';
+part 'truenas_api_client/alerts.dart';
 part 'truenas_api_client/services.dart';
 part 'truenas_api_client/pools.dart';
 part 'truenas_api_client/datasets.dart';
@@ -65,7 +67,7 @@ class _InFlight {
 /// live in the area mixins; the base only needs to restore and tear them down.
 abstract class _ClientBase
     with _ErrorMapping
-    implements SystemStatsApi, AppStatsApi, JobsApi {
+    implements SystemStatsApi, AppStatsApi, JobsApi, AlertsApi {
   final NasServer _server;
   final NetworkService _networkService = NetworkService();
   final ConnectionStatusProvider? _connectionStatusProvider;
@@ -97,6 +99,12 @@ abstract class _ClientBase
   String? _jobsSubscriptionId;
   bool _isSubscribedToJobs = false;
   bool _wantsJobs = false;
+
+  // Alert subscription management
+  StreamController<AlertEvent>? _alertsController;
+  String? _alertsSubscriptionId;
+  bool _isSubscribedToAlerts = false;
+  bool _wantsAlerts = false;
 
   /// Jobs seen so far, keyed by id. `core.get_jobs` collection_update events
   /// carry one changed job at a time, so this is what turns those deltas into
@@ -163,7 +171,8 @@ abstract class _ClientBase
   bool get _hasMissingSubscription =>
       (_wantsSystemStats && !_isSubscribedToRealtime) ||
       (_wantsAppStats && !_isSubscribedToAppStats) ||
-      (_wantsJobs && !_isSubscribedToJobs);
+      (_wantsJobs && !_isSubscribedToJobs) ||
+      (_wantsAlerts && !_isSubscribedToAlerts);
 
   /// Re-subscribes to the streams the UI had asked for before the connection
   /// was lost. The stale subscription ids belong to the dead socket.
@@ -176,6 +185,7 @@ abstract class _ClientBase
         subscribeToSystemStats(),
       if (_wantsAppStats && !_isSubscribedToAppStats) subscribeToAppStats(),
       if (_wantsJobs && !_isSubscribedToJobs) subscribeToJobs(),
+      if (_wantsAlerts && !_isSubscribedToAlerts) subscribeToAlerts(),
     ]);
   }
 
@@ -238,6 +248,16 @@ abstract class _ClientBase
           _jobsController?.add(_jobsById.values.toList());
 
           _log.debug('Job #${job.id} (${job.method}) -> ${job.state}');
+        } else if (collection == 'alert.list') {
+          final event = AlertEvent.parse(
+            msg: parameters['msg'].valueOr(null) as String?,
+            id: parameters['id'].valueOr(null),
+            fields: parameters['fields'].valueOr(null),
+          );
+          if (event != null) {
+            _alertsController?.add(event);
+            _log.debug('Alert ${event.id} ${event.type.name}');
+          }
         }
       } catch (e) {
         _log.error('Error parsing collection_update', error: e);
@@ -259,7 +279,8 @@ class TrueNasApiClient extends _ClientTransport
         _AppsOps,
         _SystemStatsOps,
         _AppStatsOps,
-        _JobsOps
+        _JobsOps,
+        _AlertsOps
     implements ApiClientInterface {
   TrueNasApiClient(
     super.server, [
