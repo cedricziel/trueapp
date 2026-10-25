@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.16.0](https://github.com/cedricziel/trueapp/compare/v0.15.0...v0.16.0) (2026-10-25)
+
+
+### Features
+
+* add synology_api package for the DSM Web API ([#265](https://github.com/cedricziel/trueapp/issues/265)) ([238ceb0](https://github.com/cedricziel/trueapp/commit/238ceb0d86ef0975e773e60b66912bf50acc2f1d))
+* **design:** re-sync Claude Design ports with the current app ([#264](https://github.com/cedricziel/trueapp/issues/264)) ([f3fb87f](https://github.com/cedricziel/trueapp/commit/f3fb87f1f9d779093c94a052a45d8c2846594e4c))
+* live alert updates and dismiss/restore on the health screen ([#262](https://github.com/cedricziel/trueapp/issues/262)) ([727e878](https://github.com/cedricziel/trueapp/commit/727e878bd9502571d50ef27a0995c90b5b72bc86))
+* record rpc duration and connection attempt metrics ([#268](https://github.com/cedricziel/trueapp/issues/268)) ([9527808](https://github.com/cedricziel/trueapp/commit/95278081ba4ad13f3ce25625730a3d851cbdd010))
+* record screen navigation as app.navigation events ([#260](https://github.com/cedricziel/trueapp/issues/260)) ([82d0190](https://github.com/cedricziel/trueapp/commit/82d0190bb6676c63eaff0715104231a44e0416a8))
+* record why a TrueNAS connection or request failed ([#249](https://github.com/cedricziel/trueapp/issues/249)) ([bbab214](https://github.com/cedricziel/trueapp/commit/bbab214cd9cf64cfc52225f55ae103d2f2445536))
+* show pool capacity in the tray menu ([#261](https://github.com/cedricziel/trueapp/issues/261)) ([77d6972](https://github.com/cedricziel/trueapp/commit/77d6972b5d6ab49f7413924b98ba79df481cc41b))
+* show scrub and resilver progress for pools ([#263](https://github.com/cedricziel/trueapp/issues/263)) ([a1b4dd3](https://github.com/cedricziel/trueapp/commit/a1b4dd32984745acb982c7c60968ab1f3c4dee1d))
+* trace server repository operations ([#248](https://github.com/cedricziel/trueapp/issues/248)) ([e061ad8](https://github.com/cedricziel/trueapp/commit/e061ad89dca24ee74fc63993b152608d3c76090c))
+
+
+### Bug Fixes
+
+* bound connect timeout and retry reconnect after resume with backoff ([#259](https://github.com/cedricziel/trueapp/issues/259)) ([df7ac2c](https://github.com/cedricziel/trueapp/commit/df7ac2c210d861ad13df5bfc721b314998d5950e))
+* ignore informational alerts in server list health status ([#246](https://github.com/cedricziel/trueapp/issues/246)) ([6699ebb](https://github.com/cedricziel/trueapp/commit/6699ebbbcdb2c424eca79d5ed12ae308a46fd267))
+
 ## [0.15.0](https://github.com/cedricziel/trueapp/compare/v0.14.0...v0.15.0) (2026-10-24)
 
 
