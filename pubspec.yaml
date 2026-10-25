@@ -3,7 +3,7 @@ description: "A Flutter app to manage TrueNAS servers."
 license: AGPL-3.0
 publish_to: 'none'
 
-version: 0.15.0+25
+version: 0.16.0+26
 
 environment:
   sdk: ^3.13.0
