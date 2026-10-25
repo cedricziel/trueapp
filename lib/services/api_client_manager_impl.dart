@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
@@ -25,14 +26,11 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   final Future<void> Function(Duration)? _wait;
 
   ApiClientManagerImpl({
-    ConnectionStatusProvider? connectionStatusProvider,
-    TelemetryServiceInterface? telemetry,
+    this._connectionStatusProvider,
+    this._telemetry,
     RetryPolicy? retryPolicy,
-    Future<void> Function(Duration)? wait,
-  }) : _connectionStatusProvider = connectionStatusProvider,
-       _telemetry = telemetry,
-       _retryPolicy = retryPolicy ?? RetryPolicy(),
-       _wait = wait;
+    this._wait,
+  }) : _retryPolicy = retryPolicy ?? RetryPolicy();
 
   @override
   Future<ApiClientInterface?> getClient(NasServer server) async {

@@ -14,6 +14,7 @@ import 'package:truehub/providers/system_stats_provider.dart';
 import 'package:truehub/screens/server_detail_screen.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import '../helpers/fake_api_client.dart';
 import '../helpers/layout_assertions.dart';
 import '../helpers/pump_helpers.dart';
@@ -470,11 +471,9 @@ class _FakeAppProvider extends AppProvider {
   _FakeAppProvider({
     required super.daoSource,
     required super.serverService,
-    required List<App> seedApps,
-    required List<AppConfig> seedFavorites,
-  }) : _seedApps = seedApps,
-       _seedFavorites = seedFavorites,
-       super(clientManager: TestProviders.mockApiClientManager);
+    required this._seedApps,
+    required this._seedFavorites,
+  }) : super(clientManager: TestProviders.mockApiClientManager);
 
   final List<App> _seedApps;
   final List<AppConfig> _seedFavorites;

@@ -288,43 +288,43 @@ void main() {
   );
 
   group('DatasetDetailScreen - layout', () {
-    testWidgets('renders every section at iPhone width without layout overflow', (
-      WidgetTester tester,
-    ) async {
-      // `_buildSection`'s header Row (Icon + Text title) used to have no
-      // Expanded/Flexible around the title, so the two longer section
-      // titles - "Compression & Efficiency" and "Security & Permissions" -
-      // overflowed at iPhone width unconditionally, even for a totally
-      // empty dataset. Fixed by giving the title the same
-      // Expanded+ellipsis treatment as ServerDetailScreen's section
-      // headers (ticket #86).
-      useCompactSurface(tester);
+    testWidgets(
+      'renders every section at iPhone width without layout overflow',
+      (WidgetTester tester) async {
+        // `_buildSection`'s header Row (Icon + Text title) used to have no
+        // Expanded/Flexible around the title, so the two longer section
+        // titles - "Compression & Efficiency" and "Security & Permissions" -
+        // overflowed at iPhone width unconditionally, even for a totally
+        // empty dataset. Fixed by giving the title the same
+        // Expanded+ellipsis treatment as ServerDetailScreen's section
+        // headers (ticket #86).
+        useCompactSurface(tester);
 
-      final dataset = <String, dynamic>{
-        'name':
-            'tank/a-very-long-dataset-path/that/keeps/going/and/going/and/stresses/the/layout',
-        'type': 'FILESYSTEM',
-        'mountpoint':
-            '/mnt/tank/a-very-long-dataset-path/that/keeps/going/and/going',
-        'pool': 'tank',
-        'encrypted': true,
-        'creation': valueMap('2024-01-15 10:30:00'),
-      };
+        final dataset = <String, dynamic>{
+          'name': 'tank/a-very-long-dataset-path/that/keeps/going/and/going/and/stresses/the/layout',
+          'type': 'FILESYSTEM',
+          'mountpoint':
+              '/mnt/tank/a-very-long-dataset-path/that/keeps/going/and/going',
+          'pool': 'tank',
+          'encrypted': true,
+          'creation': valueMap('2024-01-15 10:30:00'),
+        };
 
-      await tester.pumpWidget(createTestApp(dataset));
-      await pumpUntilFound(tester, find.text('General Information'));
+        await tester.pumpWidget(createTestApp(dataset));
+        await pumpUntilFound(tester, find.text('General Information'));
 
-      await tester.scrollUntilVisible(
-        find.text('Advanced Properties'),
-        500,
-        scrollable: find.byType(Scrollable),
-      );
-      await tester.pump();
+        await tester.scrollUntilVisible(
+          find.text('Advanced Properties'),
+          500,
+          scrollable: find.byType(Scrollable),
+        );
+        await tester.pump();
 
-      expect(find.text('Compression & Efficiency'), findsOneWidget);
-      expect(find.text('Security & Permissions'), findsOneWidget);
-      expect(find.text('Advanced Properties'), findsOneWidget);
-      expectNoLayoutOverflow(tester);
-    });
+        expect(find.text('Compression & Efficiency'), findsOneWidget);
+        expect(find.text('Security & Permissions'), findsOneWidget);
+        expect(find.text('Advanced Properties'), findsOneWidget);
+        expectNoLayoutOverflow(tester);
+      },
+    );
   });
 }

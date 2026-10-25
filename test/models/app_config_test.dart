@@ -164,20 +164,17 @@ void main() {
       expect(config.primaryPort, equals(primary));
     });
 
-    test(
-      'primaryPort falls back to the first port when no port is primary+enabled',
-      () {
-        const first = AppPortConfig(portNumber: 80, isEnabled: true);
-        const second = AppPortConfig(portNumber: 81, isEnabled: true);
-        final config = AppConfig(
-          serverId: 's',
-          appName: 'app',
-          ports: [first, second],
-        );
+    test('primaryPort falls back to the first port when no port is primary+enabled', () {
+      const first = AppPortConfig(portNumber: 80, isEnabled: true);
+      const second = AppPortConfig(portNumber: 81, isEnabled: true);
+      final config = AppConfig(
+        serverId: 's',
+        appName: 'app',
+        ports: [first, second],
+      );
 
-        expect(config.primaryPort, equals(first));
-      },
-    );
+      expect(config.primaryPort, equals(first));
+    });
 
     test('primaryPort returns null when there are no ports at all', () {
       final config = buildMinimal();

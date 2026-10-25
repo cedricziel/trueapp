@@ -76,9 +76,9 @@ class AuthenticationStateWidget extends StatelessWidget {
               authStatus.state == AuthenticationState.required
                   ? 'Authentication Required'
                   : 'Authentication Failed',
-              style: CupertinoTheme.of(
-                context,
-              ).textTheme.navLargeTitleTextStyle,
+              style: CupertinoTheme.of(context)
+                  .textTheme
+                  .navLargeTitleTextStyle,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),

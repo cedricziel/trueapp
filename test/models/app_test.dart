@@ -270,47 +270,41 @@ void main() {
       );
     });
 
-    test(
-      'fromJson tolerates an unrecognized last_update shape instead of throwing',
-      () {
-        final json = {
-          'name': 'app',
-          'title': 'App',
-          'description': 'desc',
-          'recommended': false,
-          'catalog': 'TEST',
-          'train': 'stable',
-          // A shape this field has been observed to take on some TrueNAS
-          // SCALE versions - the parser must degrade to null rather than
-          // throw, or a single unexpected field shape breaks the entire
-          // app list load with a generic "Connection error".
-          'last_update': ['not', 'a', 'date'],
-        };
+    test('fromJson tolerates an unrecognized last_update shape instead of throwing', () {
+      final json = {
+        'name': 'app',
+        'title': 'App',
+        'description': 'desc',
+        'recommended': false,
+        'catalog': 'TEST',
+        'train': 'stable',
+        // A shape this field has been observed to take on some TrueNAS
+        // SCALE versions - the parser must degrade to null rather than
+        // throw, or a single unexpected field shape breaks the entire
+        // app list load with a generic "Connection error".
+        'last_update': ['not', 'a', 'date'],
+      };
 
-        final app = App.fromJson(json);
+      final app = App.fromJson(json);
 
-        expect(app.lastUpdate, isNull);
-      },
-    );
+      expect(app.lastUpdate, isNull);
+    });
 
-    test(
-      'fromJson tolerates a Mongo-style payload with a non-numeric \$date instead of throwing',
-      () {
-        final json = {
-          'name': 'app',
-          'title': 'App',
-          'description': 'desc',
-          'recommended': false,
-          'catalog': 'TEST',
-          'train': 'stable',
-          'last_update': {'\$date': 'not-a-number'},
-        };
+    test('fromJson tolerates a Mongo-style payload with a non-numeric \$date instead of throwing', () {
+      final json = {
+        'name': 'app',
+        'title': 'App',
+        'description': 'desc',
+        'recommended': false,
+        'catalog': 'TEST',
+        'train': 'stable',
+        'last_update': {'\$date': 'not-a-number'},
+      };
 
-        final app = App.fromJson(json);
+      final app = App.fromJson(json);
 
-        expect(app.lastUpdate, isNull);
-      },
-    );
+      expect(app.lastUpdate, isNull);
+    });
 
     test(
       'fromJson parses resource_usage, upgrade_info, used_ports and portals',
@@ -370,30 +364,27 @@ void main() {
       },
     );
 
-    test(
-      'fromJson defaults resource_usage/upgrade_info/last_update/ports to null/empty',
-      () {
-        final json = {
-          'name': 'app',
-          'title': 'App',
-          'description': 'desc',
-          'recommended': false,
-          'catalog': 'TEST',
-          'train': 'stable',
-        };
+    test('fromJson defaults resource_usage/upgrade_info/last_update/ports to null/empty', () {
+      final json = {
+        'name': 'app',
+        'title': 'App',
+        'description': 'desc',
+        'recommended': false,
+        'catalog': 'TEST',
+        'train': 'stable',
+      };
 
-        final app = App.fromJson(json);
+      final app = App.fromJson(json);
 
-        expect(app.resourceUsage, isNull);
-        expect(app.upgradeInfo, isNull);
-        expect(app.lastUpdate, isNull);
-        expect(app.usedPorts, isEmpty);
-        expect(app.portals, isEmpty);
-        expect(app.customDisplayName, isNull);
-        expect(app.customIconUrl, isNull);
-        expect(app.primaryCustomUrl, isNull);
-      },
-    );
+      expect(app.resourceUsage, isNull);
+      expect(app.upgradeInfo, isNull);
+      expect(app.lastUpdate, isNull);
+      expect(app.usedPorts, isEmpty);
+      expect(app.portals, isEmpty);
+      expect(app.customDisplayName, isNull);
+      expect(app.customIconUrl, isNull);
+      expect(app.primaryCustomUrl, isNull);
+    });
 
     test('toJson emits last_update using the Mongo-style \$date shape', () {
       final app = App(
@@ -790,22 +781,19 @@ void main() {
       },
     );
 
-    test(
-      'fromJson tolerates an unrecognized last_updated shape instead of throwing',
-      () {
-        expect(
-          () => AppResourceUsage.fromJson({
-            'last_updated': ['not', 'a', 'date'],
-          }),
-          returnsNormally,
-        );
-
-        final usage = AppResourceUsage.fromJson({
+    test('fromJson tolerates an unrecognized last_updated shape instead of throwing', () {
+      expect(
+        () => AppResourceUsage.fromJson({
           'last_updated': ['not', 'a', 'date'],
-        });
-        expect(usage.lastUpdated, isNull);
-      },
-    );
+        }),
+        returnsNormally,
+      );
+
+      final usage = AppResourceUsage.fromJson({
+        'last_updated': ['not', 'a', 'date'],
+      });
+      expect(usage.lastUpdated, isNull);
+    });
 
     test('toJson round-trips', () {
       final usage = AppResourceUsage.fromJson({

@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
+
 import 'app.dart';
 
 class AppPortConfig extends Equatable {

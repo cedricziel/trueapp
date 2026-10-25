@@ -136,21 +136,18 @@ void main() {
       },
     );
 
-    test(
-      'recordError with fatal: false emits an ERROR-severity record via the logger',
-      () async {
-        final service = await TelemetryService.initialize(disabledConfig);
+    test('recordError with fatal: false emits an ERROR-severity record via the logger', () async {
+      final service = await TelemetryService.initialize(disabledConfig);
 
-        expect(
-          () => service.recordError(
-            Exception('boom'),
-            StackTrace.current,
-            context: 'unit test',
-          ),
-          returnsNormally,
-        );
-      },
-    );
+      expect(
+        () => service.recordError(
+          Exception('boom'),
+          StackTrace.current,
+          context: 'unit test',
+        ),
+        returnsNormally,
+      );
+    });
 
     test('recordError with fatal: true does not throw', () async {
       final service = await TelemetryService.initialize(disabledConfig);

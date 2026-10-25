@@ -136,9 +136,8 @@ void main() {
 
     test('has no speed before any bytes are issued or time has elapsed', () {
       expect(
-        PoolScan.tryParse(
-          poolScanJson(bytesIssued: 0),
-        )!.bytesPerSecond(start.add(const Duration(seconds: 60))),
+        PoolScan.tryParse(poolScanJson(bytesIssued: 0))!
+            .bytesPerSecond(start.add(const Duration(seconds: 60))),
         isNull,
       );
       expect(PoolScan.tryParse(poolScanJson())!.bytesPerSecond(start), isNull);
@@ -148,15 +147,13 @@ void main() {
       final later = start.add(const Duration(minutes: 5));
 
       expect(
-        PoolScan.tryParse(
-          poolScanJson(state: 'FINISHED'),
-        )!.bytesPerSecond(later),
+        PoolScan.tryParse(poolScanJson(state: 'FINISHED'))!
+            .bytesPerSecond(later),
         isNull,
       );
       expect(
-        PoolScan.tryParse(
-          poolScanJson(pause: truenasDate(start)),
-        )!.bytesPerSecond(later),
+        PoolScan.tryParse(poolScanJson(pause: truenasDate(start)))!
+            .bytesPerSecond(later),
         isNull,
       );
     });

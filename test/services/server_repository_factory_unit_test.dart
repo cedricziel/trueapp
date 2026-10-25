@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
 import 'package:truehub/services/database.dart';
@@ -60,18 +61,16 @@ void main() {
     });
 
     test('forceSqlite overrides the Apple platform default', () async {
-      final repo = await buildFactory(
-        isApplePlatform: true,
-      ).create(forceSqlite: true);
+      final repo = await buildFactory(isApplePlatform: true)
+          .create(forceSqlite: true);
 
       expect(repo, isA<SqliteServerRepository>());
       expect(cloudKitBuilt, 0);
     });
 
     test('forceCloudKit selects CloudKit on a non-Apple platform', () async {
-      final repo = await buildFactory(
-        isApplePlatform: false,
-      ).create(forceCloudKit: true);
+      final repo = await buildFactory(isApplePlatform: false)
+          .create(forceCloudKit: true);
       addTearDown(repo.dispose);
 
       expect(repo, isA<CloudKitServerRepository>());

@@ -39,10 +39,9 @@ class FleetStatusProvider extends ChangeNotifier {
 
   FleetStatusProvider(
     this._serverService, {
-    required ApiClientManagerInterface clientManager,
-    TelemetryServiceInterface? telemetryService,
-  }) : _clientManager = clientManager,
-       _telemetryService = telemetryService;
+    required this._clientManager,
+    this._telemetryService,
+  });
 
   FleetServerStatus statusFor(String serverId) =>
       _statuses[serverId] ?? FleetServerStatus(serverId: serverId);
@@ -56,9 +55,8 @@ class FleetStatusProvider extends ChangeNotifier {
     Duration timeout = defaultTimeout,
   }) async {
     for (final server in servers) {
-      _statuses[server.id] = statusFor(
-        server.id,
-      ).copyWith(connectivity: FleetServerConnectivity.loading);
+      _statuses[server.id] = statusFor(server.id)
+          .copyWith(connectivity: FleetServerConnectivity.loading);
     }
     notifyListeners();
 

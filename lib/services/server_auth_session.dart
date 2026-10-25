@@ -36,12 +36,10 @@ class AuthenticationStatus {
 /// status on [stream].
 class ServerAuthSession extends ChangeNotifier {
   ServerAuthSession({
-    required ServerCredentialsSource credentials,
-    required ApiClientManagerInterface clientManager,
-    TelemetryServiceInterface? telemetry,
-  }) : _credentials = credentials,
-       _clientManager = clientManager,
-       _telemetry = telemetry;
+    required this._credentials,
+    required this._clientManager,
+    this._telemetry,
+  });
 
   final ServerCredentialsSource _credentials;
   final ApiClientManagerInterface _clientManager;

@@ -3117,38 +3117,36 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
-typedef $$NasServersTableCreateCompanionBuilder =
-    NasServersCompanion Function({
-      required String id,
-      required String name,
-      required String host,
-      Value<String> username,
-      Value<String?> localUrl,
-      Value<String> trustedWifiSsids,
-      Value<int?> port,
-      Value<bool> useHttps,
-      Value<bool> allowUntrustedCertificates,
-      Value<DateTime?> lastConnected,
-      Value<bool> isActive,
-      Value<bool> isDefault,
-      Value<int> rowid,
-    });
-typedef $$NasServersTableUpdateCompanionBuilder =
-    NasServersCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> host,
-      Value<String> username,
-      Value<String?> localUrl,
-      Value<String> trustedWifiSsids,
-      Value<int?> port,
-      Value<bool> useHttps,
-      Value<bool> allowUntrustedCertificates,
-      Value<DateTime?> lastConnected,
-      Value<bool> isActive,
-      Value<bool> isDefault,
-      Value<int> rowid,
-    });
+typedef $$NasServersTableCreateCompanionBuilder = NasServersCompanion Function({
+  required String id,
+  required String name,
+  required String host,
+  Value<String> username,
+  Value<String?> localUrl,
+  Value<String> trustedWifiSsids,
+  Value<int?> port,
+  Value<bool> useHttps,
+  Value<bool> allowUntrustedCertificates,
+  Value<DateTime?> lastConnected,
+  Value<bool> isActive,
+  Value<bool> isDefault,
+  Value<int> rowid,
+});
+typedef $$NasServersTableUpdateCompanionBuilder = NasServersCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> host,
+  Value<String> username,
+  Value<String?> localUrl,
+  Value<String> trustedWifiSsids,
+  Value<int?> port,
+  Value<bool> useHttps,
+  Value<bool> allowUntrustedCertificates,
+  Value<DateTime?> lastConnected,
+  Value<bool> isActive,
+  Value<bool> isDefault,
+  Value<int> rowid,
+});
 
 final class $$NasServersTableReferences
     extends BaseReferences<_$AppDatabase, $NasServersTable, NasServerData> {
@@ -3557,74 +3555,72 @@ typedef $$NasServersTableProcessedTableManager =
       NasServerData,
       PrefetchHooks Function({bool appConfigsRefs})
     >;
-typedef $$AppConfigsTableCreateCompanionBuilder =
-    AppConfigsCompanion Function({
-      Value<int> id,
-      required String serverId,
-      required String appName,
-      Value<String?> displayName,
-      Value<String?> iconUrl,
-      Value<bool> isEnabled,
-      Value<bool> isFavorite,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String?> title,
-      Value<String?> description,
-      Value<bool?> installed,
-      Value<bool?> healthy,
-      Value<String?> healthyError,
-      Value<String?> state,
-      Value<String?> version,
-      Value<String?> appVersion,
-      Value<String?> humanVersion,
-      Value<String?> categories,
-      Value<String?> home,
-      Value<String?> tags,
-      Value<bool?> recommended,
-      Value<String?> catalog,
-      Value<String?> train,
-      Value<DateTime?> lastApiUpdate,
-      Value<String?> screenshots,
-      Value<String?> sources,
-      Value<String?> appReadme,
-      Value<String?> maintainersJson,
-      Value<String?> upgradeInfoJson,
-      Value<String?> usedPortsJson,
-    });
-typedef $$AppConfigsTableUpdateCompanionBuilder =
-    AppConfigsCompanion Function({
-      Value<int> id,
-      Value<String> serverId,
-      Value<String> appName,
-      Value<String?> displayName,
-      Value<String?> iconUrl,
-      Value<bool> isEnabled,
-      Value<bool> isFavorite,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String?> title,
-      Value<String?> description,
-      Value<bool?> installed,
-      Value<bool?> healthy,
-      Value<String?> healthyError,
-      Value<String?> state,
-      Value<String?> version,
-      Value<String?> appVersion,
-      Value<String?> humanVersion,
-      Value<String?> categories,
-      Value<String?> home,
-      Value<String?> tags,
-      Value<bool?> recommended,
-      Value<String?> catalog,
-      Value<String?> train,
-      Value<DateTime?> lastApiUpdate,
-      Value<String?> screenshots,
-      Value<String?> sources,
-      Value<String?> appReadme,
-      Value<String?> maintainersJson,
-      Value<String?> upgradeInfoJson,
-      Value<String?> usedPortsJson,
-    });
+typedef $$AppConfigsTableCreateCompanionBuilder = AppConfigsCompanion Function({
+  Value<int> id,
+  required String serverId,
+  required String appName,
+  Value<String?> displayName,
+  Value<String?> iconUrl,
+  Value<bool> isEnabled,
+  Value<bool> isFavorite,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String?> title,
+  Value<String?> description,
+  Value<bool?> installed,
+  Value<bool?> healthy,
+  Value<String?> healthyError,
+  Value<String?> state,
+  Value<String?> version,
+  Value<String?> appVersion,
+  Value<String?> humanVersion,
+  Value<String?> categories,
+  Value<String?> home,
+  Value<String?> tags,
+  Value<bool?> recommended,
+  Value<String?> catalog,
+  Value<String?> train,
+  Value<DateTime?> lastApiUpdate,
+  Value<String?> screenshots,
+  Value<String?> sources,
+  Value<String?> appReadme,
+  Value<String?> maintainersJson,
+  Value<String?> upgradeInfoJson,
+  Value<String?> usedPortsJson,
+});
+typedef $$AppConfigsTableUpdateCompanionBuilder = AppConfigsCompanion Function({
+  Value<int> id,
+  Value<String> serverId,
+  Value<String> appName,
+  Value<String?> displayName,
+  Value<String?> iconUrl,
+  Value<bool> isEnabled,
+  Value<bool> isFavorite,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String?> title,
+  Value<String?> description,
+  Value<bool?> installed,
+  Value<bool?> healthy,
+  Value<String?> healthyError,
+  Value<String?> state,
+  Value<String?> version,
+  Value<String?> appVersion,
+  Value<String?> humanVersion,
+  Value<String?> categories,
+  Value<String?> home,
+  Value<String?> tags,
+  Value<bool?> recommended,
+  Value<String?> catalog,
+  Value<String?> train,
+  Value<DateTime?> lastApiUpdate,
+  Value<String?> screenshots,
+  Value<String?> sources,
+  Value<String?> appReadme,
+  Value<String?> maintainersJson,
+  Value<String?> upgradeInfoJson,
+  Value<String?> usedPortsJson,
+});
 
 final class $$AppConfigsTableReferences
     extends BaseReferences<_$AppDatabase, $AppConfigsTable, AppConfigData> {
@@ -4421,18 +4417,15 @@ class $$AppConfigsTableTableManager
                         >
                       >(state) {
                         if (serverId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.serverId,
-                                    referencedTable: $$AppConfigsTableReferences
-                                        ._serverIdTable(db),
-                                    referencedColumn:
-                                        $$AppConfigsTableReferences
-                                            ._serverIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.serverId,
+                            referencedTable: $$AppConfigsTableReferences
+                                ._serverIdTable(db),
+                            referencedColumn: $$AppConfigsTableReferences
+                                ._serverIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -4880,18 +4873,15 @@ class $$AppPortConfigsTableTableManager
                     >
                   >(state) {
                     if (appConfigId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.appConfigId,
-                                referencedTable: $$AppPortConfigsTableReferences
-                                    ._appConfigIdTable(db),
-                                referencedColumn:
-                                    $$AppPortConfigsTableReferences
-                                        ._appConfigIdTable(db)
-                                        .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.appConfigId,
+                        referencedTable: $$AppPortConfigsTableReferences
+                            ._appConfigIdTable(db),
+                        referencedColumn: $$AppPortConfigsTableReferences
+                            ._appConfigIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;

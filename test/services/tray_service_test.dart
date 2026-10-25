@@ -315,9 +315,8 @@ void main() {
         ),
       );
 
-      final appKeys = _keys(
-        host.lastMenu,
-      ).where((k) => k?.startsWith('app_') == true);
+      final appKeys = _keys(host.lastMenu)
+          .where((k) => k?.startsWith('app_') == true);
       expect(appKeys, hasLength(10));
       expect(appKeys, isNot(contains('app_app10')));
     });

@@ -4,6 +4,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
+
 import '../helpers/test_providers.dart';
 
 void main() {
@@ -44,108 +45,99 @@ void main() {
   });
 
   group('Complete Server Edit Flow - Unit Test', () {
-    test(
-      'should complete full user journey: Registered Server → Navigate to Edit → Make Changes → Save → Verify Provider Update',
-      () async {
-        // STEP 1: Verify we have a registered server
-        expect(serverProvider.servers.length, 1);
-        expect(serverProvider.servers.first.name, 'Original TrueNAS Server');
-        expect(serverProvider.servers.first.host, '192.168.1.100');
-        expect(
-          serverProvider.servers.first.allowUntrustedCertificates,
-          isFalse,
-        );
-        expect(serverProvider.servers.first.trustedWifiSsids, ['HomeWiFi']);
+    test('should complete full user journey: Registered Server → Navigate to Edit → Make Changes → Save → Verify Provider Update', () async {
+      // STEP 1: Verify we have a registered server
+      expect(serverProvider.servers.length, 1);
+      expect(serverProvider.servers.first.name, 'Original TrueNAS Server');
+      expect(serverProvider.servers.first.host, '192.168.1.100');
+      expect(serverProvider.servers.first.allowUntrustedCertificates, isFalse);
+      expect(serverProvider.servers.first.trustedWifiSsids, ['HomeWiFi']);
 
-        // STEP 2: User navigates from overview to edit by selecting the server
-        // This simulates: Home Screen → Server Detail Screen → Edit Server Screen
-        serverProvider.selectServer(testServer);
+      // STEP 2: User navigates from overview to edit by selecting the server
+      // This simulates: Home Screen → Server Detail Screen → Edit Server Screen
+      serverProvider.selectServer(testServer);
 
-        // Verify server is selected
-        expect(serverProvider.selectedServer, isNotNull);
-        expect(serverProvider.selectedServer?.name, 'Original TrueNAS Server');
+      // Verify server is selected
+      expect(serverProvider.selectedServer, isNotNull);
+      expect(serverProvider.selectedServer?.name, 'Original TrueNAS Server');
 
-        // Track provider notifications
-        int notificationCount = 0;
-        void listener() {
-          notificationCount++;
-        }
+      // Track provider notifications
+      int notificationCount = 0;
+      void listener() {
+        notificationCount++;
+      }
 
-        serverProvider.addListener(listener);
+      serverProvider.addListener(listener);
 
-        // STEP 3: User makes changes (simulating what happens in EditServerScreen)
-        final updatedServer = testServer.copyWith(
-          name: 'Updated TrueNAS Server',
-          host: '192.168.1.150',
-          localUrl: 'https://192.168.1.250:8443',
-          trustedWifiSsids: ['HomeWiFi', 'OfficeWiFi', 'GuestWiFi'],
-          port: 8443,
-          useHttps: true,
-          allowUntrustedCertificates: true,
-        );
+      // STEP 3: User makes changes (simulating what happens in EditServerScreen)
+      final updatedServer = testServer.copyWith(
+        name: 'Updated TrueNAS Server',
+        host: '192.168.1.150',
+        localUrl: 'https://192.168.1.250:8443',
+        trustedWifiSsids: ['HomeWiFi', 'OfficeWiFi', 'GuestWiFi'],
+        port: 8443,
+        useHttps: true,
+        allowUntrustedCertificates: true,
+      );
 
-        // STEP 4: User saves changes (calls serverProvider.updateServer)
-        await serverProvider.updateServer(updatedServer);
+      // STEP 4: User saves changes (calls serverProvider.updateServer)
+      await serverProvider.updateServer(updatedServer);
 
-        // STEP 5: Verify changes bubble up to the provider
+      // STEP 5: Verify changes bubble up to the provider
 
-        // 5a. Verify selected server is automatically updated
-        expect(serverProvider.selectedServer, isNotNull);
-        expect(serverProvider.selectedServer?.name, 'Updated TrueNAS Server');
-        expect(serverProvider.selectedServer?.host, '192.168.1.150');
-        expect(
-          serverProvider.selectedServer?.localUrl,
-          'https://192.168.1.250:8443',
-        );
-        expect(serverProvider.selectedServer?.port, 8443);
-        expect(serverProvider.selectedServer?.useHttps, isTrue);
-        expect(
-          serverProvider.selectedServer?.allowUntrustedCertificates,
-          isTrue,
-        );
-        expect(serverProvider.selectedServer?.trustedWifiSsids, [
-          'HomeWiFi',
-          'OfficeWiFi',
-          'GuestWiFi',
-        ]);
+      // 5a. Verify selected server is automatically updated
+      expect(serverProvider.selectedServer, isNotNull);
+      expect(serverProvider.selectedServer?.name, 'Updated TrueNAS Server');
+      expect(serverProvider.selectedServer?.host, '192.168.1.150');
+      expect(
+        serverProvider.selectedServer?.localUrl,
+        'https://192.168.1.250:8443',
+      );
+      expect(serverProvider.selectedServer?.port, 8443);
+      expect(serverProvider.selectedServer?.useHttps, isTrue);
+      expect(serverProvider.selectedServer?.allowUntrustedCertificates, isTrue);
+      expect(serverProvider.selectedServer?.trustedWifiSsids, [
+        'HomeWiFi',
+        'OfficeWiFi',
+        'GuestWiFi',
+      ]);
 
-        // 5b. Verify servers list is updated
-        expect(serverProvider.servers.length, 1);
-        final updatedServerInList = serverProvider.servers.first;
-        expect(updatedServerInList.name, 'Updated TrueNAS Server');
-        expect(updatedServerInList.host, '192.168.1.150');
-        expect(updatedServerInList.localUrl, 'https://192.168.1.250:8443');
-        expect(updatedServerInList.port, 8443);
-        expect(updatedServerInList.useHttps, isTrue);
-        expect(updatedServerInList.allowUntrustedCertificates, isTrue);
-        expect(updatedServerInList.trustedWifiSsids, [
-          'HomeWiFi',
-          'OfficeWiFi',
-          'GuestWiFi',
-        ]);
+      // 5b. Verify servers list is updated
+      expect(serverProvider.servers.length, 1);
+      final updatedServerInList = serverProvider.servers.first;
+      expect(updatedServerInList.name, 'Updated TrueNAS Server');
+      expect(updatedServerInList.host, '192.168.1.150');
+      expect(updatedServerInList.localUrl, 'https://192.168.1.250:8443');
+      expect(updatedServerInList.port, 8443);
+      expect(updatedServerInList.useHttps, isTrue);
+      expect(updatedServerInList.allowUntrustedCertificates, isTrue);
+      expect(updatedServerInList.trustedWifiSsids, [
+        'HomeWiFi',
+        'OfficeWiFi',
+        'GuestWiFi',
+      ]);
 
-        // 5c. Verify changes are persisted in database
-        final serverFromDb = await database.serversDao.getServer(testServer.id);
-        expect(serverFromDb, isNotNull);
-        expect(serverFromDb!.name, 'Updated TrueNAS Server');
-        expect(serverFromDb.host, '192.168.1.150');
-        expect(serverFromDb.localUrl, 'https://192.168.1.250:8443');
-        expect(serverFromDb.port, 8443);
-        expect(serverFromDb.useHttps, isTrue);
-        expect(serverFromDb.allowUntrustedCertificates, isTrue);
-        expect(serverFromDb.trustedWifiSsids, [
-          'HomeWiFi',
-          'OfficeWiFi',
-          'GuestWiFi',
-        ]);
+      // 5c. Verify changes are persisted in database
+      final serverFromDb = await database.serversDao.getServer(testServer.id);
+      expect(serverFromDb, isNotNull);
+      expect(serverFromDb!.name, 'Updated TrueNAS Server');
+      expect(serverFromDb.host, '192.168.1.150');
+      expect(serverFromDb.localUrl, 'https://192.168.1.250:8443');
+      expect(serverFromDb.port, 8443);
+      expect(serverFromDb.useHttps, isTrue);
+      expect(serverFromDb.allowUntrustedCertificates, isTrue);
+      expect(serverFromDb.trustedWifiSsids, [
+        'HomeWiFi',
+        'OfficeWiFi',
+        'GuestWiFi',
+      ]);
 
-        // 5d. Verify provider notified listeners of changes
-        expect(notificationCount, greaterThan(0));
+      // 5d. Verify provider notified listeners of changes
+      expect(notificationCount, greaterThan(0));
 
-        // Clean up
-        serverProvider.removeListener(listener);
-      },
-    );
+      // Clean up
+      serverProvider.removeListener(listener);
+    });
 
     test('should handle step-by-step field updates correctly', () async {
       // Start with selected server

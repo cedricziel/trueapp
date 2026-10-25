@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/providers/active_server_follower.dart';
 import 'package:truehub/models/job.dart';

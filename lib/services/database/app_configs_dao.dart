@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:truehub/models/app.dart' show AppState;
 import 'package:truehub/models/app_config.dart' as app_models;

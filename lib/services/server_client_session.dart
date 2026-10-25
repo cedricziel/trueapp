@@ -17,14 +17,11 @@ final _log = appLogger('api.session');
 /// that it was superseded, so a slow connection never overwrites a newer one.
 class ServerClientSession {
   ServerClientSession({
-    required String owner,
-    required ApiClientManagerInterface clientManager,
-    required ServerCredentialsLookup credentials,
-    TelemetryServiceInterface? telemetry,
-  }) : _owner = owner,
-       _clientManager = clientManager,
-       _credentials = credentials,
-       _telemetry = telemetry;
+    required this._owner,
+    required this._clientManager,
+    required this._credentials,
+    this._telemetry,
+  });
 
   final String _owner;
   final ApiClientManagerInterface _clientManager;

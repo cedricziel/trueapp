@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:truehub/models/nas_server.dart' as models;
 import 'package:truehub/services/truenas_api_client.dart';
@@ -28,17 +29,16 @@ class ServerProvider extends ChangeNotifier implements TrayServerSource {
   late StreamSubscription<List<models.NasServer>> _serversSubscription;
   bool _disposed = false;
 
-  /// [serversDaoSource] is used to clean up the local `nas_servers`
+  /// [_serversDaoSource] is used to clean up the local `nas_servers`
   /// foreign-key anchor row (see [ServersDao.upsertServerAnchor]) on server
   /// deletion. It has no default - callers that want that cleanup pass one
   /// explicitly (see `AppDependencies`); left null, deletion skips it.
   ServerProvider(
     this._serverService, {
     required ApiClientManagerInterface clientManager,
-    ServersDaoSource? serversDaoSource,
+    this._serversDaoSource,
     TelemetryServiceInterface? telemetryService,
   }) : _clientManager = clientManager,
-       _serversDaoSource = serversDaoSource,
        _telemetryService = telemetryService,
        _auth = ServerAuthSession(
          credentials: _serverService,

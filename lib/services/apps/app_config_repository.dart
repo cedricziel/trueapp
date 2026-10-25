@@ -18,11 +18,7 @@ class AppConfigRepository {
   final DaoSource _daoSource;
   final UnifiedServerService _serverService;
 
-  AppConfigRepository({
-    required DaoSource daoSource,
-    required UnifiedServerService serverService,
-  }) : _daoSource = daoSource,
-       _serverService = serverService;
+  AppConfigRepository({required this._daoSource, required this._serverService});
 
   Future<List<AppConfig>> load(String serverId) async {
     final configs = await _daoSource.appConfigsDao.getFullAppConfigs(serverId);

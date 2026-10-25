@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:truehub/services/server_repository_interface.dart';
 import 'package:truehub/services/cloudkit_server_repository.dart';
 import 'package:truehub/services/cloudkit_service_interface.dart';
@@ -13,14 +14,11 @@ final _log = appLogger('storage.repository_factory');
 /// Factory for creating platform-appropriate server repositories
 class ServerRepositoryFactory {
   ServerRepositoryFactory({
-    required ServersDaoSource serversDaoSource,
-    required CloudKitServiceInterface Function() cloudKitServiceBuilder,
+    required this._serversDaoSource,
+    required this._cloudKitServiceBuilder,
     bool? isApplePlatform,
-    TelemetryServiceInterface? telemetry,
-  }) : _telemetry = telemetry,
-       _serversDaoSource = serversDaoSource,
-       _cloudKitServiceBuilder = cloudKitServiceBuilder,
-       _isApplePlatform = isApplePlatform ?? supportsCloudKit;
+    this._telemetry,
+  }) : _isApplePlatform = isApplePlatform ?? supportsCloudKit;
 
   final ServersDaoSource _serversDaoSource;
   final CloudKitServiceInterface Function() _cloudKitServiceBuilder;
