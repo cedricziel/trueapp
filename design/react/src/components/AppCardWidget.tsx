@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { resolveColor, withAlpha, type ColorValue } from "../colors";
+import { withAlpha, type ColorValue } from "../colors";
 import { CupertinoButton } from "../primitives/CupertinoButton";
 import {
   CupertinoIcon,
   type CupertinoIconName,
 } from "../primitives/CupertinoIcon";
+import { AppStateBadge, type AppState } from "./AppStateBadge";
 import { cardStyle, formatBytes } from "./shared";
 
 export interface AppPort {
@@ -33,6 +34,8 @@ export interface TrueNASApp {
   installed: boolean;
   /** Only meaningful when installed; unhealthy apps turn their icon red. */
   healthy?: boolean;
+  /** Only meaningful when installed. Defaults to "unknown". */
+  state?: AppState;
   iconUrl?: string;
   categories?: string[];
   latestAppVersion?: string;
@@ -155,9 +158,9 @@ export interface AppCardWidgetProps {
 
 /**
  * An app in the Apps list: icon, name, two-line description, favorite heart
- * and Installed/Available chip; then categories and version, and for
- * installed apps live CPU/memory/network, an upgrade banner, ports & portal
- * links, and any health error.
+ * and running-state chip (`AppStateBadge`); then categories and version, and
+ * for installed apps live CPU/memory/network, an upgrade banner, ports &
+ * portal links, and any health error.
  */
 export function AppCardWidget({
   app,
@@ -203,6 +206,7 @@ export function AppCardWidget({
               onToggleFavorite?.();
             }}
             style={{
+              flexShrink: 0,
               marginRight: 8,
               padding: 0,
               border: "none",
@@ -217,21 +221,8 @@ export function AppCardWidget({
             />
           </button>
         )}
-        <span
-          style={{
-            padding: "6px 12px",
-            borderRadius: 8,
-            background: withAlpha(
-              app.installed ? "systemGreen" : "systemBlue",
-              0.1,
-            ),
-            color: resolveColor(app.installed ? "systemGreen" : "systemBlue"),
-            fontSize: 12,
-            fontWeight: 500,
-            flexShrink: 0,
-          }}
-        >
-          {app.installed ? "Installed" : "Available"}
+        <span style={{ flexShrink: 0 }}>
+          <AppStateBadge app={app} />
         </span>
       </div>
 

@@ -84,13 +84,14 @@ export interface ServerDetailScreenProps {
   onToggleFavorite?: (app: TrueNASApp) => void;
   onFiles?: () => void;
   onHealth?: () => void;
+  onServices?: () => void;
 }
 
 /**
  * The server dashboard, shown after picking a server from the Servers list:
  * an active-alerts banner, live system stats, storage pools, an apps
- * overview with favorites, and quick-action tiles for Pools, Files, Health
- * and Jobs.
+ * overview with favorites, and quick-action tiles for Pools, Files, Health,
+ * Jobs and Services.
  */
 export function ServerDetailScreen({
   serverName,
@@ -127,6 +128,7 @@ export function ServerDetailScreen({
   onToggleFavorite,
   onFiles,
   onHealth,
+  onServices,
 }: ServerDetailScreenProps) {
   const viewAll = (onClick?: () => void) => (
     <CupertinoButton padding={0} minSize={0} onClick={onClick}>
@@ -288,7 +290,9 @@ export function ServerDetailScreen({
             style={{
               padding: "0 16px",
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+              // Four across when 4 x 120px fit, otherwise 2 x 2 (never 3 + 1).
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(clamp(25% - 9px, (516px - 100%) * 999, 50% - 6px), 1fr))",
               gap: 12,
             }}
           >
@@ -329,6 +333,14 @@ export function ServerDetailScreen({
               subtitleColor={jobsNeedAttention ? "systemRed" : undefined}
               showAlertDot={jobsNeedAttention}
               onClick={onJobs}
+            />
+          </div>
+          <div style={{ padding: "12px 16px 0" }}>
+            <QuickActionTile
+              icon="gear"
+              title="Services"
+              subtitle="Start, stop and restart"
+              onClick={onServices}
             />
           </div>
         </div>
@@ -607,7 +619,7 @@ function FavoriteApps({
 
 /**
  * A compact, icon-led quick-action card; four sit side by side on wide
- * screens and wrap two-up on phones.
+ * screens and wrap two-up on phones. Services sits full-width below them.
  */
 function QuickActionTile({
   icon,

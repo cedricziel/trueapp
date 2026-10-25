@@ -105,10 +105,7 @@ export const ConnectionSucceededDark = () => (
     scrolled
     props={{
       values: filled,
-      connectionTestResult: {
-        success: true,
-        message: "✅ Connection successful!",
-      },
+      connectionTestResult: { message: "✅ Connection successful!" },
     }}
   />
 );
@@ -120,7 +117,6 @@ export const ConnectionFailedLight = () => (
     props={{
       values: filled,
       connectionTestResult: {
-        success: false,
         message:
           '❌ Connection failed: SSL/TLS error. Try enabling "Allow Untrusted Certificates".',
       },

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   CupertinoApp,
   CupertinoButton,
+  CupertinoSwitch,
   FormRowLabel,
 } from "@truenas-manager/ui";
 
@@ -49,17 +50,17 @@ function SettingsRows() {
     <>
       <Row>
         <FormRowLabel
-          title="Biometric Unlock"
-          subtitle="Require Face ID to open server details"
+          title="Minimize to Menu Bar"
+          subtitle="Close window minimizes to menu bar instead of quitting"
         />
-        <CupertinoButton size="small">Enable</CupertinoButton>
+        <CupertinoSwitch value />
       </Row>
       <Row>
         <FormRowLabel
-          title="Session Timeout"
-          subtitle="Lock again after 15 minutes of inactivity"
+          title="Show in Dock"
+          subtitle="Display app icon in dock while running"
         />
-        <CupertinoButton size="small">15 min</CupertinoButton>
+        <CupertinoSwitch value={false} />
       </Row>
       <Row last>
         <FormRowLabel

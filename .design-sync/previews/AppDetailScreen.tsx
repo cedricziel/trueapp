@@ -13,6 +13,7 @@ const jellyfin: AppDetail = {
     "Jellyfin is a free software media system that puts you in control of managing and streaming your media. Stream to any device from your own server, with no strings attached.",
   installed: true,
   healthy: true,
+  state: "running",
   isFavorite: true,
   latestAppVersion: "1.1.12",
   latestHumanVersion: "10.10.3_1.1.12",
@@ -45,6 +46,7 @@ const immich: AppDetail = {
     "High-performance self-hosted photo and video backup solution with machine learning powered search.",
   installed: true,
   healthy: false,
+  state: "crashed",
   healthyError: "Container immich-server restarting (exit code 1)",
   latestAppVersion: "1.3.4",
   latestHumanVersion: "1.121.0_1.3.4",
@@ -74,17 +76,52 @@ const plex: AppDetail = {
   home: "https://plex.tv",
 };
 
+const paperless: AppDetail = {
+  name: "Paperless-ngx",
+  description:
+    "Community-supported document management system that transforms physical documents into a searchable online archive.",
+  installed: true,
+  healthy: true,
+  state: "stopped",
+  upgradeVersion: "2.14.0",
+  latestAppVersion: "1.0.9",
+  latestHumanVersion: "2.13.5_1.0.9",
+  categories: ["productivity"],
+  catalog: "TRUENAS",
+  train: "community",
+  lastUpdatedLabel: "Recently",
+  sources: [
+    "https://github.com/paperless-ngx/paperless-ngx",
+    "ghcr.io/paperless-ngx/paperless-ngx",
+    "docker.io/library/redis",
+  ],
+  home: "https://docs.paperless-ngx.com",
+};
+
+/** Scrolls the screen's scroller to the bottom so Sources and View Homepage are in frame. */
+function scrollToBottom(el: HTMLDivElement | null) {
+  if (!el) return;
+  for (const node of Array.from(el.querySelectorAll<HTMLElement>("div"))) {
+    if (getComputedStyle(node).overflowY === "auto") {
+      node.scrollTop = node.scrollHeight;
+    }
+  }
+}
+
 function Shell({
   device = "phone",
   orientation,
   dark,
   scale = 0.6,
+  scrolled,
   ...props
 }: {
   device?: DeviceKind;
   orientation?: "portrait" | "landscape";
   dark?: boolean;
   scale?: number;
+  /** Show the bottom of the screen. */
+  scrolled?: boolean;
 } & Partial<AppDetailScreenProps>) {
   const app = props.app ?? jellyfin;
   return (
@@ -95,12 +132,17 @@ function Shell({
       scale={scale}
     >
       <AdaptiveNavigationScaffold selectedIndex={0}>
-        <AppDetailScreen
-          // No network in previews: every screenshot shows its placeholder.
-          unavailableScreenshots={(app.screenshots ?? []).map((_, i) => i)}
-          {...props}
-          app={app}
-        />
+        <div
+          style={{ display: "contents" }}
+          ref={scrolled ? scrollToBottom : undefined}
+        >
+          <AppDetailScreen
+            // No network in previews: every screenshot shows its placeholder.
+            unavailableScreenshots={(app.screenshots ?? []).map((_, i) => i)}
+            {...props}
+            app={app}
+          />
+        </div>
       </AdaptiveNavigationScaffold>
     </DeviceFrame>
   );
@@ -121,4 +163,14 @@ export const InstalledUnhealthyDark = () => <Shell dark app={immich} />;
 export const ActionsSheetOpen = () => <Shell showActions />;
 export const ConfigNotFoundAlertDark = () => (
   <Shell dark app={immich} showConfigNotFoundError />
+);
+
+export const ActionsSheetStopped = () => (
+  <Shell dark app={paperless} showActions />
+);
+export const SourcesWithPlainTextLight = () => (
+  <Shell app={paperless} scrolled />
+);
+export const OpenLinkAlert = () => (
+  <Shell app={paperless} openLinkError="https://docs.paperless-ngx.com" />
 );

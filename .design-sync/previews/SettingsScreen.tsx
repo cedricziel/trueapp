@@ -54,9 +54,6 @@ export const TabletLandscapeDark = () => (
 export const DesktopLight = () => <Shell device="desktop" scale={0.5} />;
 export const DesktopDark = () => <Shell device="desktop" dark scale={0.5} />;
 
-export const SessionUnlockedLight = () => (
-  <Shell device="phone" scale={0.6} props={{ isSessionValid: true }} />
-);
 export const ClearDatabaseConfirmDark = () => (
   <Shell
     device="phone"
@@ -64,9 +61,6 @@ export const ClearDatabaseConfirmDark = () => (
     scale={0.6}
     props={{ dialog: "clearDatabaseConfirm" }}
   />
-);
-export const SessionLockedDialogLight = () => (
-  <Shell device="phone" scale={0.6} props={{ dialog: "sessionLocked" }} />
 );
 export const RecreatingDatabaseDark = () => (
   <Shell

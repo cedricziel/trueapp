@@ -75,13 +75,27 @@
 
 ## Where the screen ports differ from the Dart
 
-- AddServerScreen colors the connection-test result by `success`. In the
-  Flutter app every Add-screen result shows red: its messages start with
-  ✅/❌, so the `startsWith("Connection successful")` check never matches.
-  That's an app bug, not a port choice. EditServerScreen matches Dart.
+- `ConnectionTestResult` has only `message`; red/green follows Dart's
+  `startsWith("Connection successful")`. The Add screen's ✅/❌ prefixes make
+  every Add result red. That's an app bug, kept on purpose so the port
+  matches the app. EditServerScreen messages have no emoji, so success is
+  green there.
 - ServerDetailScreen quick-action tiles wrap 2x2 on phones (Dart keeps one
   row of 4, which overflows at 320px). Favourite apps come from
   `isFavorite` on each app; "Updates" counts apps with `upgradeVersion`.
+  The tile grid is strictly 4 across or 2x2 (a `clamp()` track size), never
+  3 + 1. The Services tile sits full-width below the four, as in Dart.
+- ServicesScreen is a pushed route whose Dart nav bar has a plain-text
+  "Back" button, not the shell back chevron the Jobs screen uses.
+- AppDetailScreen has no primary Manage/Install button any more (removed in
+  the app as a no-op). Lifecycle entries (Start/Stop/Restart/Upgrade) lead
+  the "..." sheet; only Stop is destructive (red), as in Dart.
+- `AppStateBadge` maps Dart `AppState`; `TrueNASApp.state` defaults to
+  "unknown", which shows a grey "Installed" chip. Give preview apps a
+  `state` or they all read "Installed".
+- `AppCardWidget`'s heart button and state badge must not shrink
+  (`flexShrink: 0`); otherwise the heart slides over the description in
+  narrow cards.
 - Modal popups (`showCupertinoModalPopup`) are a local fixed-position
   backdrop + `CupertinoActionSheet`. `DeviceFrame` always sets a transform,
   so fixed overlays stay inside the frame.
@@ -122,7 +136,7 @@
 ## Known render warns
 
 - `[GRID_OVERFLOW]` "positions content outside cells (fixed/portal)" on
-  screen stories with a dialog, sheet or modal open (AddServer, EditServer,
+  screen stories with a dialog, sheet or modal open (AddServer, EditServer, Services,
   Settings, ServerDetail, AppDetail, AppConfiguration). False positive: the
   overlays are `position: fixed`, but DeviceFrame's transform contains them,
   and the column card shows them inside the phone frame. Keep
@@ -146,6 +160,9 @@
 - Icons are lucide approximations of SF-style Cupertino glyphs (see icon
   gaps above). A new `CupertinoIcons.*` name in the app needs a mapping in
   `CupertinoIcon.tsx`, or the port fails to typecheck.
+- Preview stories aren't covered by `design/react/tsconfig.json`; typecheck
+  them with an ad-hoc tsconfig that maps `@truenas-manager/ui` to
+  `src/index.ts` (expect duplicate-`@types/react` and `logo.svg` noise).
 - Previews use fixed `now` dates (2026-10-02) for relative times; keep them
   fixed or grades churn.
 - Build assumptions: Node 24, npm, TypeScript 7, esbuild 0.28, playwright

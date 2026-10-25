@@ -84,6 +84,7 @@ const apps: TrueNASApp[] = [
     description:
       "Free media system that puts you in control of managing and streaming your media.",
     installed: true,
+    state: "running",
     healthy: true,
     isFavorite: true,
     categories: ["media", "streaming"],
@@ -102,6 +103,7 @@ const apps: TrueNASApp[] = [
     description:
       "A safe home for all your data: files, calendars, contacts and more.",
     installed: true,
+    state: "running",
     healthy: true,
     isFavorite: true,
     categories: ["productivity", "storage"],
@@ -119,6 +121,7 @@ const apps: TrueNASApp[] = [
     name: "Home Assistant",
     description: "Open source home automation that puts local control first.",
     installed: true,
+    state: "running",
     healthy: true,
     categories: ["home-automation"],
     latestAppVersion: "2026.9.3",
@@ -139,17 +142,31 @@ const base: ServerDetailScreenProps = {
   pools,
   apps,
   jobsRunningCount: 1,
+  onServices: () => {},
 };
+
+/** Scrolls the screen's scroller to the bottom so the quick-action tiles are in frame. */
+function scrollToBottom(el: HTMLDivElement | null) {
+  if (!el) return;
+  for (const node of Array.from(el.querySelectorAll<HTMLElement>("div"))) {
+    if (getComputedStyle(node).overflowY === "auto") {
+      node.scrollTop = node.scrollHeight;
+    }
+  }
+}
 
 function Shell({
   device = "phone",
   orientation,
   dark,
+  scrolled,
   children,
 }: {
   device?: DeviceKind;
   orientation?: "portrait" | "landscape";
   dark?: boolean;
+  /** Show the bottom of the screen. */
+  scrolled?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -160,7 +177,12 @@ function Shell({
       scale={device === "phone" ? 0.6 : device === "tablet" ? 0.45 : 0.5}
     >
       <AdaptiveNavigationScaffold selectedIndex={0}>
-        {children}
+        <div
+          style={{ display: "contents" }}
+          ref={scrolled ? scrollToBottom : undefined}
+        >
+          {children}
+        </div>
       </AdaptiveNavigationScaffold>
     </DeviceFrame>
   );
@@ -264,5 +286,15 @@ export const AppsOverviewDark = () => (
 export const ServerMenuOpenLight = () => (
   <Shell>
     <Screen showServerMenu />
+  </Shell>
+);
+export const QuickActionsServicesDark = () => (
+  <Shell dark scrolled>
+    <Screen systemStats={{ isLoading: true }} pools={[]} apps={[]} />
+  </Shell>
+);
+export const QuickActionsServicesTabletLight = () => (
+  <Shell device="tablet">
+    <Screen systemStats={{ isLoading: true }} pools={[]} apps={[]} />
   </Shell>
 );

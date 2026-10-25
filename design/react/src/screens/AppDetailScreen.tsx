@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { resolveColor, withAlpha } from "../colors";
 import { AppIcon, type TrueNASApp } from "../components/AppCardWidget";
+import { AppStateBadge } from "../components/AppStateBadge";
 import { ShellBackButton } from "../components/Navigation";
 import {
   CupertinoAlertDialog,
@@ -41,6 +42,40 @@ export interface AppDetail extends TrueNASApp {
   home?: string;
 }
 
+/** The start/stop/restart/upgrade entries of the "..." action sheet. */
+export type AppLifecycleAction = "start" | "stop" | "restart" | "upgrade";
+
+const LIFECYCLE_LABELS: Record<AppLifecycleAction, string> = {
+  start: "Start",
+  stop: "Stop",
+  restart: "Restart",
+  upgrade: "Upgrade",
+};
+
+/** The lifecycle actions that make sense for `app` right now, in menu order. */
+function availableLifecycleActions(app: AppDetail): AppLifecycleAction[] {
+  if (!app.installed) return [];
+  const state = app.state ?? "unknown";
+  const actions: AppLifecycleAction[] = [];
+  if (state === "stopped" || state === "crashed") actions.push("start");
+  if (state === "running" || state === "deploying" || state === "crashed") {
+    actions.push("stop");
+  }
+  if (state === "running") actions.push("restart");
+  if (app.upgradeVersion) actions.push("upgrade");
+  return actions;
+}
+
+/** Same check as the app's `isWebUrl`: http(s) with a host. */
+function isWebUrl(url: string) {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return (protocol === "http:" || protocol === "https:") && hostname !== "";
+  } catch {
+    return false;
+  }
+}
+
 export interface AppDetailScreenProps {
   app: AppDetail;
   /** Index of the screenshot in the large preview. Defaults to 0. */
@@ -51,26 +86,30 @@ export interface AppDetailScreenProps {
   showActions?: boolean;
   /** Show the "App configuration not found" alert (Edit Configuration with no stored config). */
   showConfigNotFoundError?: boolean;
+  /** Show the "Couldn't Open Link" alert for this URL (homepage or source that failed to open). */
+  openLinkError?: string;
   onBack?: () => void;
   /** The nav bar "..." button. */
   onShowActions?: () => void;
   onDismissActions?: () => void;
   onSelectScreenshot?: (index: number) => void;
+  /** A Start/Stop/Restart/Upgrade entry in the action sheet. */
+  onLifecycleAction?: (action: AppLifecycleAction) => void;
   onEditConfiguration?: () => void;
   onToggleFavorite?: () => void;
-  /** "Manage App" for installed apps, "Install App" otherwise. */
-  onManageOrInstall?: () => void;
   onOpenHomepage?: () => void;
   onViewSources?: () => void;
   onOpenSource?: (url: string) => void;
   onDismissError?: () => void;
+  onDismissLinkError?: () => void;
 }
 
 /**
- * An app's store-style detail page: icon header with version and status chip,
- * screenshots, description and readme, catalog information, maintainers,
- * source links, and Manage/Install actions. Pushed when an app card is tapped
- * in the Apps screen.
+ * An app's store-style detail page: icon header with version and running-state
+ * chip, screenshots, description and readme, catalog information, maintainers,
+ * source links (non-web sources show as plain text) and a "View Homepage"
+ * button. The "..." sheet adds lifecycle actions for installed apps. Pushed
+ * when an app card is tapped in the Apps screen.
  */
 export function AppDetailScreen({
   app,
@@ -78,23 +117,25 @@ export function AppDetailScreen({
   unavailableScreenshots = [],
   showActions = false,
   showConfigNotFoundError = false,
+  openLinkError,
   onBack,
   onShowActions,
   onDismissActions,
   onSelectScreenshot,
+  onLifecycleAction,
   onEditConfiguration,
   onToggleFavorite,
-  onManageOrInstall,
   onOpenHomepage,
   onViewSources,
   onOpenSource,
   onDismissError,
+  onDismissLinkError,
 }: AppDetailScreenProps) {
   const title = app.displayName ?? app.name;
   const screenshots = app.screenshots ?? [];
   const maintainers = app.maintainers ?? [];
   const sources = app.sources ?? [];
-  const manageLabel = app.installed ? "Manage App" : "Install App";
+  const lifecycleActions = availableLifecycleActions(app);
   return (
     <CupertinoPageScaffold
       navigationBar={
@@ -185,58 +226,66 @@ export function AppDetailScreen({
         )}
         {sources.length > 0 && (
           <Section title="Sources">
-            {sources.map((url) => (
-              <button
-                key={url}
-                type="button"
-                className="cupertino-button"
-                onClick={() => onOpenSource?.(url)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  marginBottom: 8,
-                  padding: 12,
-                  border: "none",
-                  borderRadius: 8,
-                  background: withAlpha("systemBlue", 0.1),
-                  color: resolveColor("systemBlue"),
-                  font: "inherit",
-                  fontSize: 14,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                <CupertinoIcon icon="link" size={20} color="systemBlue" />
-                <span
-                  style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+            {sources.map((url) =>
+              isWebUrl(url) ? (
+                <button
+                  key={url}
+                  type="button"
+                  className="cupertino-button"
+                  onClick={() => onOpenSource?.(url)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    width: "100%",
+                    marginBottom: 8,
+                    padding: 12,
+                    border: "none",
+                    borderRadius: 8,
+                    background: withAlpha("systemBlue", 0.1),
+                    color: resolveColor("systemBlue"),
+                    font: "inherit",
+                    fontSize: 14,
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <CupertinoIcon icon="link" size={20} color="systemBlue" />
+                  <span
+                    style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                  >
+                    {url}
+                  </span>
+                  <CupertinoIcon
+                    icon="arrow_up_right"
+                    size={16}
+                    color="systemBlue"
+                  />
+                </button>
+              ) : (
+                <div
+                  key={url}
+                  style={{
+                    marginBottom: 8,
+                    padding: 12,
+                    borderRadius: 8,
+                    background: withAlpha("systemGrey", 0.1),
+                    color: "var(--cupertino-secondary-label)",
+                    fontSize: 14,
+                    overflowWrap: "anywhere",
+                  }}
                 >
                   {url}
-                </span>
-                <CupertinoIcon
-                  icon="arrow_up_right"
-                  size={16}
-                  color="systemBlue"
-                />
-              </button>
-            ))}
+                </div>
+              ),
+            )}
           </Section>
         )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <CupertinoButton
-            variant="filled"
-            onClick={onManageOrInstall}
-            style={{ width: "100%" }}
-          >
-            {manageLabel}
+        {app.home && (
+          <CupertinoButton onClick={onOpenHomepage} style={{ width: "100%" }}>
+            View Homepage
           </CupertinoButton>
-          {app.home && (
-            <CupertinoButton onClick={onOpenHomepage} style={{ width: "100%" }}>
-              View Homepage
-            </CupertinoButton>
-          )}
-        </div>
+        )}
         <div style={{ height: 8 }} />
       </div>
 
@@ -245,6 +294,15 @@ export function AppDetailScreen({
           <CupertinoActionSheet
             title={title}
             actions={[
+              ...lifecycleActions.map((action) => (
+                <CupertinoActionSheetAction
+                  key={action}
+                  isDestructiveAction={action === "stop"}
+                  onClick={() => onLifecycleAction?.(action)}
+                >
+                  {LIFECYCLE_LABELS[action]}
+                </CupertinoActionSheetAction>
+              )),
               ...(app.installed
                 ? [
                     <CupertinoActionSheetAction onClick={onEditConfiguration}>
@@ -254,9 +312,6 @@ export function AppDetailScreen({
                 : []),
               <CupertinoActionSheetAction onClick={onToggleFavorite}>
                 {app.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-              </CupertinoActionSheetAction>,
-              <CupertinoActionSheetAction onClick={onManageOrInstall}>
-                {manageLabel}
               </CupertinoActionSheetAction>,
               ...(app.home
                 ? [
@@ -292,6 +347,23 @@ export function AppDetailScreen({
             content="App configuration not found. Please try refreshing the app list."
             actions={[
               <CupertinoDialogAction onClick={onDismissError}>
+                OK
+              </CupertinoDialogAction>,
+            ]}
+          />
+        </Overlay>
+      )}
+
+      {openLinkError && (
+        <Overlay align="center">
+          <CupertinoAlertDialog
+            title="Couldn't Open Link"
+            content={openLinkError}
+            actions={[
+              <CupertinoDialogAction
+                isDefaultAction
+                onClick={onDismissLinkError}
+              >
                 OK
               </CupertinoDialogAction>,
             ]}
@@ -348,7 +420,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function AppHeader({ app, title }: { app: AppDetail; title: string }) {
-  const tone = app.installed ? "systemGreen" : "systemBlue";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <AppIcon app={app} size={80} />
@@ -363,20 +434,9 @@ function AppHeader({ app, title }: { app: AppDetail; title: string }) {
         >
           v{app.latestHumanVersion || app.latestAppVersion || ""}
         </div>
-        <span
-          style={{
-            display: "inline-block",
-            marginTop: 8,
-            padding: "6px 12px",
-            borderRadius: 8,
-            background: withAlpha(tone, 0.1),
-            color: resolveColor(tone),
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-        >
-          {app.installed ? "Installed" : "Available"}
-        </span>
+        <div style={{ display: "flex", marginTop: 8 }}>
+          <AppStateBadge app={app} />
+        </div>
       </div>
     </div>
   );

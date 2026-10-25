@@ -131,9 +131,7 @@ export function HomeScreen({
     <CupertinoPageScaffold
       navigationBar={
         <CupertinoNavigationBar
-          middle={
-            <span>Servers</span>
-          }
+          middle="Servers"
           trailing={
             <CupertinoButton padding={0} minSize={0} onClick={onAddServer}>
               <CupertinoIcon icon="add" />

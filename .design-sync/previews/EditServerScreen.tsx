@@ -100,10 +100,7 @@ export const ConnectionSucceededDark = () => (
     scrolled
     props={{
       ...saved,
-      connectionTestResult: {
-        success: true,
-        message: "Connection successful!",
-      },
+      connectionTestResult: { message: "Connection successful!" },
     }}
   />
 );
@@ -125,7 +122,6 @@ export const NotDefaultTestFailedDark = () => (
       values: { ...basement, password: "wrong-password" },
       isDefault: false,
       connectionTestResult: {
-        success: false,
         message: "Invalid credentials or connection failed",
       },
     }}

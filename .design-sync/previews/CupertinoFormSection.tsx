@@ -23,17 +23,29 @@ function Pane({ dark, children }: { dark?: boolean; children: ReactNode }) {
 function SettingsSections() {
   return (
     <>
-      <CupertinoFormSection header="SECURITY">
+      <CupertinoFormSection header="MENU BAR">
         <CupertinoFormRow
           prefix={
             <FormRowLabel
-              title="Authentication Session"
-              subtitle="Manage biometric authentication session"
+              title="Minimize to Menu Bar"
+              subtitle="Close window minimizes to menu bar instead of quitting"
             />
           }
         >
-          <CupertinoButton size="small">Lock Session</CupertinoButton>
+          <CupertinoSwitch value />
         </CupertinoFormRow>
+        <CupertinoFormRow
+          prefix={
+            <FormRowLabel
+              title="Show in Dock"
+              subtitle="Display app icon in dock while running"
+            />
+          }
+        >
+          <CupertinoSwitch value={false} />
+        </CupertinoFormRow>
+      </CupertinoFormSection>
+      <CupertinoFormSection header="DATABASE">
         <CupertinoFormRow
           prefix={
             <FormRowLabel
@@ -45,24 +57,6 @@ function SettingsSections() {
           <CupertinoButton size="small" color="systemRed">
             Clear
           </CupertinoButton>
-        </CupertinoFormRow>
-      </CupertinoFormSection>
-      <CupertinoFormSection
-        header="MENU BAR"
-        footer="Changes apply the next time TrueNAS Manager launches."
-      >
-        <CupertinoFormRow
-          prefix={
-            <FormRowLabel
-              title="Show in Dock"
-              subtitle="Display app icon in dock while running"
-            />
-          }
-        >
-          <CupertinoSwitch value />
-        </CupertinoFormRow>
-        <CupertinoFormRow prefix="Launch at Login">
-          <CupertinoSwitch value={false} />
         </CupertinoFormRow>
       </CupertinoFormSection>
     </>
