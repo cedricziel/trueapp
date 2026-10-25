@@ -69,7 +69,7 @@ mixin _Connection on _ClientBase {
       // WebSocketChannel.connect is lazy: without awaiting readiness a failed
       // handshake surfaces as an unhandled asynchronous error instead of a
       // failure the caller can act on.
-      await _wsChannel!.ready.timeout(const Duration(seconds: 15));
+      await _wsChannel!.ready.timeout(connectTimeout);
 
       _client = Peer(_wsChannel!.cast<String>());
 
@@ -242,7 +242,7 @@ mixin _Connection on _ClientBase {
 
       final result = await _client!
           .sendRequest('auth.login', [_server.username, _server.password])
-          .timeout(const Duration(seconds: 15));
+          .timeout(connectTimeout);
 
       _log.debug('Authentication result: $result');
 
@@ -274,7 +274,8 @@ mixin _Connection on _ClientBase {
       throw ConnectionException(
         ConnectionError.connectionTimeout(
           cause: e,
-          details: 'Authentication request timed out after 15 seconds',
+          details:
+              'Authentication request timed out after ${connectTimeout.inSeconds} seconds',
         ),
       );
     } catch (e) {

@@ -6,7 +6,10 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
+import 'package:truehub/services/retry_policy.dart';
 
 final _log = appLogger('api.manager');
 
@@ -18,11 +21,18 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
   final ConnectionStatusProvider? _connectionStatusProvider;
   final TelemetryServiceInterface? _telemetry;
 
+  final RetryPolicy _retryPolicy;
+  final Future<void> Function(Duration)? _wait;
+
   ApiClientManagerImpl({
     ConnectionStatusProvider? connectionStatusProvider,
     TelemetryServiceInterface? telemetry,
+    RetryPolicy? retryPolicy,
+    Future<void> Function(Duration)? wait,
   }) : _connectionStatusProvider = connectionStatusProvider,
-       _telemetry = telemetry;
+       _telemetry = telemetry,
+       _retryPolicy = retryPolicy ?? RetryPolicy(),
+       _wait = wait;
 
   @override
   Future<ApiClientInterface?> getClient(NasServer server) async {
@@ -150,6 +160,30 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
     }
   }
 
+  /// Resuming often races the network coming back, so a refused or timed-out
+  /// reconnect is worth a few spaced-out retries. A rejected login or a
+  /// permission error will not fix itself and is reported straight away.
+  Future<void> _ensureAliveWithRetry(
+    String serverId,
+    ApiClientInterface client,
+  ) {
+    return retryWithBackoff<void>(
+      client.ensureConnectionAlive,
+      policy: _retryPolicy,
+      isRetryable: (e) => e is ConnectionException && e.error.isRetryable,
+      onRetry: (retry, delay, error) => _log.warn(
+        'Retrying connection after resume',
+        attributes: {
+          'server.id': serverId,
+          'retry': retry,
+          'delay_ms': delay.inMilliseconds,
+          'error.type': errorTypeOf(error),
+        },
+      ),
+      wait: _wait,
+    );
+  }
+
   @override
   Future<Map<String, Object>> ensureAllConnectionsAlive() async {
     final failures = <String, Object>{};
@@ -159,7 +193,7 @@ class ApiClientManagerImpl implements ApiClientManagerInterface {
         final client = getExistingClient(serverId);
         if (client == null) return;
         try {
-          await client.ensureConnectionAlive();
+          await _ensureAliveWithRetry(serverId, client);
         } catch (e) {
           failures[serverId] = e;
           _log.error(

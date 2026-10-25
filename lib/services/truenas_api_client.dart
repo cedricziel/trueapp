@@ -124,6 +124,16 @@ abstract class _ClientBase
   /// period a hung request is no longer taken as a sign of life.
   Duration busyGracePeriod = const Duration(minutes: 3);
 
+  /// How long the WebSocket handshake and the login may take. A socket that
+  /// stalls here would otherwise hold every caller (and the resume path)
+  /// hostage for the OS-level timeout, which is a minute or more.
+  Duration connectTimeout = const Duration(seconds: 10);
+
+  /// The failure the last connection recovery ended in, so a caller waiting
+  /// on [ensureConnectionAlive] gets the real cause (and whether it is worth
+  /// retrying) instead of a generic one. Cleared when a recovery starts.
+  ConnectionException? _lastRecoveryError;
+
   bool _awaitingPong = false;
 
   _ClientBase(this._server, this._connectionStatusProvider, this._telemetry);

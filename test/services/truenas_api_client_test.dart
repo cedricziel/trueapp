@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1212,6 +1213,44 @@ void main() {
       expect(log.attributes['error.type'], connect.attributes['error.type']);
       expect(log.attributes['server.address'], '127.0.0.1');
       expect(log.body.toString(), isNot(endsWith('Server not reachable')));
+    });
+
+    test('the connect timeout defaults to ten seconds', () {
+      final client = TrueNasApiClient(testServer);
+      addTearDown(client.close);
+
+      expect(client.connectTimeout, const Duration(seconds: 10));
+    });
+
+    test('a server that accepts the socket but never answers the websocket '
+        'handshake fails as a timeout within the connect timeout', () async {
+      final silent = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(silent.close);
+      silent.listen((socket) => addTearDown(socket.destroy));
+
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(
+        serverFor(server).copyWith(port: silent.port),
+        null,
+        telemetry,
+      )..connectTimeout = const Duration(milliseconds: 200);
+      addTearDown(client.close);
+
+      await expectLater(
+        client.getAppCategories(),
+        throwsA(
+          isA<ConnectionException>().having(
+            (e) => e.error.type,
+            'type',
+            ConnectionErrorType.connectionTimeout,
+          ),
+        ),
+      );
+
+      final connect = telemetry.spans.singleWhere(
+        (s) => s.name == 'truenas.connect',
+      );
+      expect(connect.attributes['error.type'], 'timeout');
     });
 
     test('a request span carries rpc.system, rpc.method and the endpoint '
