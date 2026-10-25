@@ -40,6 +40,7 @@ class AppDependencies {
     final repository = await ServerRepositoryFactory(
       serversDaoSource: database,
       cloudKitServiceBuilder: CloudKitService.new,
+      telemetry: telemetry,
     ).create();
     final serverService = UnifiedServerService(
       repository: repository,

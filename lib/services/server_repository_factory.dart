@@ -5,6 +5,8 @@ import 'package:truehub/services/cloudkit_service_interface.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
 import 'package:truehub/services/database/dao_source.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:truehub/services/tracing_server_repository.dart';
 
 final _log = appLogger('storage.repository_factory');
 
@@ -14,13 +16,16 @@ class ServerRepositoryFactory {
     required ServersDaoSource serversDaoSource,
     required CloudKitServiceInterface Function() cloudKitServiceBuilder,
     bool? isApplePlatform,
-  }) : _serversDaoSource = serversDaoSource,
+    TelemetryServiceInterface? telemetry,
+  }) : _telemetry = telemetry,
+       _serversDaoSource = serversDaoSource,
        _cloudKitServiceBuilder = cloudKitServiceBuilder,
        _isApplePlatform = isApplePlatform ?? supportsCloudKit;
 
   final ServersDaoSource _serversDaoSource;
   final CloudKitServiceInterface Function() _cloudKitServiceBuilder;
   final bool _isApplePlatform;
+  final TelemetryServiceInterface? _telemetry;
 
   /// Creates and initializes the appropriate server repository for the
   /// current platform.
@@ -35,10 +40,13 @@ class ServerRepositoryFactory {
     if (useCloudKit) {
       _log.info('Using CloudKit repository');
       cloudKitService = _cloudKitServiceBuilder();
-      repository = CloudKitServerRepository(cloudKitService: cloudKitService);
+      repository = _traced(
+        CloudKitServerRepository(cloudKitService: cloudKitService),
+        'cloudkit',
+      );
     } else {
       _log.info('Using SQLite repository');
-      repository = _sqliteRepository();
+      repository = _traced(_sqliteRepository(), 'sqlite');
     }
 
     final initialized = await repository.initialize();
@@ -47,12 +55,25 @@ class ServerRepositoryFactory {
       _log.warn('CloudKit failed, falling back to SQLite');
       await repository.dispose();
       cloudKitService?.dispose();
-      final fallback = _sqliteRepository();
+      final fallback = _traced(_sqliteRepository(), 'sqlite');
       await fallback.initialize();
       return fallback;
     }
 
     return repository;
+  }
+
+  ServerRepositoryInterface _traced(
+    ServerRepositoryInterface inner,
+    String dbSystem,
+  ) {
+    final telemetry = _telemetry;
+    if (telemetry == null) return inner;
+    return TracingServerRepository(
+      inner: inner,
+      telemetry: telemetry,
+      dbSystem: dbSystem,
+    );
   }
 
   SqliteServerRepository _sqliteRepository() =>
