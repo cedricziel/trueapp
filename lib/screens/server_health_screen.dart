@@ -5,6 +5,7 @@ import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/models/service_status.dart';
 import 'package:truehub/providers/health_provider.dart';
+import 'package:truehub/screens/server_health/dismissible_alert_card.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/refreshable_scroll_view.dart';
@@ -67,14 +68,18 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildSummaryBanner(provider.activeAlerts),
-                if (provider.activeAlerts.isNotEmpty) ...[
+                if (provider.visibleAlerts.isNotEmpty ||
+                    provider.hasDismissedAlerts) ...[
                   const SizedBox(height: 20),
-                  _buildSectionHeader('Active Alerts'),
+                  _buildAlertsHeader(provider),
                   const SizedBox(height: 12),
-                  ...provider.activeAlerts.map(
+                  ...provider.visibleAlerts.map(
                     (alert) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: _buildAlertCard(alert),
+                      child: DismissibleAlertCard(
+                        alert: alert,
+                        onToggleDismissed: () => _toggleDismissed(alert),
+                      ),
                     ),
                   ),
                 ],
@@ -93,6 +98,51 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildAlertsHeader(HealthProvider provider) {
+    return Row(
+      children: [
+        Expanded(child: _buildSectionHeader('Active Alerts')),
+        if (provider.hasDismissedAlerts)
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            onPressed: () => provider.showDismissed = !provider.showDismissed,
+            child: Text(
+              provider.showDismissed ? 'Hide dismissed' : 'Show dismissed',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _toggleDismissed(Alert alert) async {
+    final provider = context.read<HealthProvider>();
+    final succeeded = alert.dismissed
+        ? await provider.restoreAlert(alert.id)
+        : await provider.dismissAlert(alert.id);
+    if (succeeded || !mounted) return;
+
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(
+          alert.dismissed
+              ? 'Could Not Restore Alert'
+              : 'Could Not Dismiss Alert',
+        ),
+        content: const Text('The server did not accept the change.'),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -159,64 +209,6 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAlertCard(Alert alert) {
-    final color = switch (alert.level) {
-      AlertLevel.critical => CupertinoColors.systemRed,
-      AlertLevel.error => CupertinoColors.systemOrange,
-      AlertLevel.warning => CupertinoColors.systemYellow,
-      AlertLevel.info || AlertLevel.unknown => CupertinoColors.systemBlue,
-    };
-
-    return Container(
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6.resolveFrom(context),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-          width: 0.5,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 4, color: color),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      alert.message,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (alert.occurredAt != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _formatRelativeTime(alert.occurredAt!),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: CupertinoColors.tertiaryLabel.resolveFrom(
-                            context,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -340,13 +332,5 @@ class _ServerHealthScreenState extends State<ServerHealthScreen> {
           ),
       ],
     );
-  }
-
-  String _formatRelativeTime(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
   }
 }

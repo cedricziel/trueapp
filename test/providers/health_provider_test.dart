@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/alert.dart';
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/models/server_health.dart';
 import 'package:truehub/providers/health_provider.dart';
@@ -293,6 +297,261 @@ void main() {
 
       expect(provider.connectionError, isNull);
       expect(fakeClient.calls, contains('getAlerts'));
+    });
+  });
+
+  group('HealthProvider - live alerts', () {
+    Map<String, dynamic> alertJson(String id, {bool dismissed = false}) => {
+      'uuid': id,
+      'level': 'WARNING',
+      'formatted': 'Alert $id',
+      'dismissed': dismissed,
+    };
+
+    AlertEvent event(
+      AlertEventType type,
+      String id, {
+      bool dismissed = false,
+    }) => AlertEvent(
+      type: type,
+      id: id,
+      alert: type == AlertEventType.removed
+          ? null
+          : Alert.fromJson(alertJson(id, dismissed: dismissed)),
+    );
+
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    Future<void> loadWith(List<Map<String, dynamic>> alerts) async {
+      fakeClient.alerts = alerts;
+      await provider.setServer(testServer);
+      await provider.loadHealth();
+    }
+
+    test(
+      'subscribes to alert changes once, however often health loads',
+      () async {
+        await loadWith([]);
+        await provider.refreshHealth();
+
+        expect(
+          fakeClient.calls.where((c) => c == 'subscribeToAlerts'),
+          hasLength(1),
+        );
+      },
+    );
+
+    test('an ADDED event appends the alert', () async {
+      await loadWith([alertJson('a1')]);
+
+      fakeClient.emitAlertEvent(event(AlertEventType.added, 'a2'));
+      await settle();
+
+      expect(provider.alerts.map((a) => a.id), ['a1', 'a2']);
+    });
+
+    test('an ADDED event for a known alert replaces it', () async {
+      await loadWith([alertJson('a1')]);
+
+      fakeClient.emitAlertEvent(event(AlertEventType.added, 'a1'));
+      await settle();
+
+      expect(provider.alerts, hasLength(1));
+    });
+
+    test('a CHANGED event updates the alert in place', () async {
+      await loadWith([alertJson('a1'), alertJson('a2')]);
+
+      fakeClient.emitAlertEvent(
+        event(AlertEventType.changed, 'a1', dismissed: true),
+      );
+      await settle();
+
+      expect(provider.alerts.map((a) => a.id), ['a1', 'a2']);
+      expect(provider.alerts.first.dismissed, isTrue);
+      expect(provider.activeAlerts.map((a) => a.id), ['a2']);
+    });
+
+    test('a REMOVED event drops the alert', () async {
+      await loadWith([alertJson('a1'), alertJson('a2')]);
+
+      fakeClient.emitAlertEvent(event(AlertEventType.removed, 'a1'));
+      await settle();
+
+      expect(provider.alerts.map((a) => a.id), ['a2']);
+    });
+
+    test('notifies listeners when an event arrives', () async {
+      await loadWith([]);
+      var notified = 0;
+      provider.addListener(() => notified++);
+
+      fakeClient.emitAlertEvent(event(AlertEventType.added, 'a1'));
+      await settle();
+
+      expect(notified, 1);
+    });
+
+    test('a failing subscription does not fail the health load', () async {
+      fakeClient.failingMethods.add('subscribeToAlerts');
+
+      await loadWith([alertJson('a1')]);
+
+      expect(provider.alerts, hasLength(1));
+      expect(provider.connectionError, isNull);
+      expect(
+        telemetryService.recordedErrors.single.context,
+        'HealthProvider.subscribeToAlerts',
+      );
+    });
+
+    test('switching server unsubscribes from the previous client', () async {
+      await loadWith([alertJson('a1')]);
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      final secondClient = FakeApiClient();
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        secondClient,
+      );
+
+      await provider.setServer(secondServer);
+
+      expect(fakeClient.calls, contains('unsubscribeFromAlerts'));
+      expect(provider.alerts, isEmpty);
+
+      fakeClient.emitAlertEvent(event(AlertEventType.added, 'stale'));
+      await settle();
+      expect(provider.alerts, isEmpty);
+
+      await provider.loadHealth();
+      expect(secondClient.calls, contains('subscribeToAlerts'));
+      await secondClient.dispose();
+    });
+
+    test('dispose unsubscribes from alert changes', () async {
+      final scoped = HealthProvider(
+        clientManager: TestProviders.mockApiClientManager,
+        serverService,
+      );
+      await scoped.setServer(testServer);
+      await scoped.loadHealth();
+
+      scoped.dispose();
+      await settle();
+
+      expect(fakeClient.calls, contains('unsubscribeFromAlerts'));
+    });
+
+    group('dismiss and restore', () {
+      test(
+        'dismissAlert hides the alert before the request completes',
+        () async {
+          await loadWith([alertJson('a1'), alertJson('a2')]);
+          final gate = Completer<void>();
+          fakeClient.alertActionGate = gate.future;
+
+          final result = provider.dismissAlert('a1');
+
+          expect(provider.activeAlerts.map((a) => a.id), ['a2']);
+          expect(provider.alerts.first.dismissed, isTrue);
+
+          gate.complete();
+          expect(await result, isTrue);
+          expect(fakeClient.dismissedAlertIds, ['a1']);
+          expect(provider.activeAlerts.map((a) => a.id), ['a2']);
+        },
+      );
+
+      test('dismissAlert rolls back and reports a failed request', () async {
+        await loadWith([alertJson('a1')]);
+        fakeClient.failingMethods.add('dismissAlert');
+
+        final ok = await provider.dismissAlert('a1');
+
+        expect(ok, isFalse);
+        expect(provider.activeAlerts.map((a) => a.id), ['a1']);
+        expect(
+          telemetryService.recordedErrors.single.context,
+          'HealthProvider.dismissAlert',
+        );
+      });
+
+      test('restoreAlert brings a dismissed alert back', () async {
+        await loadWith([alertJson('a1', dismissed: true)]);
+        expect(provider.activeAlerts, isEmpty);
+
+        final ok = await provider.restoreAlert('a1');
+
+        expect(ok, isTrue);
+        expect(fakeClient.restoredAlertIds, ['a1']);
+        expect(provider.activeAlerts.map((a) => a.id), ['a1']);
+      });
+
+      test('restoreAlert rolls back a failed request', () async {
+        await loadWith([alertJson('a1', dismissed: true)]);
+        fakeClient.failingMethods.add('restoreAlert');
+
+        final ok = await provider.restoreAlert('a1');
+
+        expect(ok, isFalse);
+        expect(provider.activeAlerts, isEmpty);
+        expect(provider.alerts.single.dismissed, isTrue);
+      });
+
+      test(
+        'a failed dismiss does not resurrect an alert removed meanwhile',
+        () async {
+          await loadWith([alertJson('a1')]);
+          final gate = Completer<void>();
+          fakeClient
+            ..alertActionGate = gate.future
+            ..failingMethods.add('dismissAlert');
+
+          final result = provider.dismissAlert('a1');
+          fakeClient.emitAlertEvent(event(AlertEventType.removed, 'a1'));
+          await settle();
+          gate.complete();
+          await result;
+
+          expect(provider.alerts, isEmpty);
+        },
+      );
+
+      test('dismissing an unknown alert still asks the server', () async {
+        await loadWith([]);
+
+        expect(await provider.dismissAlert('ghost'), isTrue);
+        expect(fakeClient.dismissedAlertIds, ['ghost']);
+      });
+
+      test('without a client reports failure', () async {
+        expect(await provider.dismissAlert('a1'), isFalse);
+        expect(await provider.restoreAlert('a1'), isFalse);
+      });
+    });
+
+    group('showing dismissed alerts', () {
+      test('are hidden by default and shown on request', () async {
+        await loadWith([alertJson('a1'), alertJson('a2', dismissed: true)]);
+
+        expect(provider.showDismissed, isFalse);
+        expect(provider.visibleAlerts.map((a) => a.id), ['a1']);
+        expect(provider.hasDismissedAlerts, isTrue);
+
+        provider.showDismissed = true;
+
+        expect(provider.visibleAlerts.map((a) => a.id), ['a1', 'a2']);
+        expect(provider.activeAlerts.map((a) => a.id), ['a1']);
+      });
     });
   });
 

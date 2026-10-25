@@ -26,6 +26,7 @@ mixin _SessionOps on _ClientBase, _Connection, _KeepaliveAndRecovery
     await unsubscribeFromSystemStats();
     await unsubscribeFromAppStats();
     await unsubscribeFromJobs();
+    await unsubscribeFromAlerts();
     final staleClient = _client;
     final staleChannel = _wsChannel;
     _client = null;

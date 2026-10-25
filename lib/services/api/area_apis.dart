@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:truehub/models/alert.dart';
+import 'package:truehub/models/alert_event.dart';
 import 'package:truehub/models/app.dart';
 import 'package:truehub/models/file_item.dart';
 import 'package:truehub/models/job.dart';
@@ -35,6 +36,17 @@ abstract interface class HealthApi {
   Future<ServerHealth> getServerHealth();
   Future<List<Alert>> getAlerts();
   Future<List<ServiceStatus>> getServices();
+}
+
+/// Live alert changes and the dismiss/restore actions. The initial list comes
+/// from [HealthApi.getAlerts].
+abstract interface class AlertsApi {
+  /// Changes to the alert list, once [subscribeToAlerts] has been called.
+  Stream<AlertEvent> get alertEvents;
+  Future<void> subscribeToAlerts();
+  Future<void> unsubscribeFromAlerts();
+  Future<void> dismissAlert(String alertId);
+  Future<void> restoreAlert(String alertId);
 }
 
 abstract interface class ServicesApi {
