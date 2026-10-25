@@ -37,10 +37,16 @@ void main() {
   });
 
   group('PoolUsage.percent', () {
-    test('rounds to the nearest whole percent', () {
+    test('rounds down to a whole percent', () {
       expect(_usage(1, 3).percent, 33);
-      expect(_usage(2, 3).percent, 67);
+      expect(_usage(2, 3).percent, 66);
       expect(_usage(1, 100).percent, 1);
+    });
+
+    test('agrees with the level just below a threshold', () {
+      final usage = _usage(796, 1000);
+      expect(usage.percent, 79);
+      expect(usage.level, PoolUsageLevel.normal);
     });
   });
 

@@ -17,8 +17,8 @@ class PoolUsage {
   final int allocatedBytes;
   final int totalBytes;
 
-  int get percent =>
-      totalBytes <= 0 ? 0 : (allocatedBytes * 100 / totalBytes).round();
+  /// Rounded down, so the label never reads 80% while [level] is still normal.
+  int get percent => totalBytes <= 0 ? 0 : allocatedBytes * 100 ~/ totalBytes;
 
   /// Compares in integers so a pool sitting exactly on a threshold is never
   /// tipped either way by floating point rounding.
