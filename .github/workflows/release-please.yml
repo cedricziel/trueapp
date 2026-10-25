@@ -74,7 +74,7 @@ jobs:
           bundler-cache: true
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           # Same key as ci.yml so release builds reuse its warm cache.
           path: |
