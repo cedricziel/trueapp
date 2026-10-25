@@ -1,4 +1,7 @@
 import 'package:equatable/equatable.dart';
+import 'package:truehub/models/pool_scan.dart';
+
+export 'package:truehub/models/pool_scan.dart';
 
 /// The reported state of a single physical disk within a [Vdev].
 enum VdevDiskStatus {
@@ -114,6 +117,9 @@ class Pool extends Equatable {
   final int freeBytes;
   final List<Vdev> dataVdevs;
 
+  /// The running or most recent scrub/resilver; null if never scanned.
+  final PoolScan? scan;
+
   const Pool({
     required this.id,
     required this.name,
@@ -122,6 +128,7 @@ class Pool extends Equatable {
     required this.allocatedBytes,
     required this.freeBytes,
     required this.dataVdevs,
+    this.scan,
   });
 
   int get totalBytes => allocatedBytes + freeBytes;
@@ -153,6 +160,7 @@ class Pool extends Equatable {
           : dataJson
                 .map((vdev) => Vdev.fromJson(vdev as Map<String, dynamic>))
                 .toList(),
+      scan: PoolScan.tryParse(json['scan']),
     );
   }
 
@@ -165,5 +173,6 @@ class Pool extends Equatable {
     allocatedBytes,
     freeBytes,
     dataVdevs,
+    scan,
   ];
 }

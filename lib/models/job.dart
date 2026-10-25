@@ -45,7 +45,7 @@ String _jobStateToJson(JobState state) {
 /// Accepts that shape defensively, plus a raw epoch-millisecond number or an
 /// ISO 8601 string, since the exact wire shape depends on the middleware
 /// version talking to the client.
-DateTime? _parseTrueNasDateTime(dynamic value) {
+DateTime? parseTrueNasDateTime(dynamic value) {
   if (value == null) return null;
   if (value is Map) {
     final millis = value[r'$date'];
@@ -130,8 +130,8 @@ class Job extends Equatable {
       description: json['description'] as String?,
       progress: JobProgress.fromJson(json['progress'] as Map<String, dynamic>?),
       state: _parseJobState(json['state'] as String?),
-      timeStarted: _parseTrueNasDateTime(json['time_started']),
-      timeFinished: _parseTrueNasDateTime(json['time_finished']),
+      timeStarted: parseTrueNasDateTime(json['time_started']),
+      timeFinished: parseTrueNasDateTime(json['time_finished']),
       error: json['error'] as String?,
       logsExcerpt: json['logs_excerpt'] as String?,
       abortable: json['abortable'] as bool? ?? false,

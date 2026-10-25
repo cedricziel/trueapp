@@ -11,6 +11,7 @@ import 'package:truehub/services/database.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import '../helpers/fake_api_client.dart';
 import '../helpers/layout_assertions.dart';
+import '../helpers/pool_scan_fixtures.dart';
 import '../helpers/provider_scope.dart';
 import '../helpers/pump_helpers.dart';
 import '../helpers/test_providers.dart';
@@ -171,6 +172,30 @@ void main() {
       // so after the push there are two - one per screen in the stack.
       expect(find.text('tank'), findsWidgets);
       expect(find.widgetWithText(CupertinoButton, 'Back'), findsWidgets);
+    });
+
+    testWidgets('shows scan progress on a pool that is scrubbing', (
+      tester,
+    ) async {
+      final fakeClient = FakeApiClient()
+        ..pools = [
+          {
+            'name': 'tank',
+            'status': 'ONLINE',
+            'healthy': true,
+            'scan': poolScanJson(percentage: 42.0),
+          },
+        ];
+      final poolProvider = await realPoolProvider(fakeClient);
+      addTearDown(poolProvider.dispose);
+
+      await tester.pumpWidget(createTestApp(poolProvider));
+      await pumpUntilAsync(
+        tester,
+        () => find.text('tank').evaluate().isNotEmpty,
+      );
+
+      expect(find.text('Scrubbing 42%'), findsOneWidget);
     });
 
     group('pool type description', () {

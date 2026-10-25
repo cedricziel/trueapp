@@ -8,6 +8,7 @@ import 'package:truehub/widgets/empty_state_widget.dart';
 import 'package:truehub/widgets/error_state_widget.dart';
 import 'package:truehub/widgets/jobs_bell_button.dart';
 import 'package:truehub/widgets/loading_state_widget.dart';
+import 'package:truehub/widgets/pool_scan/pool_scan_section.dart';
 import 'package:truehub/widgets/refreshable_scroll_view.dart';
 import 'package:truehub/widgets/section_card.dart';
 
@@ -55,7 +56,15 @@ class _PoolDetailScreenState extends State<PoolDetailScreen> {
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.all(16),
-                child: _buildPoolInfo(),
+                child: Column(
+                  children: [
+                    _buildPoolInfo(),
+                    if (widget.pool.scan case final scan?) ...[
+                      const SizedBox(height: 16),
+                      PoolScanSection(scan: scan),
+                    ],
+                  ],
+                ),
               ),
             ),
 
