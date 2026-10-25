@@ -15,6 +15,8 @@ import 'package:truehub/screens/services_screen.dart';
 import 'package:truehub/navigation/adaptive_navigation_scaffold.dart';
 import 'package:truehub/navigation/server_route_host.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/services/telemetry_service_interface.dart';
+import 'package:flutter_otel/flutter_otel.dart';
 
 /// A server carried in `state.extra` by an in-app navigation, or `null` if
 /// absent, of the wrong type, or for a different server than [state]'s
@@ -40,6 +42,7 @@ Page<void> _serverPage(
 ) {
   return CupertinoPage(
     key: state.pageKey,
+    name: state.name,
     child: ServerRouteHost(
       serverId: state.pathParameters['serverId'] ?? '',
       cachedServer: _cachedServer(state),
@@ -50,113 +53,138 @@ Page<void> _serverPage(
 
 /// Builds a router for the app.
 ///
-/// Exposed as a factory rather than only as the [appRouter] singleton so tests
-/// can drive a fresh navigation stack per test instead of sharing location
-/// state through a global.
-GoRouter createAppRouter({String initialLocation = '/servers'}) => GoRouter(
-  initialLocation: initialLocation,
-  routes: [
-    ShellRoute(
-      builder: (context, state, child) {
-        return AdaptiveNavigationScaffold(child: child);
-      },
-      routes: [
-        GoRoute(
-          path: '/servers',
-          name: 'servers',
-          pageBuilder: (context, state) =>
-              CupertinoPage(key: state.pageKey, child: const HomeScreen()),
-        ),
-        GoRoute(
-          path: '/settings',
-          name: 'settings',
-          pageBuilder: (context, state) =>
-              CupertinoPage(key: state.pageKey, child: const SettingsScreen()),
-        ),
-        GoRoute(
-          path: '/server/:serverId',
-          name: 'server-detail',
-          pageBuilder: (context, state) => _serverPage(
-            state,
-            (server) => ServerDetailScreen(server: server),
+/// Exposed as a factory so tests can drive a fresh navigation stack per test
+/// instead of sharing location state through a global.
+///
+/// With a [telemetry] service, screen changes are recorded as `app.navigation`
+/// events. Pages carry their route's `name:` (a fixed template such as
+/// `server-apps`), so no server id or other path parameter reaches telemetry.
+GoRouter createAppRouter({
+  String initialLocation = '/servers',
+  TelemetryServiceInterface? telemetry,
+}) {
+  // A NavigatorObserver attaches to one navigator, so the root navigator and
+  // the shell's nested one each need their own.
+  OTelNavigatorObserver? newObserver() => telemetry == null
+      ? null
+      : OTelNavigatorObserver(
+          logEvent: appEventLogger(telemetry.getLogger()),
+          unnamedRoutePolicy: UnnamedRoutePolicy.skip,
+        );
+  return GoRouter(
+    initialLocation: initialLocation,
+    observers: [?newObserver()],
+    routes: [
+      ShellRoute(
+        notifyRootObserver: false,
+        observers: [?newObserver()],
+        builder: (context, state, child) {
+          return AdaptiveNavigationScaffold(child: child);
+        },
+        routes: [
+          GoRoute(
+            path: '/servers',
+            name: 'servers',
+            pageBuilder: (context, state) => CupertinoPage(
+              key: state.pageKey,
+              name: state.name,
+              child: const HomeScreen(),
+            ),
           ),
-          routes: [
-            GoRoute(
-              path: 'profile',
-              name: 'server-profile',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => UserProfileScreen(server: server),
-              ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            pageBuilder: (context, state) => CupertinoPage(
+              key: state.pageKey,
+              name: state.name,
+              child: const SettingsScreen(),
             ),
-            GoRoute(
-              path: 'edit',
-              name: 'server-edit',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => EditServerScreen(server: server),
-              ),
+          ),
+          GoRoute(
+            path: '/server/:serverId',
+            name: 'server-detail',
+            pageBuilder: (context, state) => _serverPage(
+              state,
+              (server) => ServerDetailScreen(server: server),
             ),
-            GoRoute(
-              path: 'pools',
-              name: 'server-pools',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServerPoolsScreen(server: server),
+            routes: [
+              GoRoute(
+                path: 'profile',
+                name: 'server-profile',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => UserProfileScreen(server: server),
+                ),
               ),
-            ),
-            GoRoute(
-              path: 'apps',
-              name: 'server-apps',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServerAppsScreen(server: server),
+              GoRoute(
+                path: 'edit',
+                name: 'server-edit',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => EditServerScreen(server: server),
+                ),
               ),
-            ),
-            GoRoute(
-              path: 'files',
-              name: 'server-files',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServerFilesScreen(server: server),
+              GoRoute(
+                path: 'pools',
+                name: 'server-pools',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServerPoolsScreen(server: server),
+                ),
               ),
-            ),
-            GoRoute(
-              path: 'health',
-              name: 'server-health',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServerHealthScreen(server: server),
+              GoRoute(
+                path: 'apps',
+                name: 'server-apps',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServerAppsScreen(server: server),
+                ),
               ),
-            ),
-            GoRoute(
-              path: 'jobs',
-              name: 'server-jobs',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServerJobsScreen(server: server),
+              GoRoute(
+                path: 'files',
+                name: 'server-files',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServerFilesScreen(server: server),
+                ),
               ),
-            ),
-            GoRoute(
-              path: 'services',
-              name: 'server-services',
-              pageBuilder: (context, state) => _serverPage(
-                state,
-                (server) => ServicesScreen(server: server),
+              GoRoute(
+                path: 'health',
+                name: 'server-health',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServerHealthScreen(server: server),
+                ),
               ),
-            ),
-          ],
+              GoRoute(
+                path: 'jobs',
+                name: 'server-jobs',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServerJobsScreen(server: server),
+                ),
+              ),
+              GoRoute(
+                path: 'services',
+                name: 'server-services',
+                pageBuilder: (context, state) => _serverPage(
+                  state,
+                  (server) => ServicesScreen(server: server),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/add-server',
+        name: 'add-server',
+        pageBuilder: (context, state) => CupertinoPage(
+          key: state.pageKey,
+          name: state.name,
+          child: const AddServerScreen(),
         ),
-      ],
-    ),
-    GoRoute(
-      path: '/add-server',
-      name: 'add-server',
-      pageBuilder: (context, state) =>
-          CupertinoPage(key: state.pageKey, child: const AddServerScreen()),
-    ),
-  ],
-);
-
-/// The router instance used by the running app.
-final GoRouter appRouter = createAppRouter();
+      ),
+    ],
+  );
+}
