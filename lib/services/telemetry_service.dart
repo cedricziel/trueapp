@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 import 'package:truehub/services/telemetry_config.dart';
 import 'package:truehub/services/telemetry_redactor.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
@@ -62,7 +63,10 @@ class TelemetryService implements TelemetryServiceInterface {
     bool fatal = false,
   }) {
     final logger = getLogger();
-    final body = context == null ? error.toString() : '$context: $error';
+    final description = describeError(error);
+    final cause = rootCauseOf(error);
+    final errorType = errorTypeOf(error);
+    final body = context == null ? description : '$context: $description';
 
     if (fatal) {
       logger.emit(
@@ -70,14 +74,20 @@ class TelemetryService implements TelemetryServiceInterface {
           body: body,
           severity: LogSeverity.fatal,
           attributes: {
-            'exception.type': error.runtimeType.toString(),
-            'exception.message': error.toString(),
+            'exception.type': cause.runtimeType.toString(),
+            'exception.message': cause.toString(),
             'exception.stacktrace': stackTrace.toString(),
+            'error.type': errorType,
           },
         ),
       );
     } else {
-      logger.error(body, error: error, stackTrace: stackTrace);
+      logger.error(
+        body,
+        error: cause,
+        stackTrace: stackTrace,
+        attributes: {'error.type': errorType},
+      );
     }
   }
 

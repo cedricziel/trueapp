@@ -17,6 +17,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 import 'package:truehub/services/tray_status_ports.dart';
 
 final _log = appLogger('providers.app');
@@ -327,7 +328,7 @@ class AppProvider extends ChangeNotifier
       await _loadPersistedAppConfigs();
     } catch (e, stackTrace) {
       _connectionError = ConnectionError.unknown(details: e.toString());
-      _log.error('Failed to load persisted app configs', error: e);
+      _log.errorWithCause('Failed to load persisted app configs', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -378,9 +379,9 @@ class AppProvider extends ChangeNotifier
       }
       return result;
     } catch (e, stackTrace) {
-      _log.error(
+      _log.errorWithCause(
         'Failed to $verb app',
-        error: e,
+        e,
         attributes: {'app.name': appName},
       );
       _telemetryService?.recordError(
