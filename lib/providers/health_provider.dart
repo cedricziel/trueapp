@@ -235,16 +235,18 @@ class HealthProvider extends ChangeNotifier
   }
 
   void _onAlertEvent(AlertEvent event) {
+    // Only a removal carries no alert.
     final alert = event.alert;
-    if (event.type == AlertEventType.removed) {
-      _alerts = _alerts.where((a) => a.id != event.id).toList();
-    } else if (alert != null) {
+    if (alert == null) {
+      _alerts = [
+        for (final existing in _alerts)
+          if (existing.id != event.id) existing,
+      ];
+    } else {
       final index = _alerts.indexWhere((a) => a.id == alert.id);
       _alerts = index < 0
           ? [..._alerts, alert]
           : ([..._alerts]..[index] = alert);
-    } else {
-      return;
     }
     notifyListeners();
   }
