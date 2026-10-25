@@ -64,6 +64,14 @@ class Alert extends Equatable {
     );
   }
 
+  Alert copyWith({String? id, bool? dismissed}) => Alert(
+    id: id ?? this.id,
+    level: level,
+    message: message,
+    occurredAt: occurredAt,
+    dismissed: dismissed ?? this.dismissed,
+  );
+
   @override
   List<Object?> get props => [id, level, message, occurredAt, dismissed];
 }
