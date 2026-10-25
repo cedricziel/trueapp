@@ -1,100 +1,17 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
-import 'package:stream_channel/stream_channel.dart';
 import 'package:truehub/models/nas_server.dart';
 import 'package:truehub/services/truenas_api_client.dart';
-import 'package:web_socket_channel/io.dart';
 
-/// A minimal stand-in for a TrueNAS middleware WebSocket endpoint.
-///
-/// It counts the calls the client makes so a test can assert that a
-/// subscription was actually re-established, and it can drop the socket the
-/// way iOS does when an app is suspended in the background.
-class FakeTrueNasServer {
-  FakeTrueNasServer._(this._httpServer);
-
-  final HttpServer _httpServer;
-  final List<WebSocket> _sockets = [];
-  int loginCount = 0;
-  int subscribeCount = 0;
-  int pingCount = 0;
-
-  /// Makes core.subscribe fail, the way a server still starting up rejects
-  /// subscriptions for a while after a reconnect.
-  bool failSubscribes = false;
-
-  /// Makes core.ping hang forever, the way a half-dead socket behaves: the
-  /// TCP connection looks open, but nothing ever comes back.
-  bool hangPings = false;
-
-  static Future<FakeTrueNasServer> start() async {
-    final httpServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    final server = FakeTrueNasServer._(httpServer);
-    unawaited(server._acceptConnections());
-    return server;
-  }
-
-  int get port => _httpServer.port;
-
-  Future<void> _acceptConnections() async {
-    await for (final request in _httpServer) {
-      final socket = await WebSocketTransformer.upgrade(
-        request,
-        protocolSelector: (protocols) => 'json-rpc',
-      );
-      _sockets.add(socket);
-      _serve(IOWebSocketChannel(socket).cast<String>());
-    }
-  }
-
-  void _serve(StreamChannel<String> channel) {
-    final peer = json_rpc.Peer(channel)
-      ..registerMethod('auth.login', (json_rpc.Parameters _) {
-        loginCount++;
-        return true;
-      })
-      ..registerMethod('core.subscribe', (json_rpc.Parameters _) {
-        if (failSubscribes) {
-          throw json_rpc.RpcException(1, 'subscription refused');
-        }
-        subscribeCount++;
-        return 'subscription-$subscribeCount';
-      })
-      ..registerMethod('core.unsubscribe', (json_rpc.Parameters _) => true)
-      ..registerMethod('core.ping', (json_rpc.Parameters _) {
-        if (hangPings) return Completer<String>().future;
-        pingCount++;
-        return 'pong';
-      });
-    unawaited(peer.listen().catchError((_) {}));
-  }
-
-  /// Kills the live socket(s) without a graceful protocol shutdown - what the
-  /// device does to a backgrounded app's connection.
-  Future<void> dropConnections() async {
-    for (final socket in _sockets) {
-      await socket.close();
-    }
-    _sockets.clear();
-    // Give the client's stream a turn to observe the closure.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-  }
-
-  Future<void> stop() async {
-    await dropConnections();
-    await _httpServer.close(force: true);
-  }
-}
+import '../helpers/fake_truenas_server.dart';
 
 void main() {
   late FakeTrueNasServer server;
   late TrueNasApiClient client;
 
   setUp(() async {
-    server = await FakeTrueNasServer.start();
+    server = await FakeTrueNasServer.start(accounts: {'user': 'pw'});
     client = TrueNasApiClient(
       NasServer(
         id: 'recovery-test',
@@ -121,8 +38,8 @@ void main() {
     'ensureConnectionAlive restores a connection dropped in the background',
     () async {
       await client.subscribeToSystemStats();
-      expect(server.loginCount, 1);
-      expect(server.subscribeCount, 1);
+      expect(server.successfulCalls('auth.login'), 1);
+      expect(server.successfulCalls('core.subscribe'), 1);
 
       // Backgrounded: the OS tears the socket down. No timer can help here -
       // the keepalive ping sees a closed client and has nothing to ping.
@@ -132,12 +49,12 @@ void main() {
       await client.ensureConnectionAlive();
 
       expect(
-        server.loginCount,
+        server.successfulCalls('auth.login'),
         2,
         reason: 'the client must re-authenticate on the new socket',
       );
       expect(
-        server.subscribeCount,
+        server.successfulCalls('core.subscribe'),
         2,
         reason: 'active subscriptions must be restored, or stats stay frozen',
       );
@@ -148,16 +65,19 @@ void main() {
     'a subscription that fails to restore is retried on the next resume',
     () async {
       await client.subscribeToSystemStats();
-      expect(server.subscribeCount, 1);
+      expect(server.successfulCalls('core.subscribe'), 1);
 
       await server.dropConnections();
-      server.failSubscribes = true;
+      server.onMethod(
+        'core.subscribe',
+        (_) => throw json_rpc.RpcException(1, 'subscription refused'),
+      );
 
       // First resume: the socket comes back, but the server refuses the
       // subscription for now.
       await client.ensureConnectionAlive();
       expect(
-        server.subscribeCount,
+        server.successfulCalls('core.subscribe'),
         1,
         reason: 'a refused subscription must not count as established',
       );
@@ -165,11 +85,11 @@ void main() {
       // The server accepts subscriptions again; the stream the UI asked for is
       // still wanted, so the next resume has to attempt it rather than treat a
       // healthy socket as good enough.
-      server.failSubscribes = false;
+      server.resetMethod('core.subscribe');
       await client.ensureConnectionAlive();
 
       expect(
-        server.subscribeCount,
+        server.successfulCalls('core.subscribe'),
         2,
         reason:
             'a subscription the UI asked for must survive a failed restore, '
@@ -180,7 +100,7 @@ void main() {
 
   test('concurrent recovery attempts reconnect only once', () async {
     await client.subscribeToSystemStats();
-    expect(server.loginCount, 1);
+    expect(server.successfulCalls('auth.login'), 1);
 
     await server.dropConnections();
 
@@ -193,11 +113,11 @@ void main() {
     ]);
 
     expect(
-      server.loginCount,
+      server.successfulCalls('auth.login'),
       2,
       reason: 'overlapping recovery attempts must share one reconnect',
     );
-    expect(server.subscribeCount, 2);
+    expect(server.successfulCalls('core.subscribe'), 2);
   });
 
   test(
@@ -219,22 +139,22 @@ void main() {
   test('a zombie socket that stops answering pings is torn down and '
       're-authenticated', () async {
     await client.subscribeToSystemStats();
-    expect(server.loginCount, 1);
+    expect(server.successfulCalls('auth.login'), 1);
 
     // The socket stays open but stops answering - a half-dead connection
     // the Peer cannot see (isClosed remains false), so recovery must not
     // trust the session just because the socket still looks live.
-    server.hangPings = true;
+    server.onMethod('core.ping', (_) => Completer<String>().future);
     unawaited(client.ensureConnectionAlive().catchError((_) {}));
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
     // The next resume finds the earlier ping still unanswered and has to
     // recover with a fresh session, not vouch for the zombie.
-    server.hangPings = false;
+    server.resetMethod('core.ping');
     await client.ensureConnectionAlive();
 
     expect(
-      server.loginCount,
+      server.successfulCalls('auth.login'),
       2,
       reason:
           'recovery must re-authenticate on a fresh socket instead of '
@@ -246,7 +166,7 @@ void main() {
     'close() prevents later recovery from resurrecting the session',
     () async {
       await client.subscribeToSystemStats();
-      expect(server.loginCount, 1);
+      expect(server.successfulCalls('auth.login'), 1);
 
       await client.close();
 
@@ -255,7 +175,11 @@ void main() {
       // would leak a socket and a keepalive timer nobody owns.
       await client.ensureConnectionAlive();
 
-      expect(server.loginCount, 1, reason: 'a closed client must stay closed');
+      expect(
+        server.successfulCalls('auth.login'),
+        1,
+        reason: 'a closed client must stay closed',
+      );
     },
   );
 
@@ -263,7 +187,7 @@ void main() {
     'subscribeToSystemStats re-subscribes after the connection was lost',
     () async {
       await client.subscribeToSystemStats();
-      expect(server.subscribeCount, 1);
+      expect(server.successfulCalls('core.subscribe'), 1);
 
       // The app goes to the background; iOS tears the socket down.
       await server.dropConnections();
@@ -274,7 +198,7 @@ void main() {
       await client.subscribeToSystemStats();
 
       expect(
-        server.subscribeCount,
+        server.successfulCalls('core.subscribe'),
         2,
         reason:
             'the stats subscription must be re-established on the new '
@@ -287,17 +211,20 @@ void main() {
     'a failed app stats re-subscribe leaves the stream for recovery to restore',
     () async {
       await client.subscribeToAppStats();
-      expect(server.subscribeCount, 1);
+      expect(server.successfulCalls('core.subscribe'), 1);
 
       await server.dropConnections();
-      server.failSubscribes = true;
+      server.onMethod(
+        'core.subscribe',
+        (_) => throw json_rpc.RpcException(1, 'subscription refused'),
+      );
       await expectLater(client.subscribeToAppStats(), throwsA(anything));
 
-      server.failSubscribes = false;
+      server.resetMethod('core.subscribe');
       await client.ensureConnectionAlive();
 
       expect(
-        server.subscribeCount,
+        server.successfulCalls('core.subscribe'),
         2,
         reason:
             'the dead socket\'s subscription must not count as live, so '
