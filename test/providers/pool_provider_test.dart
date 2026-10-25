@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/models/nas_server.dart';
@@ -24,6 +26,18 @@ class _ClassifiedFailureClient extends FakeApiClient {
   Future<List<Pool>> getPools() async {
     calls.add('getPools');
     throw ConnectionException(failure);
+  }
+}
+
+/// A [FakeApiClient] whose [getPools] waits until the test releases it, so a
+/// server switch can land while the request is in flight.
+class _GatedPoolsClient extends FakeApiClient {
+  final release = Completer<void>();
+
+  @override
+  Future<List<Pool>> getPools() async {
+    await release.future;
+    return super.getPools();
   }
 }
 
@@ -283,6 +297,41 @@ void main() {
         telemetryService.recordedErrors.single.context,
         'PoolProvider.loadPools',
       );
+    });
+
+    test('discards pools that arrive after a server switch', () async {
+      final gatedClient = _GatedPoolsClient()
+        ..pools = [
+          {'id': 1, 'name': 'tank'},
+        ];
+      TestProviders.mockApiClientManager.addMockClient(
+        testServer.id,
+        gatedClient,
+      );
+      await poolProvider.setServer(testServer);
+
+      final secondServer = NasServer.create(
+        name: 'Second Server',
+        host: '192.168.1.101',
+        username: 'admin',
+        password: 'password',
+      );
+      await serverService.saveServerConfig(
+        server: secondServer,
+        password: 'password',
+      );
+      TestProviders.mockApiClientManager.addMockClient(
+        secondServer.id,
+        FakeApiClient(),
+      );
+
+      final load = poolProvider.loadPools();
+      await poolProvider.setServer(secondServer);
+      gatedClient.release.complete();
+      await load;
+
+      expect(poolProvider.pools, isEmpty);
+      await gatedClient.dispose();
     });
 
     test('is a no-op without a client', () async {

@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:truehub/models/app_config.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/services/app_logger.dart';
 import 'package:truehub/services/tray/native_tray_host.dart';
 import 'package:truehub/services/tray/tray_host.dart';
+import 'package:truehub/services/tray/tray_pool_entries.dart';
 
 final _log = appLogger('platform.tray');
 
@@ -69,6 +71,7 @@ class TrayService {
     required int totalServers,
     List<String>? alerts,
     List<AppConfig>? appsWithPortals,
+    List<Pool>? pools,
   }) async {
     final host = _host;
     if (host == null) return;
@@ -106,6 +109,13 @@ class TrayService {
           ),
         ],
       ];
+
+      if (pools != null && pools.isNotEmpty) {
+        menuItems.addAll([
+          const TrayMenuEntry.separator(),
+          ...buildPoolMenuEntries(pools),
+        ]);
+      }
 
       // Add app portals section
       if (appsWithPortals != null && appsWithPortals.isNotEmpty) {

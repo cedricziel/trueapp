@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truehub/models/nas_server.dart';
+import 'package:truehub/models/pool.dart';
 import 'package:truehub/widgets/tray_status_binder.dart';
 
 import '../helpers/fake_tray_status.dart';
@@ -13,12 +14,23 @@ NasServer _server(String id) => NasServer(
   password: '',
 );
 
+Pool _pool(String name) => Pool(
+  id: name,
+  name: name,
+  status: 'ONLINE',
+  healthy: true,
+  allocatedBytes: 1,
+  freeBytes: 1,
+  dataVdevs: const [],
+);
+
 void main() {
   late FakeTraySink tray;
   late FakeTrayServerSource serverSource;
   late FakeTrayHealthSource healthSource;
   late FakeTrayAppsSource appsSource;
   late FakeTrayConnectionSource connectionSource;
+  late FakeTrayPoolsSource poolsSource;
   late int showCalls;
   late int quitCalls;
 
@@ -28,6 +40,7 @@ void main() {
     healthSource = FakeTrayHealthSource();
     appsSource = FakeTrayAppsSource();
     connectionSource = FakeTrayConnectionSource();
+    poolsSource = FakeTrayPoolsSource();
     showCalls = 0;
     quitCalls = 0;
   });
@@ -41,6 +54,7 @@ void main() {
         healthSource: healthSource,
         appsSource: appsSource,
         connectionSource: connectionSource,
+        poolsSource: poolsSource,
         onShowWindow: () => showCalls++,
         onQuitApp: () => quitCalls++,
         child: const SizedBox(),
@@ -61,6 +75,7 @@ void main() {
     expect(showCalls, 1);
     expect(quitCalls, 1);
     expect(serverSource.refreshCalls, 1);
+    expect(poolsSource.refreshCalls, 1);
   });
 
   testWidgets('does nothing off desktop', (tester) async {
@@ -150,6 +165,35 @@ void main() {
     expect(tray.updates.single.appsWithPortals, isEmpty);
   });
 
+  testWidgets('pushes the pools once the tray is ready', (tester) async {
+    poolsSource.pools = [_pool('tank')];
+    await pumpBinder(tester);
+
+    expect(tray.updates.single.pools, [_pool('tank')]);
+  });
+
+  testWidgets('pushes status when the pools change', (tester) async {
+    await pumpBinder(tester);
+
+    poolsSource.pools = [_pool('tank')];
+    poolsSource.change();
+
+    expect(tray.updates, hasLength(2));
+    expect(tray.updates.last.pools, [_pool('tank')]);
+  });
+
+  testWidgets('skips the push when a pool reload leaves the pools unchanged', (
+    tester,
+  ) async {
+    poolsSource.pools = [_pool('tank')];
+    await pumpBinder(tester);
+
+    poolsSource.pools = [_pool('tank')];
+    poolsSource.change();
+
+    expect(tray.updates, hasLength(1));
+  });
+
   testWidgets('stops listening once disposed', (tester) async {
     await pumpBinder(tester);
     await tester.pumpWidget(const SizedBox());
@@ -159,6 +203,8 @@ void main() {
     appsSource.change();
     healthSource.healthError = 'late';
     healthSource.change();
+    poolsSource.pools = [_pool('tank')];
+    poolsSource.change();
 
     expect(tray.updates, hasLength(1));
   });

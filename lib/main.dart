@@ -9,6 +9,7 @@ import 'package:truehub/app_providers.dart';
 import 'package:truehub/providers/app_provider.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/providers/health_provider.dart';
+import 'package:truehub/providers/pool_provider.dart';
 import 'package:truehub/providers/server_provider.dart';
 import 'package:truehub/providers/tray_provider.dart';
 import 'package:truehub/navigation/app_router.dart';
@@ -69,6 +70,7 @@ class _TrueNASManagerAppState extends State<TrueNASManagerApp> {
       healthSource: context.read<HealthProvider>(),
       appsSource: context.read<AppProvider>(),
       connectionSource: context.read<ConnectionStatusProvider>(),
+      poolsSource: context.read<PoolProvider>(),
       onShowWindow: WindowManager.showWindow,
       onQuitApp: WindowManager.quitApp,
       child: AppLifecycleReconnector(
