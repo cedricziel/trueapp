@@ -305,29 +305,24 @@ void main() {
       ]);
 
       final eventsFuture = client.alertEvents.take(3).toList();
-      final peer = server.lastPeer!;
-      peer.sendNotification('collection_update', {
-        'collection': 'alert.list',
-        'msg': 'ADDED',
-        'id': 'a1',
-        'fields': {'uuid': 'a1', 'level': 'WARNING', 'formatted': 'Hot'},
-      });
-      peer.sendNotification('collection_update', {
-        'collection': 'alert.list',
-        'msg': 'CHANGED',
-        'id': 'a1',
-        'fields': {
+      server.emit(
+        'alert.list',
+        msg: 'ADDED',
+        id: 'a1',
+        fields: {'uuid': 'a1', 'level': 'WARNING', 'formatted': 'Hot'},
+      );
+      server.emit(
+        'alert.list',
+        msg: 'CHANGED',
+        id: 'a1',
+        fields: {
           'uuid': 'a1',
           'level': 'WARNING',
           'formatted': 'Hot',
           'dismissed': true,
         },
-      });
-      peer.sendNotification('collection_update', {
-        'collection': 'alert.list',
-        'msg': 'REMOVED',
-        'id': 'a1',
-      });
+      );
+      server.emit('alert.list', msg: 'REMOVED', id: 'a1');
 
       final events = await eventsFuture.timeout(const Duration(seconds: 5));
 
@@ -1102,9 +1097,9 @@ void main() {
 
         final statsFuture = client.systemStatsStream.first;
 
-        server.lastPeer!.sendNotification('collection_update', {
-          'collection': 'reporting.realtime',
-          'fields': {
+        server.emit(
+          'reporting.realtime',
+          fields: {
             'cpu': {
               'cpu': {'usage': 12.3, 'temp': 45.0},
             },
@@ -1113,7 +1108,7 @@ void main() {
             'disks': <String, dynamic>{},
             'interfaces': <String, dynamic>{},
           },
-        });
+        );
 
         final stats = await statsFuture.timeout(const Duration(seconds: 5));
 
@@ -1130,9 +1125,9 @@ void main() {
 
       final statsFuture = client.appStatsStream.first;
 
-      server.lastPeer!.sendNotification('collection_update', {
-        'collection': 'app.stats',
-        'fields': [
+      server.emit(
+        'app.stats',
+        fields: [
           {
             'app_name': 'plex',
             'cpu_usage': 5.5,
@@ -1143,7 +1138,7 @@ void main() {
             ],
           },
         ],
-      });
+      );
 
       final statsMap = await statsFuture.timeout(const Duration(seconds: 5));
 
@@ -1271,6 +1266,56 @@ void main() {
         expect(telemetry.loggerNames, isNotEmpty);
       },
     );
+
+    test('a successful connect and request record connection and rpc '
+        'duration metrics with low-cardinality attributes', () async {
+      server.onMethod('app.categories', (_) => ['media']);
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(client.close);
+
+      await client.getAppCategories();
+
+      final attempt = telemetry.measurementsOf('truehub.connection.attempts');
+      expect(attempt, hasLength(1));
+      expect(attempt.single.value, 1);
+      expect(attempt.single.attributes, {'outcome': 'success'});
+
+      final duration = telemetry.measurementsOf('rpc.client.duration');
+      expect(duration, hasLength(1));
+      expect(duration.single.unit, 'ms');
+      expect(duration.single.value, greaterThanOrEqualTo(0));
+      expect(duration.single.attributes, {
+        'rpc.system': 'jsonrpc',
+        'rpc.method': 'app.categories',
+      });
+    });
+
+    test('a failed connect and request record failure outcomes with '
+        'error.type', () async {
+      await server.stop();
+      final telemetry = FakeTelemetryService();
+      final deadClient = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(deadClient.close);
+
+      await expectLater(
+        deadClient.getAppCategories(),
+        throwsA(isA<ConnectionException>()),
+      );
+
+      final attempt = telemetry.measurementsOf('truehub.connection.attempts');
+      expect(attempt.single.attributes, {
+        'outcome': 'failure',
+        'error.type': 'connection_refused',
+      });
+
+      final duration = telemetry.measurementsOf('rpc.client.duration');
+      expect(duration.single.attributes, {
+        'rpc.system': 'jsonrpc',
+        'rpc.method': 'app.categories',
+        'error.type': 'connection_refused',
+      });
+    });
 
     test('a failed connect names the underlying cause, not just the mapped '
         'ConnectionException', () async {

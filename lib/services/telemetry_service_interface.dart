@@ -15,6 +15,11 @@ abstract class TelemetryServiceInterface {
   /// name/version pair.
   Tracer getTracer({String name = 'truehub', String? version});
 
+  /// Returns a [Meter] for the given instrumentation scope. Disabled
+  /// telemetry yields a no-op meter. Implementations typically cache and
+  /// return the same instance for a given name/version pair.
+  Meter getMeter({String name = 'truehub', String? version});
+
   /// Records an error and its stack trace as a log record - the intended
   /// target for `FlutterError.onError` / `PlatformDispatcher.instance.onError`
   /// hooks, and for any `catch` block that wants a caught error to surface

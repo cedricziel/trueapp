@@ -389,7 +389,10 @@ void main() {
       // that outlives the test, tripping flutter_test's "pending timers"
       // assertion. `runRealAsync` steps outside the zone so it (and its
       // eventual `stop()`) behave like real sockets.
-      final fakeServer = (await runRealAsync(tester, FakeTrueNasServer.start))!;
+      final fakeServer = (await runRealAsync(
+        tester,
+        () => FakeTrueNasServer.start(accounts: {'admin': 'hunter2'}),
+      ))!;
 
       await tester.pumpWidget(createTestApp());
       await fillRequiredFields(tester, name: 'Fake Server', host: '127.0.0.1');
@@ -424,7 +427,10 @@ void main() {
     testWidgets('a rejected login reports authentication failure', (
       tester,
     ) async {
-      final fakeServer = (await runRealAsync(tester, FakeTrueNasServer.start))!;
+      final fakeServer = (await runRealAsync(
+        tester,
+        () => FakeTrueNasServer.start(accounts: {'admin': 'hunter2'}),
+      ))!;
       fakeServer.onMethod('auth.login', (_) => false);
 
       await tester.pumpWidget(createTestApp());
