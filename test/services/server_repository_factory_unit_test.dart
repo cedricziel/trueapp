@@ -4,7 +4,9 @@ import 'package:truehub/services/cloudkit_server_repository.dart';
 import 'package:truehub/services/database.dart';
 import 'package:truehub/services/server_repository_factory.dart';
 import 'package:truehub/services/sqlite_server_repository.dart';
+import 'package:truehub/services/tracing_server_repository.dart';
 
+import '../helpers/fake_telemetry_service.dart';
 import '../helpers/mock_cloudkit_service_adapter.dart';
 import '../helpers/test_database.dart';
 
@@ -85,6 +87,42 @@ void main() {
       final repo = await factory.create();
 
       expect(repo, isA<SqliteServerRepository>());
+    });
+
+    test('traces the SQLite repository when telemetry is given', () async {
+      final repo = await ServerRepositoryFactory(
+        serversDaoSource: closingTestDatabase(),
+        cloudKitServiceBuilder: MockCloudKitServiceAdapter.new,
+        isApplePlatform: false,
+        telemetry: FakeTelemetryService(),
+      ).create();
+
+      expect(repo, isA<TracingServerRepository>());
+    });
+
+    test('traces the CloudKit repository when telemetry is given', () async {
+      final telemetry = FakeTelemetryService();
+      final repo = await ServerRepositoryFactory(
+        serversDaoSource: closingTestDatabase(),
+        cloudKitServiceBuilder: MockCloudKitServiceAdapter.new,
+        isApplePlatform: true,
+        telemetry: telemetry,
+      ).create();
+      addTearDown(repo.dispose);
+
+      expect(repo, isA<TracingServerRepository>());
+      expect(telemetry.spans.first.attributes['db.system.name'], 'cloudkit');
+    });
+
+    test('traces the SQLite fallback', () async {
+      final repo = await ServerRepositoryFactory(
+        serversDaoSource: closingTestDatabase(),
+        cloudKitServiceBuilder: () => _UnavailableCloudKitService(),
+        isApplePlatform: true,
+        telemetry: FakeTelemetryService(),
+      ).create();
+
+      expect(repo, isA<TracingServerRepository>());
     });
 
     test('disposes the CloudKit service it fell back from', () async {
