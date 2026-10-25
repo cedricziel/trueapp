@@ -41,7 +41,13 @@ void main() {
     expect(await client.sendRequest('core.ping'), 'pong');
     await expectLater(
       client.sendRequest('auth.me'),
-      throwsA(isA<json_rpc.RpcException>()),
+      throwsA(
+        isA<json_rpc.RpcException>().having(
+          (e) => (e.data as Map)['errname'],
+          'errname',
+          'ENOTAUTHENTICATED',
+        ),
+      ),
     );
 
     await client.sendRequest('auth.login', ['root', 'password']);
@@ -81,6 +87,13 @@ void main() {
     expect(received, [
       {'collection': 'alert.list', 'msg': 'ADDED', 'id': 'a1'},
     ]);
+  });
+
+  test('skips connections the client closed', () async {
+    await client.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(() => server.emit('alert.list', msg: 'ADDED'), returnsNormally);
   });
 
   test('serves only /api/current', () async {

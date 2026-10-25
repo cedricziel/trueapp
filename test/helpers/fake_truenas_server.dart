@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:json_rpc_2/error_code.dart' as error_code;
 import 'package:json_rpc_2/json_rpc_2.dart' as json_rpc;
 import 'package:stream_channel/stream_channel.dart';
 import 'package:web_socket_channel/io.dart';
@@ -129,7 +128,9 @@ class FakeTrueNasServer {
     }
     peer.registerFallback((params) => _dispatch(params, connection));
     _peers.add(peer);
-    unawaited(peer.listen().catchError((_) {}));
+    unawaited(
+      peer.listen().catchError((_) {}).whenComplete(() => _peers.remove(peer)),
+    );
   }
 
   Future<Object?> _dispatch(
@@ -143,9 +144,15 @@ class FakeTrueNasServer {
       if (connection.user == null &&
           method != 'auth.login' &&
           method != 'core.ping') {
+        // Shape copied from a live SCALE box.
         throw json_rpc.RpcException(
-          error_code.INVALID_REQUEST,
-          'Not authenticated',
+          -32001,
+          'Method call error',
+          data: {
+            'error': 207,
+            'errname': 'ENOTAUTHENTICATED',
+            'reason': '[ENOTAUTHENTICATED] Not authenticated',
+          },
         );
       }
       final handler = _handlers[method] ?? _defaultHandler(method);
