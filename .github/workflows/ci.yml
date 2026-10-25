@@ -57,6 +57,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      # The root analyze and format steps also cover packages/synology_api,
+      # which resolves its own dependencies.
+      - name: Get synology_api dependencies
+        working-directory: packages/synology_api
+        run: dart pub get
+
       - name: Generate code
         run: dart run build_runner build --delete-conflicting-outputs
 
@@ -81,6 +87,10 @@ jobs:
       - name: Run truenas_native_plugins package tests
         working-directory: packages/truenas_native_plugins
         run: flutter test --reporter=expanded --timeout=30s
+
+      - name: Run synology_api package tests
+        working-directory: packages/synology_api
+        run: dart test --reporter=expanded --timeout=30s
 
       - name: Enforce coverage floor
         run: dart run tool/check_coverage.dart
