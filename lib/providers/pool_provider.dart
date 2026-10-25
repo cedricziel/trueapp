@@ -16,6 +16,7 @@ class PoolProvider extends ChangeNotifier
   final ServerClientSession _session;
   final TelemetryServiceInterface? _telemetryService;
   List<Pool> _pools = [];
+  int _generation = 0;
   bool _isLoading = false;
   ConnectionError? _connectionError;
 
@@ -44,6 +45,7 @@ class PoolProvider extends ChangeNotifier
 
   @override
   Future<void> setServer(NasServer? server) async {
+    _generation++;
     _pools = [];
     _connectionError = null;
 
@@ -58,26 +60,31 @@ class PoolProvider extends ChangeNotifier
   Future<void> loadPools() async {
     final pendingSwitch = pendingServerSwitch;
     if (pendingSwitch != null) await pendingSwitch;
-    if (_apiClient == null) return;
+    final generation = _generation;
+    final client = _apiClient;
+    if (client == null) return;
 
     _isLoading = true;
     _connectionError = null;
     notifyListeners();
 
     try {
-      _pools = await _apiClient!.getPools();
-      // Clear any previous errors on successful load
+      final pools = await client.getPools();
+      if (generation != _generation) return;
+
+      _pools = pools;
       _connectionError = null;
     } on ConnectionException catch (e, stackTrace) {
-      _connectionError = e.error;
+      if (generation == _generation) _connectionError = e.error;
       _telemetryService?.recordError(
         e,
         stackTrace,
         context: 'PoolProvider.loadPools',
       );
     } catch (e, stackTrace) {
-      // Handle unexpected errors
-      _connectionError = ConnectionError.unknown(details: e.toString());
+      if (generation == _generation) {
+        _connectionError = ConnectionError.unknown(details: e.toString());
+      }
       _telemetryService?.recordError(
         e,
         stackTrace,
