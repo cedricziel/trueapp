@@ -147,6 +147,90 @@ void main() {
     expect(find.text('Running'), findsOneWidget);
     expect(find.text('Stopped'), findsOneWidget);
   });
+
+  group('dismissing alerts', () {
+    const warning = Alert(
+      id: 'a1',
+      level: AlertLevel.warning,
+      message: 'Disk temperature high',
+    );
+    const dismissedAlert = Alert(
+      id: 'a2',
+      level: AlertLevel.info,
+      message: 'Update available',
+      dismissed: true,
+    );
+
+    Future<void> swipeLeft(WidgetTester tester, Finder target) async {
+      await tester.fling(target, const Offset(-400, 0), 1000);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('swiping an alert left dismisses it', (tester) async {
+      useCompactSurface(tester);
+      final healthProvider = _FakeHealthProvider(
+        unifiedServerService,
+        alerts: [warning],
+      );
+      addTearDown(healthProvider.dispose);
+      await tester.pumpWidget(createTestApp(healthProvider));
+      await tester.pump();
+
+      await swipeLeft(tester, find.text('Disk temperature high').last);
+
+      expect(healthProvider.dismissedIds, ['a1']);
+    });
+
+    testWidgets('dismissed alerts are hidden until asked for', (tester) async {
+      useCompactSurface(tester);
+      final healthProvider = _FakeHealthProvider(
+        unifiedServerService,
+        alerts: [warning, dismissedAlert],
+      );
+      addTearDown(healthProvider.dispose);
+      await tester.pumpWidget(createTestApp(healthProvider));
+      await tester.pump();
+
+      expect(find.text('Update available'), findsNothing);
+
+      await tester.tap(find.text('Show dismissed'));
+      await tester.pump();
+
+      expect(find.text('Update available'), findsOneWidget);
+      expect(find.text('Hide dismissed'), findsOneWidget);
+    });
+
+    testWidgets('swiping a dismissed alert left restores it', (tester) async {
+      useCompactSurface(tester);
+      final healthProvider = _FakeHealthProvider(
+        unifiedServerService,
+        alerts: [dismissedAlert],
+      )..showDismissed = true;
+      addTearDown(healthProvider.dispose);
+      await tester.pumpWidget(createTestApp(healthProvider));
+      await tester.pump();
+
+      await swipeLeft(tester, find.text('Update available'));
+
+      expect(healthProvider.restoredIds, ['a2']);
+      expect(healthProvider.dismissedIds, isEmpty);
+    });
+
+    testWidgets('a failed dismissal tells the user', (tester) async {
+      useCompactSurface(tester);
+      final healthProvider = _FakeHealthProvider(
+        unifiedServerService,
+        alerts: [warning],
+      )..actionSucceeds = false;
+      addTearDown(healthProvider.dispose);
+      await tester.pumpWidget(createTestApp(healthProvider));
+      await tester.pump();
+
+      await swipeLeft(tester, find.text('Disk temperature high').last);
+
+      expect(find.text('Could Not Dismiss Alert'), findsOneWidget);
+    });
+  });
 }
 
 /// A [HealthProvider] whose data is seeded directly, bypassing the network
@@ -161,6 +245,21 @@ class _FakeHealthProvider extends HealthProvider {
   }) : super(clientManager: TestProviders.mockApiClientManager);
 
   int refreshCount = 0;
+  final List<String> dismissedIds = [];
+  final List<String> restoredIds = [];
+  bool actionSucceeds = true;
+
+  @override
+  Future<bool> dismissAlert(String alertId) async {
+    dismissedIds.add(alertId);
+    return actionSucceeds;
+  }
+
+  @override
+  Future<bool> restoreAlert(String alertId) async {
+    restoredIds.add(alertId);
+    return actionSucceeds;
+  }
 
   @override
   Future<void> refreshHealth() async => refreshCount++;
