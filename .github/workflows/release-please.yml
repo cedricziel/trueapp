@@ -55,7 +55,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history: the build number is the commit count at the tag.
           fetch-depth: 0
