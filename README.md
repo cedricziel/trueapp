@@ -6,6 +6,8 @@
 
 A Flutter application for managing TrueNAS servers from iOS and macOS devices.
 
+**Try the beta:** join on TestFlight at <https://testflight.apple.com/join/YJVPFkKU>.
+
 ## Features
 
 - **Multi-Server Management**: Register and manage multiple TrueNAS servers
@@ -47,6 +49,7 @@ The app follows a clean architecture pattern with:
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    flutter pub get
    ```
@@ -63,11 +66,13 @@ The app follows a clean architecture pattern with:
 ## Testing & Coverage
 
 Run the full test suite:
+
 ```bash
 flutter test
 ```
 
 Measure coverage locally the same way CI does:
+
 ```bash
 flutter test --coverage
 dart run tool/check_coverage.dart
@@ -91,6 +96,7 @@ platform difference rather than a real regression. Raise it when coverage
 rises; never lower it without a written reason.
 
 Two caveats worth knowing when reading the number:
+
 - `packages/truenas_native_plugins/lib` is a separate package and is not
   included in the report at all.
 - lcov only contains records for `lib/` files a test actually imported, so
@@ -119,6 +125,7 @@ lib/
 ## Development Status
 
 ### Completed
+
 - ✅ Project setup and architecture
 - ✅ Multi-server management (add, edit, delete, default server)
 - ✅ TrueNAS JSON-RPC API client with keepalive (ping/pong)
@@ -134,10 +141,12 @@ lib/
 - ✅ Adaptive Cupertino sidebar navigation with go_router ([#54](https://github.com/cedricziel/trueapp/issues/54))
 
 ### In Progress
+
 - 🚧 Breaking large screens into smaller reusable widgets ([#35](https://github.com/cedricziel/trueapp/issues/35))
 - 🚧 Raising test coverage towards the 80% goal
 
 ### Planned
+
 - 📋 Real-time alerts with push notifications ([#25](https://github.com/cedricziel/trueapp/issues/25))
 - 📋 Job/task monitor with progress tracking ([#26](https://github.com/cedricziel/trueapp/issues/26))
 - 📋 Service management (start/stop/restart) ([#27](https://github.com/cedricziel/trueapp/issues/27))
