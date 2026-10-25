@@ -21,6 +21,7 @@ import 'package:truehub/services/api_client_interface.dart';
 import 'package:truehub/providers/connection_status_provider.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 
 part 'truenas_api_client/error_mapping.dart';
 part 'truenas_api_client/connection.dart';

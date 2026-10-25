@@ -1174,6 +1174,96 @@ void main() {
       },
     );
 
+    test('a failed connect names the underlying cause, not just the mapped '
+        'ConnectionException', () async {
+      await server.stop();
+
+      final telemetry = FakeTelemetryService();
+      final deadClient = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(deadClient.close);
+
+      await expectLater(
+        deadClient.getAvailableApps(),
+        throwsA(
+          isA<ConnectionException>().having(
+            (e) => e.error.cause,
+            'cause',
+            isNotNull,
+          ),
+        ),
+      );
+
+      final connect = telemetry.spans.singleWhere(
+        (s) => s.name == 'truenas.connect',
+      );
+      expect(connect.attributes['error.type'], isNotNull);
+      expect(connect.attributes['error.type'], isNot('ConnectionException'));
+      expect(connect.attributes['server.address'], '127.0.0.1');
+      expect(connect.attributes['server.port'], testServer.port);
+      expect(
+        connect.exceptions.map((e) => e.exception),
+        isNot(everyElement(isA<ConnectionException>())),
+        reason: 'one recorded exception should be the real failure',
+      );
+
+      final log = telemetry.logRecords.singleWhere(
+        (r) => r.body.toString().contains('Connection failed'),
+      );
+      expect(log.attributes['error.type'], connect.attributes['error.type']);
+      expect(log.attributes['server.address'], '127.0.0.1');
+      expect(log.body.toString(), isNot(endsWith('Server not reachable')));
+    });
+
+    test('a request span carries rpc.system, rpc.method and the endpoint '
+        'host and port, but no params or url', () async {
+      server.onMethod('app.categories', (_) => ['media']);
+
+      final telemetry = FakeTelemetryService();
+      final client = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(client.close);
+
+      await client.getAppCategories();
+
+      final span = telemetry.spans.singleWhere(
+        (s) => s.name == 'truenas.apps.categories',
+      );
+      expect(span.attributes['rpc.system'], 'jsonrpc');
+      expect(span.attributes['rpc.method'], 'app.categories');
+      expect(span.attributes['server.address'], '127.0.0.1');
+      expect(span.attributes['server.port'], testServer.port);
+      expect(
+        span.attributes.values.whereType<String>().where(
+          (v) => v.contains('://'),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a failed request span records error.type and the real cause when '
+        'the connection failed underneath it', () async {
+      await server.stop();
+
+      final telemetry = FakeTelemetryService();
+      final deadClient = TrueNasApiClient(testServer, null, telemetry);
+      addTearDown(deadClient.close);
+
+      await expectLater(
+        deadClient.getAppCategories(),
+        throwsA(isA<ConnectionException>()),
+      );
+
+      final span = telemetry.spans.singleWhere(
+        (s) => s.name == 'truenas.apps.categories',
+      );
+      expect(span.attributes['error.type'], 'connection_refused');
+      expect(span.attributes['rpc.method'], 'app.categories');
+      expect(span.exceptions.map((e) => e.exception), contains(isA<Object>()));
+      expect(
+        span.exceptions.map((e) => e.exception),
+        isNot(everyElement(isA<ConnectionException>())),
+      );
+    });
+
     test('passing telemetry: null behaves identically to the untraced client '
         '(no crash, same success/failure outcomes)', () async {
       final client = TrueNasApiClient(testServer);

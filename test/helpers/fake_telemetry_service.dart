@@ -15,13 +15,16 @@ class FakeTelemetryService implements TelemetryServiceInterface {
   /// exceptions without needing a real SDK span pipeline.
   final List<FakeSpan> spans = [];
 
+  /// Every record emitted through any [Logger] this service has vended.
+  final List<LogRecord> logRecords = [];
+
   int flushCount = 0;
   int shutdownCount = 0;
 
   @override
   Logger getLogger({String name = 'truehub', String? version}) {
     loggerNames.add(name);
-    return _FakeLogger();
+    return _FakeLogger(logRecords);
   }
 
   @override
@@ -69,11 +72,11 @@ class RecordedTelemetryError {
   final bool fatal;
 }
 
-/// Discards every record - [FakeTelemetryService] only needs to prove
-/// [TelemetryServiceInterface.getLogger] was called with the right scope,
-/// not to inspect what was logged through it.
+/// Collects every emitted record into the owning [FakeTelemetryService].
 class _FakeLogger extends Logger {
-  final List<LogRecord> records = [];
+  _FakeLogger(this.records);
+
+  final List<LogRecord> records;
 
   @override
   void emit(LogRecord record) => records.add(record);

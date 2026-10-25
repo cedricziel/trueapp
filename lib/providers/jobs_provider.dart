@@ -9,6 +9,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 
 final _log = appLogger('providers.jobs');
 
@@ -115,7 +116,7 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
       _log.info('Successfully subscribed to jobs stream');
     } catch (e, stackTrace) {
       _setError('Failed to subscribe to jobs: ${e.toString()}');
-      _log.error('Subscription error', error: e);
+      _log.errorWithCause('Subscription error', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -145,7 +146,7 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
 
       _log.info('Successfully unsubscribed from jobs');
     } catch (e, stackTrace) {
-      _log.error('Error during unsubscription', error: e);
+      _log.errorWithCause('Error during unsubscription', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -234,7 +235,7 @@ class JobsProvider extends ChangeNotifier with ActiveServerFollower {
   void _onJobsError(dynamic error) {
     _setError('Jobs stream error: ${error.toString()}');
     _setLoading(false);
-    _log.error('Stream error', error: error);
+    _log.errorWithCause('Stream error', error);
   }
 
   void _onJobsStreamDone() {

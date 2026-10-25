@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_otel/flutter_otel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truehub/models/connection_error.dart';
 import 'package:truehub/services/telemetry_config.dart';
 import 'package:truehub/services/telemetry_service.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
@@ -45,6 +48,36 @@ void main() {
       final output = printed.join('\n');
       expect(output, contains('password=[REDACTED]'));
       expect(output, isNot(contains('hunter2')));
+    });
+
+    test('recordError logs the cause behind a ConnectionException', () async {
+      final printed = <String>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) => printed.add(message ?? '');
+      addTearDown(() => debugPrint = originalDebugPrint);
+
+      final service = await TelemetryService.initialize(disabledConfig);
+      service.recordError(
+        ConnectionException(
+          ConnectionError.networkUnreachable(
+            cause: const SocketException(
+              'Connection failed',
+              osError: OSError('Connection refused', 61),
+            ),
+          ),
+        ),
+        StackTrace.empty,
+        context: 'HealthProvider.loadHealth',
+      );
+      await service.flush();
+
+      final output = printed.join('\n');
+      expect(
+        output,
+        contains('HealthProvider.loadHealth: Server not reachable'),
+      );
+      expect(output, contains('SocketException'));
+      expect(output, contains('connection_refused'));
     });
 
     test(

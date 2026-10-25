@@ -10,6 +10,7 @@ import 'package:truehub/services/server_client_session.dart';
 import 'package:truehub/services/server_credentials_lookup.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 
 final _log = appLogger('providers.system_stats');
 
@@ -111,7 +112,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
       _log.info('Successfully subscribed to stats stream');
     } catch (e, stackTrace) {
       _setError('Failed to subscribe to system stats: ${e.toString()}');
-      _log.error('Subscription error', error: e);
+      _log.errorWithCause('Subscription error', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -147,7 +148,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
 
       _log.info('Successfully unsubscribed from stats');
     } catch (e, stackTrace) {
-      _log.error('Error during unsubscription', error: e);
+      _log.errorWithCause('Error during unsubscription', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
@@ -187,7 +188,7 @@ class SystemStatsProvider extends ChangeNotifier with ActiveServerFollower {
   void _onStatsError(dynamic error) {
     _setError('System stats stream error: ${error.toString()}');
     _setLoading(false);
-    _log.error('Stream error', error: error);
+    _log.errorWithCause('Stream error', error);
   }
 
   void _onStatsStreamDone() {

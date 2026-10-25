@@ -10,6 +10,7 @@ import 'package:truehub/services/api_client_manager_interface.dart';
 import 'package:truehub/services/telemetry_service_interface.dart';
 import 'package:truehub/services/unified_server_service.dart';
 import 'package:truehub/services/app_logger.dart';
+import 'package:truehub/services/error_diagnostics.dart';
 
 final _log = appLogger('providers.fleet_status');
 
@@ -154,7 +155,7 @@ class FleetStatusProvider extends ChangeNotifier {
           connectivity: FleetServerConnectivity.offline,
         );
       }
-      _log.error('Failed to refresh ${server.id}', error: e);
+      _log.errorWithCause('Failed to refresh ${server.id}', e);
       _telemetryService?.recordError(
         e,
         stackTrace,
