@@ -6,7 +6,9 @@ class ServerHealth extends Equatable {
   final double cpuUsage;
   final double memoryUsage;
   final double diskUsage;
-  final int temperature;
+
+  /// CPU temperature in °C, null when the hardware reports none.
+  final int? temperature;
   final bool isOnline;
   final List<DiskInfo> disks;
   final NetworkInfo network;
@@ -17,7 +19,7 @@ class ServerHealth extends Equatable {
     required this.cpuUsage,
     required this.memoryUsage,
     required this.diskUsage,
-    required this.temperature,
+    this.temperature,
     required this.isOnline,
     required this.disks,
     required this.network,

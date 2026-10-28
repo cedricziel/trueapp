@@ -1,6 +1,6 @@
 part of '../truenas_api_client.dart';
 
-mixin _HealthOps on _ClientTransport implements HealthApi {
+mixin _HealthOps on _ClientTransport, _SystemStatsOps implements HealthApi {
   Future<Map<String, dynamic>> _getSystemInfo() async {
     try {
       final result = await _sendRequest('system.info');
@@ -10,30 +10,24 @@ mixin _HealthOps on _ClientTransport implements HealthApi {
     }
   }
 
-  Future<Map<String, dynamic>> _getSystemCpuInfo() async {
+  /// One `reporting.realtime` sample: SCALE has no request/response method
+  /// for live CPU, memory or temperature. Reuses a live subscription;
+  /// otherwise subscribes for the sample and the last concurrent sampler
+  /// closes it again.
+  Future<SystemStats> _sampleSystemStats() async {
+    final next = systemStatsStream.first.timeout(const Duration(seconds: 10))
+      ..ignore();
+    _realtimeSamplers++;
     try {
-      final result = await _sendRequest('system.cpu_info');
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<Map<String, dynamic>> _getSystemMemoryInfo() async {
-    try {
-      final result = await _sendRequest('system.memory_info');
-      return result as Map<String, dynamic>;
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<double> _getSystemTemperature() async {
-    try {
-      final result = await _sendRequest('system.temperature');
-      return (result as num).toDouble();
-    } catch (e) {
-      throw _handleError(e);
+      if (!_isSubscribedToRealtime || !_hasLiveConnection) {
+        if (!_wantsSystemStats) _realtimeForSampleOnly = true;
+        await _subscribeToRealtime();
+      }
+      return await next;
+    } finally {
+      if (--_realtimeSamplers == 0 && _realtimeForSampleOnly) {
+        await unsubscribeFromSystemStats();
+      }
     }
   }
 
@@ -59,19 +53,17 @@ mixin _HealthOps on _ClientTransport implements HealthApi {
   Future<ServerHealth> getServerHealth() async {
     try {
       await _getSystemInfo();
-      final cpuInfo = await _getSystemCpuInfo();
-      final memoryInfo = await _getSystemMemoryInfo();
       final diskInfo = await _queryDisks();
-      final temperature = await _getSystemTemperature();
       final networkInfo = await _getNetworkInfo();
+      final stats = await _sampleSystemStats();
 
       return ServerHealth(
         serverId: _server.id,
         timestamp: DateTime.now(),
-        cpuUsage: _extractCpuUsage(cpuInfo),
-        memoryUsage: _extractMemoryUsage(memoryInfo),
+        cpuUsage: stats.cpu.overall.usage,
+        memoryUsage: stats.memory.physicalMemoryUsagePercent,
         diskUsage: _extractDiskUsage(diskInfo),
-        temperature: temperature.toInt(),
+        temperature: stats.cpu.overall.temperature?.round(),
         isOnline: true,
         disks: _extractDisks(diskInfo),
         network: _extractNetwork(networkInfo),
@@ -115,16 +107,6 @@ mixin _HealthOps on _ClientTransport implements HealthApi {
     } catch (e) {
       return false;
     }
-  }
-
-  double _extractCpuUsage(Map<String, dynamic> cpuInfo) {
-    return (cpuInfo['usage'] as num?)?.toDouble() ?? 0.0;
-  }
-
-  double _extractMemoryUsage(Map<String, dynamic> memoryInfo) {
-    final used = (memoryInfo['used'] as num?)?.toDouble() ?? 0.0;
-    final total = (memoryInfo['total'] as num?)?.toDouble() ?? 1.0;
-    return total > 0 ? (used / total) * 100 : 0.0;
   }
 
   double _extractDiskUsage(List<Map<String, dynamic>> diskInfo) {

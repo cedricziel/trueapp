@@ -8,7 +8,12 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
   }
 
   @override
-  Future<void> subscribeToSystemStats() async {
+  Future<void> subscribeToSystemStats() {
+    _realtimeForSampleOnly = false;
+    return _subscribeToRealtime();
+  }
+
+  Future<void> _subscribeToRealtime() async {
     // A subscription only exists for as long as the socket that created it.
     // After the connection drops - which is what the OS does to a backgrounded
     // app - the flag is stale and re-subscribing is exactly what's needed.
@@ -64,6 +69,7 @@ mixin _SystemStatsOps on _ClientTransport implements SystemStatsApi {
       _log.error('Error unsubscribing from system stats', error: e);
     } finally {
       _wantsSystemStats = false;
+      _realtimeForSampleOnly = false;
       _isSubscribedToRealtime = false;
       _realtimeSubscriptionId = null;
       await _systemStatsController?.close();

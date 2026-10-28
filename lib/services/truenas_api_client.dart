@@ -100,6 +100,11 @@ abstract class _ClientBase
   /// outlive the connection that carried it.
   bool _wantsSystemStats = false;
 
+  /// The realtime subscription exists only for health samples, so the last
+  /// sampler must close it again. Cleared when anyone subscribes for real.
+  bool _realtimeForSampleOnly = false;
+  int _realtimeSamplers = 0;
+
   // App stats subscription management
   StreamController<Map<String, AppResourceUsage>>? _appStatsController;
   String? _appStatsSubscriptionId;
@@ -283,13 +288,13 @@ abstract class _ClientTransport = _ClientBase
 
 class TrueNasApiClient extends _ClientTransport
     with
+        _SystemStatsOps,
         _HealthOps,
         _ServicesOps,
         _PoolsOps,
         _DatasetsOps,
         _FilesOps,
         _AppsOps,
-        _SystemStatsOps,
         _AppStatsOps,
         _JobsOps,
         _AlertsOps
