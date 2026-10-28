@@ -1049,16 +1049,21 @@ void main() {
     test(
       'upgradeApp, startApp, stopApp and restartApp report success',
       () async {
+        List<Object?>? redeployParams;
         server
           ..onMethod('app.upgrade', (_) => {'name': 'plex'})
           ..onMethod('app.start', (_) => {'name': 'plex'})
           ..onMethod('app.stop', (_) => {'name': 'plex'})
-          ..onMethod('app.restart', (_) => {'name': 'plex'});
+          ..onMethod('app.redeploy', (params) {
+            redeployParams = params.asList;
+            return 42;
+          });
 
         expect(await client.upgradeApp('plex'), isTrue);
         expect(await client.startApp('plex'), isTrue);
         expect(await client.stopApp('plex'), isTrue);
         expect(await client.restartApp('plex'), isTrue);
+        expect(redeployParams, ['plex']);
       },
     );
 
@@ -1079,7 +1084,7 @@ void main() {
             (_) => throw json_rpc.RpcException(500, 'boom'),
           )
           ..onMethod(
-            'app.restart',
+            'app.redeploy',
             (_) => throw json_rpc.RpcException(500, 'boom'),
           );
 
