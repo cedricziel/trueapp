@@ -465,46 +465,118 @@ void main() {
       expect(listing.first.name, 'file.txt');
     });
 
-    test('getServerHealth combines several RPCs into one summary', () async {
-      server
-        ..onMethod('system.info', (_) => <String, dynamic>{})
-        ..onMethod('system.cpu_info', (_) => {'usage': 12.5})
-        ..onMethod('system.memory_info', (_) => {'used': 50, 'total': 100})
-        ..onMethod(
-          'disk.query',
-          (_) => [
-            {
-              'name': 'sda',
-              'model': 'WD',
-              'serial': 'ABC',
-              'size': 1000,
-              'used': 400,
-              'temperature': 35,
-              'health': 'OK',
+    group('getServerHealth', () {
+      Map<String, dynamic> realtime({double? temp}) => {
+        'cpu': {
+          'cpu': {'usage': 12.5, 'temp': temp},
+        },
+        'memory': {
+          'physical_memory_total': 100,
+          'physical_memory_available': 50,
+        },
+        'zfs': <String, dynamic>{},
+        'disks': <String, dynamic>{},
+        'interfaces': <String, dynamic>{},
+      };
+
+      void serveHealthMethods({double? temp = 40.0}) {
+        server
+          ..onMethod('system.info', (_) => <String, dynamic>{})
+          ..onMethod(
+            'disk.query',
+            (_) => [
+              {
+                'name': 'sda',
+                'model': 'WD',
+                'serial': 'ABC',
+                'size': 1000,
+                'used': 400,
+                'temperature': 35,
+                'health': 'OK',
+              },
+            ],
+          )
+          ..onMethod(
+            'network.general.summary',
+            (_) => {
+              'download_speed': 10,
+              'upload_speed': 5,
+              'total_download': 100,
+              'total_upload': 50,
             },
-          ],
-        )
-        ..onMethod('system.temperature', (_) => 40.0)
-        ..onMethod(
-          'network.general.summary',
-          (_) => {
-            'download_speed': 10,
-            'upload_speed': 5,
-            'total_download': 100,
-            'total_upload': 50,
-          },
-        );
+          )
+          ..onMethod('core.subscribe', (params) {
+            if (params.asList.first == 'reporting.realtime') {
+              Timer(
+                const Duration(milliseconds: 20),
+                () => server.emit(
+                  'reporting.realtime',
+                  fields: realtime(temp: temp),
+                ),
+              );
+            }
+            return 'sub-realtime';
+          });
+      }
 
-      final health = await client.getServerHealth();
+      test('takes CPU, memory and temperature from a realtime sample '
+          '(SCALE 25.10)', () async {
+        serveHealthMethods();
 
-      expect(health.serverId, testServer.id);
-      expect(health.cpuUsage, 12.5);
-      expect(health.memoryUsage, 50.0);
-      expect(health.diskUsage, 40.0);
-      expect(health.temperature, 40);
-      expect(health.isOnline, isTrue);
-      expect(health.disks, hasLength(1));
-      expect(health.network.downloadSpeed, 10);
+        final health = await client.getServerHealth();
+
+        expect(health.serverId, testServer.id);
+        expect(health.cpuUsage, 12.5);
+        expect(health.memoryUsage, 50.0);
+        expect(health.temperature, 40);
+        expect(health.diskUsage, 40.0);
+        expect(health.isOnline, isTrue);
+        expect(health.disks, hasLength(1));
+        expect(health.network.downloadSpeed, 10);
+      });
+
+      test('closes a subscription it opened only for the sample', () async {
+        serveHealthMethods();
+
+        await client.getServerHealth();
+
+        expect(server.successfulCalls('core.subscribe'), 1);
+        expect(server.successfulCalls('core.unsubscribe'), 1);
+      });
+
+      test('concurrent samples share one subscription', () async {
+        serveHealthMethods();
+
+        final results = await Future.wait([
+          client.getServerHealth(),
+          client.getServerHealth(),
+        ]);
+
+        expect(results.map((h) => h.cpuUsage), [12.5, 12.5]);
+        expect(server.successfulCalls('core.unsubscribe'), 1);
+      });
+
+      test('reuses a live stats subscription and leaves it open', () async {
+        serveHealthMethods();
+        await client.subscribeToSystemStats();
+        final sample = client.getServerHealth();
+        server.emit('reporting.realtime', fields: realtime(temp: 40.0));
+
+        final health = await sample;
+
+        expect(health.cpuUsage, 12.5);
+        expect(server.successfulCalls('core.subscribe'), 1);
+        expect(server.successfulCalls('core.unsubscribe'), 0);
+      });
+
+      test('reports no temperature when the hardware has no sensor', () async {
+        serveHealthMethods(temp: null);
+
+        final health = await client.getServerHealth();
+
+        expect(health.temperature, isNull);
+        expect(health.cpuUsage, 12.5);
+      });
     });
 
     test('testConnection returns true when the server responds', () async {
