@@ -297,7 +297,9 @@ mixin _AppsOps on _ClientTransport implements AppsApi {
   Future<bool> restartApp(String appName) async {
     try {
       await _ensureAuthenticated();
-      final result = await _request('app.restart', [appName]);
+      // SCALE has no app.restart; app.redeploy is what the TrueNAS UI uses.
+      // It returns a job id, so a non-null result means it was accepted.
+      final result = await _request('app.redeploy', [appName]);
       return result != null;
     } catch (e) {
       _log.error(
