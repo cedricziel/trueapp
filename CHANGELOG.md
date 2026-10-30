@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.1](https://github.com/cedricziel/trueapp/compare/v0.16.0...v0.16.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* read server health from methods SCALE actually serves ([#278](https://github.com/cedricziel/trueapp/issues/278)) ([04cde2e](https://github.com/cedricziel/trueapp/commit/04cde2efe4bd5f6a18d229bbce081049257bbd79))
+* restart apps with app.redeploy ([#277](https://github.com/cedricziel/trueapp/issues/277)) ([bf09650](https://github.com/cedricziel/trueapp/commit/bf09650d7c4f66e334fc49663984bf6533b7466c))
+
 ## [0.16.0](https://github.com/cedricziel/trueapp/compare/v0.15.0...v0.16.0) (2026-10-25)
 
 
