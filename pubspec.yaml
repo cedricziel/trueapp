@@ -35,7 +35,7 @@ dependencies:
   uuid: ^4.6.0
 
   # UI enhancements
-  flutter_slidable: ^4.0.3
+  flutter_slidable: ^5.2.0
   stream_channel: ^2.1.4
 
   # WebSocket support
